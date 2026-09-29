@@ -7,10 +7,12 @@
     h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
     return (h >>> 0) / 4294967296;
   }
-  const SOLID = { outdoor: new Set('T~fgShDrwxkuBA'.split(''))   // Laternen (L, e) sind begehbar
-  , interior: new Set('WnotbkcauyzjlFAKQZMP'.split('')) };
-  const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle' };
-  const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240' };
+  const SOLID = { outdoor: new Set('T~fgShDrwxkuBAHY'.split(''))   // v15: H Höhlenwand, Y Tropfstein/Kristall
+   // Laternen (L, e) sind begehbar
+  , interior: new Set('WnotbkcauyzjlFAKQZMPXVG'.split(''))   // v15: X Kratzbaum, V Topfpflanze, G Sofa
+ };
+  const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle', j: 'hoehle' };
+  const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240', hoehle: '150,140,130' };
   G.MAPS = {};
   G.flag = k => (G.state && G.state.flags[k]) || 0;
   const q1 = () => G.flag('q1');
@@ -24,7 +26,7 @@
     2: 'Fange im Nebelgras südlich des Dorfes einen wilden Geist (Tasche → Seelenfänger).',
     3: 'Kehr zu Ilse auf den Dorfplatz zurück.',
     4: 'Geh zum Leuchtturm an der Nebelküste (Ostweg bei den Gräbern, dann durch die Nebelbank).',
-    5: 'Such den Leuchtturmwärter Onno – er kann nicht weit vom Turm sein.',
+    5: G.FEAT.cave ? 'Such den Leuchtturmwärter Onno – sein Platz hinter dem Leuchtturm ist nur durch die Klippenhöhle erreichbar (Eingang am Küstenpfad).' : 'Such den Leuchtturmwärter Onno – er kann nicht weit vom Turm sein.',
     6: 'Geh nach Hause und verabschiede dich von Mutter und Vater.',
     7: 'Geh zum Hafen an der Nebelküste – das Nebelhorn hat gerufen.',
     8: 'An Bord der «Nebelschwalbe» gehen – Fortsetzung folgt!'
@@ -65,7 +67,8 @@
       { x: 4, y: 3, roof: '#4e3c70', id: 'home' }, { x: 11, y: 3, roof: '#3a4c6c', id: 'hedda' },
       { x: 21, y: 3, roof: '#5e3c4e', id: 'oda' }, { x: 22, y: 9, roof: '#40505e', id: 'jorin' },
       // neu: Wassermühle am Dorfteich (Rad im Mühlgraben) und Schmiede am Ostweg (Gebäude im Comic-Pixelstil, siehe BUILD)
-      { x: 2, y: 7, id: 'muehle', art: 'muehle' }, { x: 26, y: 12, id: 'schmiede', art: 'schmiede' }
+      { x: 2, y: 7, id: 'muehle', art: 'muehle' }, { x: 26, y: 12, id: 'schmiede', art: 'schmiede' },
+      ...(G.FEAT.cats ? [{ x: 10, y: 11, roof: '#6a4a3a', id: 'katzen' }] : [])   // v16: Kevin & Cassandra mit Filou und Mira
     ];
     for (const h of D.houses) { rect(D, h.x, h.y, h.x + 3, h.y + 2, 'h'); set(D, h.x + 1, h.y + 2, 'D'); }
     // Dorfteich: unregelmässige Uferlinie (Kollision bleibt kachelgenau)
@@ -86,10 +89,13 @@
     [[8, 22], [10, 25], [5, 19], [24, 20], [28, 21], [22, 28], [14, 29], [12, 19]].forEach(([x, y]) => set(D, x, y, 'T'));
     [[14, 18], [18, 20], [18, 18], [2, 28], [31, 19], [20, 25], [30, 27]].forEach(([x, y]) => set(D, x, y, '*'));
     set(D, 16, 30, ',');
+    // v15: Weg vom Katzenhaus zur Hauptstrasse; Bäume, die das Dach verdecken würden, weichen
+    if (G.FEAT.cats) { set(D, 12, 10, '.'); set(D, 10, 14, '.'); rect(D, 11, 14, 11, 15, ','); rect(D, 11, 15, 15, 15, ',');
+    for (const [x, y] of [[10, 11], [11, 11], [12, 11], [13, 11], [10, 12], [11, 12], [12, 12], [13, 12], [10, 13], [12, 13], [13, 13]]) set(D, x, y, 'h'); set(D, 11, 13, 'D'); }
     // Ostweg zur Nebelküste (an den Gräbern vorbei) mit Wegweiser
     rect(D, 17, 24, 33, 24, ','); set(D, 31, 23, 'S');
     D.doors = {
-      '5,5': { to: 'home' }, '12,5': { to: 'hedda' }, '22,5': { to: 'oda' }, '3,9': { to: 'muehle' }, '27,14': { to: 'schmiede' },
+      '5,5': { to: 'home' }, '12,5': { to: 'hedda' }, ...(G.FEAT.cats ? { '11,13': { to: 'katzen' } } : {}), '22,5': { to: 'oda' }, '3,9': { to: 'muehle' }, '27,14': { to: 'schmiede' },
       '23,11': { to: 'jorin', cond: () => q1() >= 7, locked: async () => {
         if (!G.flag('note')) {
           await G.UI.sayAll(['An der Tür hängt ein Zettel: «Bin im Moor. Zurück, wenn der Nebel geht. – Jorin»', 'Das Papier ist feucht. Seit Tagen hat ihn niemand abgenommen.']);
@@ -126,6 +132,8 @@
   room('jorin', ['WWnWWlWnWW', 'Wjj____b_W', 'W________W', 'W__t_____W', 'W________W', 'Wz_______W', 'W________W', 'WWWWxWWWWW'], { outX: 23, outY: 12, name: 'Jorins Haus' });
   room('huette', ['WWWnWWWWWW', 'Wb__o__kkW', 'W________W', 'W_tt_____W', 'W________W', 'W______c_W', 'W________W', 'WWWWxWWWWW'], { outX: 11, outY: 25, name: 'Jorins Torfhütte', music: 'none' });
   G.MAPS.huette.warps['4,7'].to = 'tiefesmoor';
+  // v15: gemütliches Haus von Kevin und Cassandra (Teppich R, Kratzbaum X, Pflanzen V, Sofa G)
+  room('katzen', ['WWnWWWWnWW', 'WbbV_okkXW', 'W________W', 'W__RRRR__W', 'Wt_RRRR_GW', 'Wc_RRRR_GW', 'WV______cW', 'WWWWxWWWWW'], { outX: 11, outY: 14, name: 'Bei Kevin und Cassandra' });
   room('leuchtturm', ['WWWnWWnWWW', 'Wkj____k_W', 'W___ZZ___W', 'W________W', 'Wc______cW', 'W________W', 'W________W', 'WWWWxWWWWW'], { outX: 22, outY: 7, name: 'Leuchtturm – Lampenraum', plight: 36 });
   G.MAPS.leuchtturm.warps['4,7'].to = 'kueste';
   room('schmiede', ['WWWnWWWWnW', 'WFF__A_kkW', 'W________W', 'W________W', 'Wt_______W', 'W______K_W', 'W________W', 'WWWWxWWWWW'], { outX: 27, outY: 15, name: 'Branns Schmiede', plight: 36 });
@@ -180,7 +188,7 @@
     ];
   }
   // ================= NEBELKÜSTE: Leuchtturm & Hafen =================
-  const K = newMap('kueste', 30, 26, 'outdoor', { name: 'Nebelküste', fogA: 0.1, plight: 46 });
+  const K = newMap('kueste', 30, 26, 'outdoor', { name: 'Nebelküste', fogA: 0.1, plight: 46, music: 'coast' });
   {
     for (let x = 0; x < 26; x++) set(K, x, 0, 'T');
     for (let y = 0; y < K.h; y++) set(K, 0, y, 'T');
@@ -205,6 +213,42 @@
     K.doors = { '22,6': { to: 'leuchtturm' } };
     K.pickups = [{ x: 11, y: 3, flag: 'p_klat', item: 'laterne', n: 2 }, { x: 2, y: 9, flag: 'p_ktee', item: 'kraeutertee', n: 1 }];
   }
+
+  set(M, 19, 16, 'e');   // v15: Moorlaterne am Torfstich (seltener Geist «Funkenküken» erscheint nur in ihrem Licht)
+  // ================= v15: KLIPPENHÖHLE (Weg zu Onnos Baum hinter dem Leuchtturm) =================
+  // Drei Kammern: Eingang (SW), grosse Geröllhalle (Mitte, Beschwörer), Lichtader-Kammer (NO, Team Quantum), Ausgang zu Onnos Baum.
+  // Onnos Lieblingsplatz ist jetzt von Felsen umschlossen – nur durch die Höhle erreichbar.
+  if (G.FEAT.cave) {
+  [[15, 1], [15, 2], [15, 3], [15, 4], [15, 5], [16, 5], [17, 5], [18, 5], [19, 5], [20, 5], [20, 2], [20, 3], [20, 4]].forEach(([x, y]) => set(K, x, y, 'r'));
+  rect(K, 16, 1, 19, 4, '.'); set(K, 18, 3, 'T'); set(K, 16, 1, 'O');                  // Hain hinter den Felsen, Höhlenloch
+  set(K, 13, 6, 'O'); set(K, 12, 6, 'r'); set(K, 14, 6, 'r');                          // Höhleneingang am Küstenpfad
+  K.warps['13,6'] = { to: 'hoehle', x: 6, y: 15, dir: 'up' };
+  K.warps['16,1'] = { to: 'hoehle', x: 19, y: 2, dir: 'down' };
+  }
+  const HC = newMap('hoehle', 28, 18, 'outdoor', { theme: 'cave', dark: 0.14, fogA: 0, plight: 52, music: 'cave', name: 'Klippenhöhle' });
+  [
+    'HHHHHHHHHHHHHHHHHHHHHHHHHHHH',
+    'HHHHHHHHHHHHHH.....O.....HHH',
+    'HHHHHHHHHHHHH.jj.......Y..HH',
+    'HHHHHHHHHHHHH..j..L...jj..HH',
+    'HHHHHHHHHHHHHH.......Y....HH',
+    'HHHHHHHHHHHHHHHHH..HHHHHHHHH',
+    'HHHHHHHHHHHH.jj....jjHHHHHHH',
+    'HHHHHHHHHHH..jjj.Y..jjjHHHHH',
+    'HHHHHHHHHHH.jjj.......jjHHHH',
+    'HHH......HH..j..L...Y..jHHHH',
+    'HH..jj....H......jjj....HHHH',
+    'HH.jjjj..........jjjj..HHHHH',
+    'HH.jjjY....HH..Y...jj..HHHHH',
+    'HH..jj..L..HHH.........HHHHH',
+    'HHH..Y.....HHHH..jj...HHHHHH',
+    'HHH.......HHHHHHH....HHHHHHH',
+    'HHHH..O..HHHHHHHHHHHHHHHHHHH',
+    'HHHHHHHHHHHHHHHHHHHHHHHHHHHH'
+  ].forEach((r, y) => r.split('').forEach((c, x) => set(HC, x, y, c)));
+  HC.warps['6,16'] = { to: 'kueste', x: 13, y: 7, dir: 'down' };
+  HC.warps['19,1'] = { to: 'kueste', x: 17, y: 2, dir: 'down', cond: () => !!G.flag('quantum'),
+    msg: ['Synx sitzt vor dem Ausgang und putzt sich gelangweilt die Pfote. Hier kommst du nicht vorbei.'] };
   // Glimmende Funde auch im Dorf
   D.pickups = [{ x: 4, y: 26, flag: 'p_dtee', item: 'kraeutertee', n: 1 }, { x: 29, y: 18, flag: 'p_dlat', item: 'laterne', n: 2 }];
 
@@ -218,7 +262,7 @@
     if (o.path) o.path.forEach(([x0, y0, x1, y1]) => rect(m, x0, y0, x1, y1, ','));
     m.doors[(o.x + 1) + ',' + (o.y + 2)] = { to: o.id };
     const r = room(o.id, ['WWnWWWWnWW', 'Wc__MM__cW', 'W________W', 'W________W', 'WPP____PPW', 'WPP____PPW', 'W________W', 'WWWWxWWWWW'],
-      { outMap: m.id, outX: o.x + 1, outY: o.y + 3, name: o.name, church: true, dark: -0.1, plight: 38 });
+      { outMap: m.id, outX: o.x + 1, outY: o.y + 3, name: o.name, church: true, dark: -0.1, plight: 38, music: 'church' });
     const hl = o.healer;
     r.npcs = [{ id: hl.id, spr: hl.spr || hl.id, x: 4, y: 2, dir: 'down', healer: true, talk: () => talkHealer(o.id) }];
     CHURCHES[o.id] = { map: m.id, id: o.id, name: o.name, healer: hl, spawn: { map: o.id, x: 4, y: 3 } };
@@ -227,15 +271,13 @@
   G.CHURCHES = CHURCHES;
   addChurch(D, { x: 27, y: 3, id: 'kirche', name: 'Mondkirche von Eldenghost', healer: { id: 'alwine', name: 'Schwester Alwine' } });
   set(D, 31, 5, 'L');
-  addChurch(K, { x: 10, y: 3, id: 'kapelle', name: 'Hafenkapelle', healer: { id: 'tamme', name: 'Bruder Tamme' }, path: [[11, 6, 11, 10]] });
+  // v15: Hafenkapelle (Bruder Tamme) an der Nebelküste entfernt – einzige Heilungskirche ist die Mondkirche
   const churchSpawn = id => Object.assign({ church: id }, CHURCHES[id].spawn);
   async function talkHealer(id) {
     const S = G.state, ch = CHURCHES[id], nm = ch.healer.name, fk = 'met_' + ch.healer.id;
     if (!S.flags[fk]) {
       S.flags[fk] = 1;
-      await G.UI.sayAll(id === 'kirche'
-        ? [`${nm}: Willkommen in der Mondkirche, Kind. Ich bin Alwine, Schwester vom Mondlicht.`, `${nm}: Das Mondlicht wacht über alle, die unterwegs sind – über Menschen und über Geister.`]
-        : [`${nm}: Ah, ein Gast von der Landseite. Ich bin Tamme und hüte die Kapelle der Seeleute.`, `${nm}: Wer vom Meer heimkommt, zündet hier eine Kerze an. Und wer müde ist, ruht sich aus.`]);
+      await G.UI.sayAll([`${nm}: Willkommen in der Mondkirche. Ich bin Alwine.`, `${nm}: Hier können sich Menschen und Geister ausruhen, die unterwegs sind.`]);
     }
     const yes = await G.UI.yesNo(`${nm}: Soll ich deine Geister im Mondlicht heilen?`);
     G.UI.hideText();
@@ -277,6 +319,144 @@
     { id: 'onnoS', spr: 'onnoSleep', x: 18, y: 4, dir: 'down', show: () => story() < 6, talk: talkOnnoSleep },
     { id: 'wenke', spr: 'wenke', x: 15, y: 18, dir: 'up', show: () => story() >= 8 || arrive.wenke, talk: talkWenke }
   ];
+  // v15 Klippenhöhle: zwei Beschwörer, Team Quantum (Mandy, Hans, der sprechende Sphinx-Kater Synx)
+  const qShow = () => !G.flag('quantum');
+  G.MAPS.hoehle.npcs = [
+    { id: 'ruedi', spr: 'ruedi', x: 14, y: 11, dir: 'left', trainer: 'ruedi', sight: 0 },
+    { id: 'nele', spr: 'nele', x: 19, y: 9, dir: 'down', trainer: 'nele', sight: 0 },
+    { id: 'mandy', spr: 'mandy', x: 17, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() },
+    { id: 'hans', spr: 'hans', x: 21, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() },
+    { id: 'synx', mon: 'synx', x: 19, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() }
+  ];
+  G.MAPS.hoehle.signs['8,13'] = ['Eine Grubenlaterne, frisch gefüllt. Jemand kommt hier regelmässig vorbei.'];
+  // ---------- v15: Kevin & Cassandra, Filou & Mira ----------
+  G.MAPS.katzen.npcs = [
+    { id: 'kevin', spr: 'kevin', x: 2, y: 2, dir: 'down', talk: () => talkCouple('kevin') },
+    { id: 'cassandra', spr: 'cassandra', x: 6, y: 2, dir: 'down', talk: () => talkCouple('cassandra') }
+  ];
+  // stündliches Geschenk (echte Zeit, Zeitstempel im Spielstand)
+  const GIFT_MS = 3600 * 1000;
+  const GIFT_POOL = [['kraeutertee', 2, 30], ['laterne', 3, 26], ['starktee', 1, 16], ['wacholder', 2, 10], ['klarblick', 1, 7], ['nachtkerze', 1, 6], ['mondlaterne', 1, 5]];
+  const giftReady = (now = Date.now()) => { const t = G.state.flags.kcGift || 0; return now - t >= GIFT_MS; };
+  const giftLeft = (now = Date.now()) => Math.max(0, GIFT_MS - (now - (G.state.flags.kcGift || 0)));
+  function rollGift(rnd = Math.random) { const tot = GIFT_POOL.reduce((a, g) => a + g[2], 0); let r = rnd() * tot; for (const g of GIFT_POOL) { r -= g[2]; if (r < 0) return [g[0], g[1]]; } return ['kraeutertee', 2]; }
+  function takeGift(now = Date.now(), rnd) { if (!giftReady(now)) return null; G.state.flags.kcGift = now; return rollGift(rnd); }
+  async function coupleIntro() {
+    const S = G.state; S.flags.kc = 1;
+    await G.UI.sayAll([
+      'Cassandra: Oh, hallo! Komm rein, komm rein – pass nur auf, dass Filou nicht rausflitzt.',
+      'Kevin: Wir haben gehört, du ziehst bald los. Ganz allein in den Nebel … Respekt.',
+      'Cassandra: Das da ist Filou, der Schwarze mit dem Wuschelschwanz. Und die Getigerte ist Mira.',
+      'Kevin: Filou tut so, als gehöre ihm das Haus. Wahrscheinlich hat er recht.',
+      'Cassandra: Mira ist die Schlaue. Sie merkt immer als Erste, wenn jemand traurig ist, und legt sich dann einfach dazu.',
+      'Kevin: Katzen sind wie gute Freunde: Sie kommen, wenn sie wollen – aber wenn es drauf ankommt, sind sie da.',
+      'Cassandra: Und sie schnurren. Gegen Schnurren kommt kein Nebel an.',
+      'Kevin: Hier, nimm das mit. Für unterwegs.'
+    ]);
+    await give('kraeutertee', 3); await give('laterne', 3); await give('starktee', 1);
+    S.flags.kcGift = Date.now();
+    await G.UI.sayAll(['Cassandra: Viel Glück da draussen! Komm uns besuchen, wann immer du magst – wir haben immer etwas für dich.',
+      'Kevin: Und Filou und Mira freuen sich auch. Sie zeigen es nur nicht so.']);
+    G.save(true);
+  }
+  async function talkCouple(who) {
+    if (!G.flag('kc')) return coupleIntro();
+    const g = takeGift();
+    if (g) {
+      await G.UI.say(who === 'kevin' ? 'Kevin: Da bist du ja wieder! Warte, wir haben dir was zurückgelegt.' : 'Cassandra: Schön, dich zu sehen! Hier, das ist für dich.');
+      await give(g[0], g[1]); G.save(true);
+      return G.UI.say(who === 'kevin' ? 'Kevin: Pass auf dich auf, ja?' : 'Cassandra: Filou hat es übrigens bewacht. Behauptet er zumindest.');
+    }
+    const L = who === 'kevin'
+      ? ['Kevin: Mira hat heute Morgen einen Schmetterling gefangen. Und dann wieder freigelassen. Sie ist eben eine Dame.',
+        'Kevin: Wenn du nicht weiterweisst: erst mal hinsetzen, Tee trinken. Funktioniert bei Filou auch.',
+        'Kevin: Schau ruhig später wieder vorbei. Wir finden bestimmt noch etwas Nützliches für dich.']
+      : ['Cassandra: Filou hat letzte Nacht auf meinem Kopf geschlafen. Ich hab mich nicht getraut, mich zu bewegen.',
+        'Cassandra: Langhaarkatzen bürsten ist fast wie Meditation. Fast.',
+        'Cassandra: Komm in einer Weile wieder – dann haben wir sicher wieder etwas für dich.'];
+    G.state.flags.kcTalk = (G.state.flags.kcTalk || 0) + 1;
+    return G.UI.say(L[G.state.flags.kcTalk % L.length]);
+  }
+  // Katzen: laufen zufällig herum, spielen mit dem Wollknäuel, rollen sich ein, miauen gelegentlich
+  const CATS = [
+    { id: 'filou', name: 'Filou', x: 4, y: 4, fur: '#1a1720', furL: '#3a3448', furD: '#0a080e', eye: '#d8e060', belly: '#2a2632' },
+    { id: 'mira', name: 'Mira', x: 6, y: 5, fur: '#7a5634', furL: '#b08858', furD: '#2a1c12', eye: '#8ad060', belly: '#d8c0a0', tabby: true }
+  ].map(c => Object.assign(c, { px: c.x * T, py: c.y * T, tx: c.x, ty: c.y, st: 'sit', t: 1 + Math.random() * 2, dir: 1, ph: 0 }));
+  const catFree = (m, x, y) => x > 0 && y > 0 && x < m.w - 1 && y < m.h - 1 && !SOLID.interior.has(at(m, x, y)) && !(x === 4 && y === 7) && !npcAt(x, y) && !(P.x === x && P.y === y) && !CATS.some(c => c.tx === x && c.ty === y);
+  function updateCats(m, dt) {
+    for (const c of CATS) {
+      c.t -= dt; c.ph += dt;
+      if (c.st === 'walk') {
+        const gx = c.tx * T, gy = c.ty * T, dx = gx - c.px, dy = gy - c.py, d = Math.hypot(dx, dy), sp = 22 * dt;
+        if (d <= sp) { c.px = gx; c.py = gy; if (c.t <= 0 || Math.random() < 0.35) { c.st = 'sit'; c.t = 1.5 + Math.random() * 3; } else stepCat(m, c); }
+        else { c.px += dx / d * sp; c.py += dy / d * sp; }
+        continue;
+      }
+      if (c.t > 0) continue;
+      const r = Math.random();
+      if (r < 0.55) { c.st = 'walk'; c.t = 2 + Math.random() * 4; stepCat(m, c); }
+      else if (r < 0.75) { c.st = 'play'; c.t = 2.5 + Math.random() * 2; }
+      else if (r < 0.9) { c.st = 'sleep'; c.t = 6 + Math.random() * 8; }
+      else { c.st = 'sit'; c.t = 2 + Math.random() * 3; }
+      if (Math.random() < 0.18 && G.map === m) G.Snd.sfx('meow', c.id === 'mira' ? 1.2 : 1, 0.7);
+    }
+  }
+  function stepCat(m, c) {
+    const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => catFree(m, c.tx + dx, c.ty + dy));
+    if (!opts.length) { c.st = 'sit'; c.t = 1; return; }
+    const [dx, dy] = opts[Math.random() * opts.length | 0]; c.tx += dx; c.ty += dy; if (dx) c.dir = dx;
+  }
+  const CATSPR = {};
+  function catSprite(c, pose, f) {   // 16×16 Pixelkatze (langhaarig: fransige Kontur, buschiger Schwanz)
+    const key = c.id + pose + f; if (CATSPR[key]) return CATSPR[key];
+    const cv = G.mk(16, 16), d = G.pen(cv.getContext('2d')), F = c.fur, L = c.furL, D2 = c.furD;
+    const tail = (pts) => pts.forEach(([x, y, w]) => { d.r(x - 1, y - 1, w + 2, 3, D2); }), tail2 = pts => pts.forEach(([x, y, w]) => d.r(x, y, w, 2, F));
+    if (pose === 'sleep') {   // eingerollt, Schwanz um den Körper
+      d.e(8, 11, 6, 4, D2); d.e(8, 11, 5, 3, F); d.e(7, 10, 3, 1.5, L); d.e(12, 11, 2.5, 2.5, F); d.p(11, 9, D2); d.p(13, 9, D2);
+      d.r(3, 13, 9, 2, D2); d.r(4, 13, 7, 1, F); d.r(12, 11, 1, 1, D2);
+      if (c.tabby) { d.r(6, 9, 1, 3, D2); d.r(9, 9, 1, 3, D2); }
+    } else {
+      const sit = pose === 'sit' || pose === 'play', bob = pose === 'walk' && f ? 1 : 0;
+      // Schwanz (buschig)
+      if (sit) { tail([[2, 12, 5]]); tail2([[2, 12, 5]]); d.r(1, 10, 2, 3, D2); d.r(1, 10, 1, 2, F); }
+      else { tail([[1, 5 + bob, 2], [2, 7, 2]]); d.r(0, 4 + bob, 3, 4, F); d.r(1, 6, 3, 3, F); d.p(0, 3 + bob, L); }
+      // Körper
+      if (sit) { d.e(7, 10, 4, 4.5, D2); d.e(7, 10, 3.2, 3.8, F); d.e(8, 11, 1.6, 2.4, c.belly); }
+      else { d.e(7, 9 + bob, 5.5, 3.2, D2); d.e(7, 9 + bob, 4.6, 2.5, F); d.r(3, 8 + bob, 8, 1, L); }
+      if (c.tabby) { const bx = sit ? 5 : 4; for (let i = 0; i < 3; i++) d.r(bx + i * 2, sit ? 8 : 7 + bob, 1, 3, D2); }
+      // Beine
+      if (!sit) { const a = f ? 1 : 0; d.r(3 + a, 11 + bob, 2, 3 - bob, D2); d.r(9 - a, 11 + bob, 2, 3 - bob, D2); d.r(4 - a, 12, 1, 2, F); d.r(10 + a, 12, 1, 2, F); }
+      else { d.r(7, 13, 2, 2, D2); d.r(9, 13, 2, 2, D2); if (pose === 'play' && f) { d.r(11, 10, 2, 2, D2); d.r(12, 9, 2, 1, F); } }
+      // Kopf
+      const hx = sit ? 10 : 12, hy = sit ? 5 : 6 + bob;
+      d.e(hx, hy, 3.4, 3, D2); d.e(hx, hy, 2.7, 2.4, F); d.r(hx - 3, hy - 4, 2, 2, D2); d.r(hx + 1, hy - 4, 2, 2, D2); d.p(hx - 2, hy - 3, L); d.p(hx + 2, hy - 3, L);
+      d.p(hx - 1, hy, c.eye); d.p(hx + 1, hy, c.eye); d.p(hx, hy + 1, '#e8a0a0');
+      d.p(hx - 3, hy + 1, L); d.p(hx + 3, hy + 1, L);   // Backenfell
+      if (c.tabby) { d.p(hx, hy - 2, D2); d.p(hx - 1, hy - 2, D2); d.p(hx + 1, hy - 2, D2); }
+    }
+    return (CATSPR[key] = cv);
+  }
+  function catEnts(ctx, m, cx, cy, ents, t) {
+    if (m.id !== 'katzen') return;
+    for (const c of CATS) ents.push({ y: c.py - 2, draw: () => {
+      const sx = Math.round(c.px - cx), sy = Math.round(c.py - cy), f = c.st === 'walk' ? (Math.floor(c.ph * 6) % 2) : c.st === 'play' ? (Math.floor(c.ph * 3) % 2) : 0;
+      ctx.fillStyle = 'rgba(10,8,20,0.35)'; ctx.fillRect(sx + 3, sy + 13, 10, 2);
+      ctx.save(); if (c.dir < 0) { ctx.translate(sx + 16, sy); ctx.scale(-1, 1); } else ctx.translate(sx, sy);
+      ctx.drawImage(catSprite(c, c.st, f), 0, 0); ctx.restore();
+      if (c.st === 'play') { const bx = sx + (c.dir > 0 ? 14 : 0) + Math.sin(c.ph * 3) * 3, by = sy + 12 - Math.abs(Math.sin(c.ph * 3)) * 3;   // Wollknäuel
+        ctx.fillStyle = '#c84a5a'; ctx.fillRect(Math.round(bx), Math.round(by), 3, 3); ctx.fillStyle = '#e87a8a'; ctx.fillRect(Math.round(bx), Math.round(by), 1, 1); }
+      if (c.st === 'sleep') { const z = (t * 0.6 + (c.id === 'mira' ? 0.5 : 0)) % 1; ctx.globalAlpha = 1 - z; ctx.fillStyle = '#e8e4f4'; ctx.font = '6px monospace'; ctx.fillText('z', sx + 12 + z * 3, sy + 6 - z * 6); ctx.globalAlpha = 1; }
+    } });
+  }
+  const catAt = (x, y) => G.map.id === 'katzen' && CATS.find(c => (c.tx === x && c.ty === y) || (Math.round(c.px / T) === x && Math.round(c.py / T) === y));
+  async function petCat(c) {
+    G.Snd.sfx('meow', c.id === 'mira' ? 1.2 : 1);
+    const L = c.id === 'filou' ? ['Filou schaut dich mit grossen gelben Augen an – und dreht sich dann gnädig auf den Rücken.', 'Filou schnurrt wie ein kleiner Motor.', 'Filou stupst deine Hand mit der Nase an. Mehr streicheln, bitte.']
+      : ['Mira reibt ihren Kopf an deinem Bein und schnurrt leise.', 'Mira mustert dich kurz, dann blinzelt sie langsam. Das heisst: Ich mag dich.', 'Mira schnappt nach deinem Schnürsenkel. Sehr ernsthaft.'];
+    c.st = 'sit'; c.t = 2.5; c.n = (c.n || 0) + 1;
+    return G.UI.say(L[c.n % L.length]);
+  }
+  G.CATS = CATS;
   G.MAPS.leuchtturm.npcs = [{ id: 'onno', spr: 'onno', x: 3, y: 2, dir: 'right', show: () => story() >= 6 || lamp.onno, talk: talkOnno }];
   G.MAPS.hedda.npcs = [{ id: 'hedda', spr: 'hedda', x: 6, y: 3, dir: 'down', talk: talkHedda }];
   G.MAPS.oda.npcs = [{ id: 'oda', spr: 'oda', x: 6, y: 3, dir: 'down', talk: talkOda },
@@ -307,7 +487,7 @@
       ]);
       setStory(1); return;
     }
-    if (st === 1) return G.UI.say('Ilse: Die drei Laternensteine stehen gleich hinter mir. Nimm dir Zeit – und wähl mit dem Herzen.');
+    if (st === 1) return G.UI.say('Ilse: Die drei Laternensteine stehen gleich hinter mir. Nimm dir Zeit – es gibt keine falsche Wahl.');
     if (st === 2) {
       if (S.flags.tour === 0) { await offerTour(); return G.UI.say('Ilse: Und jetzt ab ins Nebelgras – schwäch einen Geist und wirf dann einen Seelenfänger.'); }
       if ((S.items.laterne || 0) < 2) return refill();
@@ -335,7 +515,7 @@
     }
     if (q1() === 6) {
       await G.UI.sayAll(['Ilse: Du bist zurück. Und … ist das Marens Laterne?', 'Jorin tritt aus dem Nebel. Er nimmt die Laterne, hält sie an die Flamme des Laternenpfahls.',
-        'Für einen Moment leuchtet sie – warm, golden, als hätte sie nur gewartet.', 'Jorin: Sie war nie verloren. Nur zu weit weg für meine Augen.',
+        'Für einen Moment leuchtet sie – warm, golden, als hätte sie nur gewartet.', 'Jorin: Ich hab so lange gesucht. Jetzt kann ich endlich zur Ruhe kommen.',
         'Ilse: Der Nebel hat sich ein Stück gelichtet. Aber hör gut hin …', 'Ilse: Nebelahn hat den Nebel nur aufgehalten. Er kommt nicht aus dem Moor.',
         'Ilse: Im Norden, hinter dem Meer, läutet nachts eine Glocke. Eine Glocke, die es nicht mehr gibt.', '– Nebengeschichte «Das Licht im Moor» abgeschlossen. Danke fürs Helfen! –']);
       S.items.marenslaterne = 0; setQ(7); G.Snd.sfx('heal'); G.save(true); return;
@@ -357,7 +537,7 @@
       8: 'Ilse: Ein Schiff im Hafen … Pass gut auf dich auf da draussen. Und komm zurück, hörst du?'
     };
     const lore = ['Ilse: Irrlichter fürchten das Moor, Schatten fürchten das Licht. Merk dir das.',
-      'Ilse: Wenn deine Geister müde sind, ruh dich zu Hause aus. Kerzenlicht heilt mehr, als man denkt.',
+      'Ilse: Wenn deine Geister müde sind, ruh dich zu Hause aus oder geh zu Schwester Alwine in die Mondkirche.',
       'Ilse: Früher hat jede Familie hier eine Laterne für ihre Verstorbenen angezündet. Manche brennen noch immer.'];
     S.flags.lore = (S.flags.lore || 0) + 1;
     const k = S.flags.lore % 3;
@@ -498,22 +678,23 @@
     const S = G.state, home = G.MAPS.home;
     for (const n of home.npcs) face(n, P.x, P.y);
     await G.UI.sayAll([
-      'Mutter: Da bist du ja. Der Leuchtturm brennt wieder – man sieht das Licht bis in die Küche.',
-      'Mutter: … Und du hast diesen Blick. Den gleichen wie dein Vater damals, bevor er zur See gefahren ist.',
-      'Du erzählst ihnen von Onno und davon, was hinter dem Nebel liegen soll. Dass du los willst. Weit weg, dorthin, wo die verlorenen Geister herkommen.',
-      'Vater: Onno hat recht. Wer den Nebel verstehen will, muss hinter ihn schauen. Das geht nicht von unserer Küche aus.',
-      'Mutter: Ich hab es gewusst. Seit du klein warst, hast du jedem Irrlicht hinterhergeschaut.',
-      'Mutter: Hier. Tee für unterwegs, und die warmen Socken sind auch dabei. Keine Widerrede.'
+      'Mutter: Da bist du ja. Der Leuchtturm brennt wieder – wir haben das Licht von hier aus gesehen.',
+      'Vater: Du hast Onno geweckt? Gut gemacht. Wir sind stolz auf dich.',
+      'Du erzählst ihnen von Onno und von den Inseln hinter dem Nebel. Dass du hinwillst – dorthin, wo die verlorenen Geister herkommen.',
+      'Mutter: … Ich hab mir schon gedacht, dass das irgendwann kommt.',
+      'Vater: Du warst noch nie jemand, der lange stillsitzt.',
+      'Mutter: Ich mach mir Sorgen, das weisst du. Aber ich halte dich nicht auf.',
+      'Mutter: Hier, Tee für unterwegs. Trink ihn, wenn du müde bist oder dir kalt ist.'
     ]);
     await give('kraeutertee', 3);
-    await G.UI.say('Vater: Und das hier war mein Kompass. Er zeigt nicht nach Norden. Er zeigt nach Hause.');
+    await G.UI.say('Vater: Und nimm meinen Kompass. Der hat mich immer wieder heimgebracht. Jetzt gehört er dir.');
     await give('kompass', 1);
     await G.UI.sayAll([
-      'Vater: Wenn du ihn anschaust, denk an den Ofen hier. Und an die Tür, die nie abgeschlossen ist.',
-      'Mutter: Geh nur. Aber schreib uns. Und iss etwas Anständiges.',
-      'Mutter nimmt dich in den Arm, ein bisschen zu lang. Sie riecht nach Harz und Rauch, wie immer.',
-      'Draussen, weit weg, tönt ein Nebelhorn. Einmal, lang und tief.',
-      'Vater: Das ist kein Fischerboot. Das kommt vom Hafen … Geh. Ich glaube, das ist für dich.'
+      'Vater: Pass auf dich auf. Und wenn es nicht mehr geht, kommst du heim. Das ist keine Schande.',
+      'Mutter: Schreib uns, ja? Und iss genug.',
+      'Mutter nimmt dich fest in den Arm. Vater legt dir kurz die Hand auf die Schulter.',
+      'Draussen tönt ein Nebelhorn. Einmal, lang und tief.',
+      'Vater: Das kommt vom Hafen … Geh. Ich glaube, das ist für dich.'
     ]);
     G.Snd.sfx('bell');
     setStory(7);
@@ -523,10 +704,10 @@
     if (st === 6) return farewell();
     const t = {
       0: ['Mutter: Na, endlich wach? Ilse war schon zweimal an der Tür.', 'Mutter: Sie wartet bei der Laterne am Dorfplatz, gleich östlich von hier. Zieh die Kapuze über – der Nebel ist heute früh dran.'],
-      1: ['Mutter: Drei Geister auf den Laternensteinen? Zu meiner Zeit war es einer. Und der hat mir die Suppe versalzen.'],
+      1: ['Mutter: Drei Geister auf den Laternensteinen? Dann lass dir Zeit mit der Wahl.'],
       2: [`Mutter: Das ist also ${S.team[0] ? G.nm(S.team[0]) : 'dein Geist'}? … Es ist ganz warm, wenn man die Hand danebenhält.`],
       4: ['Mutter: Der Leuchtturm ist dunkel? Dann ist Onno wieder irgendwo eingenickt. Weck ihn sanft – er erschrickt leicht.'],
-      7: ['Mutter: Geh nur. Die Tür bleibt offen, und im Ofen ist immer Glut.', 'Mutter: Hast du die Socken? … Gut.']
+      7: ['Mutter: Pass auf dich auf, ja? Wir sind hier, wenn du uns brauchst.']
     };
     return G.UI.sayAll(t[st >= 7 ? 7 : st >= 4 ? 4 : st >= 2 ? 2 : st]);
   }
@@ -535,9 +716,9 @@
     if (st === 6) return farewell();
     const t = {
       0: ['Vater: Ilse wartet auf dich, auf dem Dorfplatz. Sie hat was von «heute ist dein Abend» gemurmelt. Du weisst ja, wie sie ist.'],
-      1: ['Vater: Ein eigener Geist, hm? Behandle ihn gut. Die Geister vergessen nie, wer ihnen ein Licht gehalten hat.'],
+      1: ['Vater: Ein eigener Geist, hm? Behandle ihn gut, dann hält er zu dir.'],
       4: ['Vater: Ohne den Leuchtturm fährt heute Nacht keiner raus. Onno schläft wie ein Stein, wenn der Wind von Osten kommt.'],
-      7: ['Vater: Der Kompass zittert? Dann denkst du an uns. Genau so ist er gedacht.']
+      7: ['Vater: Hast du den Kompass noch? Gut. Damit findest du immer heim.']
     };
     return G.UI.sayAll(t[st >= 7 ? 7 : st >= 4 ? 4 : st >= 1 ? 1 : 0]);
   }
@@ -545,11 +726,15 @@
   async function talkOnnoSleep() {
     const st = story(), n = K.npcs.find(o => o.id === 'onnoS');
     if (st < 4) return G.UI.sayAll(['Ein alter Mann in gelbem Ölzeug schläft an den Baum gelehnt. Er schnarcht wie eine ferne Brandung.', 'Du lässt ihn schlafen.']);
+    if (G.FEAT.cave && !G.flag('quantum')) return G.UI.sayAll(['Ein alter Mann in gelbem Ölzeug schläft an den Baum gelehnt. Ein feiner violetter Dunst liegt über ihm.',
+      'Du rüttelst ihn an der Schulter – er murmelt nur etwas von «Rätseln» und «Katzenaugen» und schläft weiter.',
+      'Dieser Schlaf ist nicht natürlich. Irgendetwas in der Klippenhöhle hält ihn fest.']);
     await G.UI.sayAll(['Ein alter Mann in gelbem Ölzeug schläft an den Baum gelehnt, die Mütze tief im Gesicht. Er schnarcht wie eine ferne Brandung.', 'Du rüttelst ihn sanft an der Schulter …']);
     G.UI.hideText();
     n.spr = 'onno'; face(n, P.x, P.y); n.alert = 1; G.Snd.sfx('alert'); await G.wait(650); n.alert = 0;
     await G.UI.sayAll([
       'Onno: Hm? Was – wer … Ist es schon dunkel?!',
+      ...(G.FEAT.cave ? ['Onno: Ich hatte so einen seltsamen Traum … Eine Katze mit Steinflügeln sass auf meiner Brust und hat mir Rätsel ins Ohr geflüstert.'] : []),
       'Onno: Beim Klabautergeist! Der Turm! Ich wollte mich nur kurz hinsetzen. Der Ostwind macht mich immer so schläfrig.',
       'Onno: Ich bin Onno, der Wärter hier. Komm mit, schnell – ohne das Licht findet heute Nacht nichts und niemand den Hafen.'
     ]);
@@ -565,8 +750,10 @@
     G.Snd.sfx('bell');
     setStory(6, true); lamp.p = null; lamp.onno = false; n.spr = 'onnoSleep';
     K.canvas = null; K.lights = null;                 // Aussenansicht mit brennender Lampe neu zeichnen
+    await G.UI.say('Die Lampe erwacht. Warmes Licht füllt die Linse und dreht sich hinaus, über das schwarze Wasser.');
+    G.UI.hideText();
+    if (G.FEAT.legend) await legendScene();
     await G.UI.sayAll([
-      'Die Lampe erwacht. Warmes Licht füllt die Linse und dreht sich hinaus, über das schwarze Wasser.',
       'Onno: So. Da ist sie wieder, meine Alte. Zweiunddreissig Jahre, und sie hat nur zweimal gestreikt – beide Male war ich schuld.',
       'Onno: Danke dir. Ilse hat dich geschickt, ja? Und du hast einen Geist bei dir … Ich seh es an deinem Blick. Du willst weg.',
       'Onno: Hinter dem Nebel liegt mehr als Moor und Wasser. Inseln, alte Städte, Lichter, die keiner mehr kennt. Von dort kommen die verlorenen Geister.',
@@ -575,9 +762,117 @@
     ]);
     G.UI.toast('Neues Ziel: ' + GOALS[6], 3600, true);
   }
+  // v15 Legendärer Geist: Fyrlumen verlässt den Leuchtturm, sobald das Licht zurück ist (nur gesichtet, nicht fangbar)
+  const legend = { p: null };
+  async function legendScene() {
+    G.Snd.music('none'); G.Snd.jingle('legend');
+    await G.UI.say('Da – ein Laut, hoch und klar wie Glas, das singt. Er kommt von ganz oben, aus dem Licht selbst.');
+    G.UI.hideText();
+    await G.animate(300, p => G.fx = { kind: 'wipe', p });
+    G.World.setMap('kueste', 22, 8, 'up'); G.World.camFocus = [18 * T, 4 * T];
+    G.World.camera && G.World.camera(false, 10);
+    await G.animate(300, p => G.fx = { kind: 'wipe', p: 1 - p }); G.fx = null;
+    legend.p = 0; G.state.seen.fyrlumen = 1;
+    await G.animate(3600, p => { legend.p = p; });
+    legend.p = null; G.World.legendDone = (G.World.legendDone || 0) + 1;
+    await G.UI.say('Ein leuchtender Geist schiesst aus der Laterne, zieht einen Schweif aus Licht und Nebel hinter sich her – und verschwindet über dem Meer in der Ferne.');
+    G.UI.hideText();
+    await G.animate(300, p => G.fx = { kind: 'wipe', p });
+    G.World.camFocus = null; G.World.setMap('leuchtturm', 4, 3, 'up');
+    await G.animate(300, p => G.fx = { kind: 'wipe', p: 1 - p }); G.fx = null;
+    await G.UI.sayAll([
+      'Onno steht ganz still. Die Pfeife ist ihm aus der Hand gefallen.',
+      'Onno: … Fyrlumen. Das war Fyrlumen. Mein Grossvater hat ihn einmal gesehen, sonst kenne ich keinen, dem das vergönnt war.',
+      'Onno: Er schläft im Licht der alten Leuchttürme, oft hundert Jahre lang. Er bricht nur auf, wenn er spürt, dass eine grosse Geschichte beginnt …',
+      'Onno: … und dass Ungemach naht. Beides, immer beides.',
+      '(Fyrlumen wurde im Geisterbuch als «gesichtet» eingetragen.)'
+    ]);
+    G.UI.hideText(); G.Snd.music(G.World.areaMusic());
+  }
+  function renderLegend(ctx, cx, cy, t) {
+    if (legend.p == null) return;
+    const p = legend.p, K0 = G.MAPS.kueste, h = K0.houses.find(o => o.id === 'leuchtturm'), sx0 = h.x * T + 24 - cx, sy0 = h.y * T - 45 - cy;
+    // Aufleuchten in der Lampe, dann Flug in weitem Bogen nach Nordosten über das Meer, immer kleiner (Silhouette im Gegenlicht)
+    const q = Math.max(0, (p - 0.18) / 0.82), e = q * q * (3 - 2 * q);
+    const x = sx0 - e * 210 + Math.sin(q * 6) * 8 * (1 - q), y = sy0 + 6 - Math.sin(q * Math.PI) * 12 + e * 22;
+    const sc = 1 - e * 0.8, a = p < 0.18 ? p / 0.18 : 1 - Math.max(0, (q - 0.8) / 0.2);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    if (p < 0.3) { const r = 20 + p * 160; const gr = ctx.createRadialGradient(sx0, sy0 + 14, 0, sx0, sy0 + 14, r); gr.addColorStop(0, `rgba(255,250,220,${0.7 * (1 - p / 0.3)})`); gr.addColorStop(1, 'rgba(255,240,200,0)'); ctx.fillStyle = gr; ctx.fillRect(sx0 - r, sy0 + 14 - r, r * 2, r * 2); }
+    legend.trail = legend.trail || []; if (q > 0) legend.trail.push({ x: x + cx, y: y + cy + 10 * sc, l: 1 }); legend.trail = legend.trail.filter(o => (o.l -= 0.03) > 0);
+    for (const o of legend.trail) { const r = 3 + o.l * 8; const gr = ctx.createRadialGradient(o.x - cx, o.y - cy, 0, o.x - cx, o.y - cy, r); gr.addColorStop(0, `rgba(200,236,255,${0.35 * o.l})`); gr.addColorStop(1, 'rgba(160,200,255,0)'); ctx.fillStyle = gr; ctx.fillRect(o.x - cx - r, o.y - cy - r, r * 2, r * 2); }
+    const R = 34 * sc + 6, gr = ctx.createRadialGradient(x, y + 12 * sc, 0, x, y + 12 * sc, R); gr.addColorStop(0, `rgba(255,248,210,${0.55 * a})`); gr.addColorStop(0.5, `rgba(170,220,255,${0.25 * a})`); gr.addColorStop(1, 'rgba(150,200,255,0)');
+    ctx.fillStyle = gr; ctx.fillRect(x - R, y + 12 * sc - R, R * 2, R * 2);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = a;
+    const sz = Math.max(8, Math.round(48 * sc)), img = G.SPR.mon.fyrlumen && G.SPR.mon.fyrlumen.at(sz, false);
+    if (img) ctx.drawImage(img, Math.round(x - sz / 2), Math.round(y - sz * 0.25), sz, sz);
+    ctx.restore();
+  }
+  // v15 Team Quantum in der Klippenhöhle
+  async function quantumScene() {
+    G.lock++;
+    try {
+      const S = G.state, first = !G.flag('qseen'); S.flags.qseen = 1;
+      G.Snd.music('quantum');
+      if (first) {
+        G.World.camFocus = [19 * T, 3 * T];
+        await G.UI.sayAll([
+          'In der Kammer glimmt eine goldene Lichtader. Ein dünner Strahl zieht sich von der Decke – vom Leuchtturm her – in einen summenden Glaskolben.',
+          'Mandy: … und wenn der Kolben voll ist, haben wir genug Leuchtseele für die ganze Anlage. Hans, hör auf, an dem Ding zu klopfen.',
+          'Hans: Ich klopfe nicht. Ich prüfe. Das ist ein Unterschied.',
+          'Synx: Pst. Wir haben Besuch.',
+          'Die geflügelte Sphinx-Katze dreht langsam den Kopf zu dir. Ihre Augen leuchten wie zwei Laternen im Nebel.',
+          'Synx: Ein Kind mit einer Laterne. Wie rührend. Weisst du, was man bekommt, wenn man einem Leuchtturm die Seele abzapft?',
+          'Synx: … Einen sehr müden Leuchtturmwärter. Ich habe ihm ein paar hübsche Träume geschenkt. Er schläft tief und fest.',
+          'Mandy: Wir sind Team Quantum. Wir sammeln Licht, das sonst nur verschwendet wird – für Dinge, die du nicht verstehen würdest.',
+          'Hans: Ich versteh sie auch nicht immer. Aber die Uniform ist bequem.'
+        ]);
+        G.World.camFocus = null;
+      } else await G.UI.say('Synx: Schon wieder du? Hartnäckig. Das mag ich fast.');
+      await quantumTalk(true);
+    } finally { G.UI.hideText(); G.lock--; }
+  }
+  async function quantumTalk(inScene) {
+    if (!inScene) G.lock++;
+    try {
+      await G.UI.say('Mandy: Hinweis unter Kollegen: Das hier wird kein Spaziergang. Drei Geister – und dann Synx. Unter Level 11 würde ich es gar nicht erst versuchen.');
+      const hint = G.state.team.some(m => m.hp < G.stats(m).hp) ? ' Deine Geister sind angeschlagen – trink Tee oder ruh dich aus, bevor du kämpfst.' : '';
+      if (!(await G.UI.yesNo('Gegen Team Quantum kämpfen?' + hint))) {
+        await G.UI.sayAll(['Synx: Lauf ruhig. Heile deine Geister. Wir warten – das Licht läuft ja nicht weg.', '(Tipp: Kräutertee aus der Tasche heilt; wer verliert, erwacht in der Mondkirche. Die Höhle bleibt offen.)']);
+        G.UI.hideText(); if (G.P) { const P0 = G.P; if (P0.y <= 5 && G.map.id === 'hoehle') G.World.setMap('hoehle', P0.x, 6, 'down'); }
+        G.Snd.music(G.World.areaMusic()); return;
+      }
+      G.UI.hideText();
+      const S = G.state; if (!S.respawn) S.respawn = churchSpawn('kirche');   // verlieren -> Mondkirche, Höhle bleibt offen
+      const tr = G.TRAINERS.quantum; await G.UI.sayAll(tr.intro); G.UI.hideText();
+      const r = await G.Battle.trainer('quantum');
+      if (r === 'won') await quantumWon();
+    } finally { if (!inScene) { G.UI.hideText(); G.lock--; } }
+  }
+  async function quantumWon() {
+    G.lock++;
+    try {
+      const S = G.state; S.flags.quantum = 1;
+      await G.UI.sayAll([
+        'Der Glaskolben bekommt einen Sprung. Das gefangene Licht zischt heraus und fliesst die Ader entlang zurück, hinauf zum Leuchtturm.',
+        'Synx: Wie ärgerlich. Nun gut – behalte deinen kleinen Sieg.',
+        'Synx: Aber merk dir eines, Laternenkind: Licht wirft immer auch Schatten. Und in den Schatten sind wir zu Hause.',
+        'Mandy: Team Quantum vergisst nicht! Hans – Rückzug!',
+        'Hans: Ich hab doch gerade erst meinen Tee ausgepackt …'
+      ]);
+      G.UI.hideText();
+      await G.animate(300, p => G.fx = { kind: 'wipe', p });
+      await G.animate(300, p => G.fx = { kind: 'wipe', p: 1 - p }); G.fx = null;
+      for (let i = 0; i < 26; i++) spark(19 * T + 8 + (Math.random() - 0.5) * 20, 3 * T, (Math.random() - 0.5) * 16, -40 - Math.random() * 40, 1.2);
+      G.Snd.sfx('heal');
+      await G.UI.sayAll(['Team Quantum ist verschwunden. Nur ein paar Stiefelabdrücke und der zersprungene Kolben bleiben zurück.',
+        'Hinter der Kammer führt ein Loch nach draussen – zu Onnos Platz hinter dem Leuchtturm.']);
+      G.UI.toast('Neues Ziel: ' + GOALS[5], 3600, true);
+      G.Snd.music(G.World.areaMusic()); G.save(true);
+    } finally { G.UI.hideText(); G.lock--; }
+  }
   async function talkOnno() {
     const l = ['Onno: Ich bin wach! Hellwach. Fast.', 'Onno: Siehst du den Strahl? Er reicht bis zu den Klippen der Nebelinseln – an klaren Tagen jedenfalls.',
-      'Onno: Die Linse hat mein Grossvater geschliffen. Jeder Ring fängt ein bisschen Licht und schickt es weiter. Wie Menschen, eigentlich.'];
+      'Onno: Die Linse hat mein Grossvater geschliffen. Die hält bestimmt länger als ich.'];
     if (story() === 6) return G.UI.say('Onno: Na los, geh nach Hause. Deine Eltern sollen es von dir hören, nicht vom Nebelhorn.');
     G.state.flags.onno = (G.state.flags.onno || 0) + 1; return G.UI.say(l[G.state.flags.onno % l.length]);
   }
@@ -632,6 +927,7 @@
         'Auf dem Tisch stehen ein halber Becher kalter Tee und Onnos Pfeife. Vom Wärter keine Spur.',
         'Weit kann er nicht sein. Vielleicht draussen, irgendwo in der Nähe des Turms?']);
       G.UI.hideText(); setStory(5); G.lock--;
+    } else if (id === 'katzen' && !G.flag('kc')) { G.lock++; await G.wait(350); await coupleIntro(); G.UI.hideText(); G.lock--;
     } else if (id === 'home' && st === 6) { G.lock++; await farewell(); G.UI.hideText(); G.lock--; }
   }
   async function talkWido() {
@@ -643,7 +939,7 @@
       setQ(2); await give('wacholder', 2); return;
     }
     const l = ['Wido: Keine Sorge wegen der Geister. Die Lebenden machen mir mehr Arbeit.',
-      'Wido: Ich kenne jeden Namen auf jedem Stein. Nur einen hat der Nebel gefressen.',
+      'Wido: Ich kenne jeden Namen auf diesen Steinen. Nur einer fehlt.',
       'Wido: Im Moor gibt es erloschene Laternen. Zünd sie an – wer stolpert, wacht dort wieder auf.'];
     G.state.flags.wido = (G.state.flags.wido || 0) + 1; await G.UI.say(l[G.state.flags.wido % l.length]);
   }
@@ -668,7 +964,7 @@
     const S = G.state, it = S.items;
     if (!S.flags.brann) {
       await G.UI.sayAll(['Brann: Vorsicht, die Funken beissen. Komm ruhig näher – aber nicht zu nah an die Esse.',
-        'Brann: Ich schmiede Laternenrahmen aus Raseneisen. Das Moor spuckt es aus, rostrot wie getrocknetes Blut. Es hält ein Licht warm, auch wenn die Nacht kalt ist.',
+        'Brann: Ich schmiede Laternenrahmen aus Raseneisen. Das holt man aus dem Moor – rostrot und schwer, aber es hält ein Leben lang.',
         'Brann: Jorin hat mir früher das Erz gebracht. Seit er fort ist, liegt der Amboss oft still. Hier – zwei Seelenfänger, frisch gebogen.']);
       S.flags.brann = 1; await give('laterne', 2);
       await G.UI.say('Brann: Bring mir drei einfache Seelenfänger, dann mache ich dir einen aus Mondglas. Da bleibt selbst ein scheuer Geist gern.'); return;
@@ -676,20 +972,20 @@
     if ((it.marenslaterne || 0) > 0 && !S.flags.brannMaren) {
       S.flags.brannMaren = 1;
       await G.UI.sayAll(['Brann: Zeig mal … dieses «M». Die Laterne hab ich gemacht. Für Maren, vor vielen Wintern, als sie mit Jorin ins Moor ging.',
-        'Brann: Dass sie noch nicht erloschen ist … Manche Lichter warten eben länger als wir.']); return;
+        'Brann: Dass die noch ganz ist, nach all den Jahren … Jorin wird froh sein.']); return;
     }
     if ((it.laterne || 0) >= 3) {
       if (await G.UI.yesNo('Brann: Drei Seelenfänger gegen einen Mondglas-Fänger?')) { it.laterne -= 3; G.UI.hideText(); G.Snd.sfx('hammer'); await give('mondlaterne', 1); return; }
       G.UI.hideText(); await G.UI.say('Brann: Gut. Das Eisen wartet.'); return;
     }
-    await G.UI.say(['Brann: Drei einfache Seelenfänger, dann bekommst du Mondglas. Ehrlicher Tausch.', 'Brann: Hörst du den Amboss? Solange er klingt, schläft das Dorf nicht ganz.',
-      'Brann: Das Raseneisen singt, wenn man es härtet. Leise. Wie jemand, der nach Hause will.'][G.rnd(0, 2)]);
+    await G.UI.say(['Brann: Drei einfache Seelenfänger, dann bekommst du Mondglas. Ehrlicher Tausch.', 'Brann: Ich arbeite gern spät. Dann ist es ruhig, und keiner fragt, wann die Rahmen fertig sind.',
+      'Brann: Raseneisen ist zäh. Man muss es lange bearbeiten, aber dann hält es ewig.'][G.rnd(0, 2)]);
   }
   // Müller Mathis: Rad dreht sich seit dem Nebel; mahlt Moorminze zu Tee (1:1, günstiger als bei Hedda)
   async function talkMathis() {
     const S = G.state, it = S.items;
     if (!S.flags.mathis) {
-      await G.UI.sayAll(['Mathis: Hörst du das Rad? Es dreht sich, seit der Nebel kam – auch wenn kein Korn da ist. Ich lass es. Es klingt wie jemand, der atmet.',
+      await G.UI.sayAll(['Mathis: Hörst du das Rad? Es dreht sich, seit der Nebel kam – auch ohne Korn. Ich lass es einfach laufen.',
         'Mathis: Am Mühlgraben wächst Minze, die der Nebel nicht mag. Nimm ein paar Blätter. Und einen starken Tee, meine Frau hat immer zu viel gekocht.']);
       S.flags.mathis = 1; await give('moorminze', 2); await give('starktee', 1);
       await G.UI.say('Mathis: Bring mir Moorminze, ich mahle sie dir zu Tee. Ein Blatt, ein Tee.'); return;
@@ -773,6 +1069,15 @@
           break;
         }
         case 'Z': floor(); d.r(0, 9, 16, 7, '#3a2c28'); d.r(0, 9, 16, 1, '#5a4638'); break;
+        case 'R': { floor(); const l = at(m, x - 1, y) !== 'R', r = at(m, x + 1, y) !== 'R', u = at(m, x, y - 1) !== 'R', b = at(m, x, y + 1) !== 'R';   // Flickenteppich
+          d.r(l ? 1 : 0, u ? 1 : 0, 16 - (l ? 1 : 0) - (r ? 1 : 0), 16 - (u ? 1 : 0) - (b ? 1 : 0), '#8a4a3a');
+          d.r(l ? 2 : 0, u ? 2 : 0, 16 - (l ? 2 : 0) - (r ? 2 : 0), 16 - (u ? 2 : 0) - (b ? 2 : 0), '#a8643e');
+          if (u) d.r(0, 3, 16, 1, '#d8b060'); if (b) d.r(0, 12, 16, 1, '#d8b060'); if (l) d.r(3, 0, 1, 16, '#d8b060'); if (r) d.r(12, 0, 1, 16, '#d8b060');
+          for (let i = 0; i < 3; i++) d.p(3 + R(i + 5) * 10 | 0, 4 + R(i + 9) * 8 | 0, '#c88a5a'); break; }
+        case 'X': floor(); d.r(6, 3, 4, 12, '#c8a878'); for (let i = 4; i < 15; i += 2) d.r(6, i, 4, 1, '#a88858'); d.r(1, 1, 14, 3, '#7a5a8a'); d.r(1, 1, 14, 1, '#9a7aaa'); d.r(3, 13, 10, 2, '#5a3a4a'); d.r(12, 4, 1, 4, '#d8c8a0'); d.e(12, 9, 2, 2, '#e05a5a'); break;
+        case 'V': floor(); d.r(4, 10, 8, 5, '#9a5a3a'); d.r(4, 10, 8, 1, '#b87a4a'); d.e(8, 6, 6, 5, '#3a6a3a'); d.e(6, 5, 3, 3, '#4a8a4a'); d.e(10, 7, 3, 3, '#4a8a4a'); d.p(8, 3, '#6aaa5a'); break;
+        case 'G': { floor(); const top = at(m, x, y - 1) !== 'G'; d.r(2, 0, 13, 16, '#5a6a8a'); d.r(2, 0, 3, 16, '#4a5a7a'); d.r(5, 1, 10, 14, '#6a7a9a');
+          if (top) { d.r(2, 0, 13, 2, '#4a5a7a'); d.r(7, 3, 5, 4, '#e8c870'); } else d.r(2, 14, 13, 2, '#3a4a6a'); break; }
         case 'K': floor(); if (m.id === 'muehle') g.drawImage(SACK(), 0, 0); else g.drawImage(propArt('K'), 0, 0); break;
         case 'j': floor(); d.r(0, 5, 16, 6, '#5a4030'); d.r(0, 5, 16, 1, '#7a5a40'); d.r(2, 3, 5, 2, '#8a8a98'); d.r(10, 2, 1, 3, '#b8905a'); d.r(1, 11, 2, 4, '#3a2a1e'); d.r(13, 11, 2, 4, '#3a2a1e'); break;
         default: floor();
@@ -1161,7 +1466,7 @@
     // Nebelbank-Maske: weiche, überlappende Wolken je Zonenkachel, heller Saum an Rändern
     const z = G.mk(m.w * T, m.h * T), zg = z.getContext('2d'); let any = false;
     if (m.kind === 'outdoor') for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
-      const zone = ZONE_OF[m.tiles[y][x]]; if (!zone) continue; any = true;
+      const zone = ZONE_OF[m.tiles[y][x]]; if (!zone || m.theme === 'cave') continue; any = true;
       const col = ZONE_TINT[zone];
       for (let i = 0; i < 3; i++) {
         const bx = x * T + 3 + hash(x, y, 50 + i) * 10, by = y * T + 3 + hash(x, y, 60 + i) * 10, r = 11 + hash(x, y, 70 + i) * 5;
@@ -1281,6 +1586,7 @@
       if (c === 'L') L.push({ x: x * T + 8, y: y * T + 4, r: m === D && y > 16 ? 46 : 56, warm: 1, fl: hash(x, y, 1) * 10 });
       if (c === 'e') L.push({ x: x * T + 8, y: y * T + 4, r: 52, warm: 1, fl: hash(x, y, 1) * 10, cond: () => G.flag(`lit_${m.id}_${x}_${y}`) });
       if (c === '*') L.push({ x: x * T + 8, y: y * T + 8, r: 14, warm: 0, fl: hash(x, y, 2) * 10 });
+      if (c === 'Y' && m.theme === 'cave') L.push({ x: x * T + 5, y: y * T + 11, r: 26, warm: 0, fl: hash(x, y, 2) * 10, ghost: 1 });
       if (c === 'g' || c === 'B') L.push({ x: x * T + 8, y: y * T + 6, r: 22, warm: 0, fl: hash(x, y, 2) * 10, ghost: 1 });
     }
     if (m === K) L.push({ x: 16 * T + 6, y: 17 * T + 16, r: 34, warm: 1, fl: 6, cond: () => story() >= 8 }, { x: 16 * T + 90, y: 17 * T + 8, r: 30, warm: 1, fl: 8, cond: () => story() >= 8 });
@@ -1315,7 +1621,8 @@
   let cam = null;
   const DXY = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
-  G.World = { addChurch, healAt, healFx: null, tourState, skipTour, giftStone };
+  G.World = { addChurch, healAt, healFx: null, tourState, skipTour, giftStone, legendState: legend, quantumWon, quantumScene, legendScene,
+    catGift: { GIFT_MS, GIFT_POOL, giftReady, giftLeft, takeGift, rollGift }, cats: CATS };
   G.map = D;
   const npcVisible = n => !n.show || n.show();
   function resetNPCs(m) {
@@ -1368,7 +1675,7 @@
   // Am Schrittende wird sofort der nächste Schritt gestartet (gehaltene Richtung oder gepufferte Eingabe) – ohne Pause.
   // ---- Positionsabhängige Umgebungsgeräusche: Wasser (Nähe + Richtung), Wind (offene Flächen, Küste), Ofen-/Essenknistern ----
   // pro Karte einmal vorberechnet: Distanzkarte (BFS, Kacheln) zum nächsten Wasser/Feuer + x-Lage der nächsten Wasserkachel, Offenheit für Wind
-  const AMB_WIND = { kueste: 1, dorf: 0.45, tiefesmoor: 0.6 };
+  const AMB_WIND = { kueste: 1, dorf: 0.45, tiefesmoor: 0.6, hoehle: 0.12 };
   function ambField(m) {
     if (m._amb) return m._amb;
     const W = m.w, H = m.h, N = W * H, dw = new Uint8Array(N).fill(255), sx = new Int16Array(N), dh = new Uint8Array(N).fill(255), open = new Float32Array(N);
@@ -1451,10 +1758,11 @@
   // Musik je Gebiet: im Dorf wechselt sie nahe den Nebelbänken (Nebelgras) zum mystischen Stück (mit Hysterese)
   let nearFog = false;
   G.World.areaMusic = () => {
-    const m = G.map; if ((m.id !== 'dorf' && m.id !== 'kueste') || m.music !== 'ambient') return m.music;
+    if (G.map.id === 'hoehle' && !G.flag('quantum') && P.y <= 5 && G.flag('qseen')) return 'quantum';
+    const m = G.map; if ((m.id !== 'dorf' && m.id !== 'kueste') || (m.music !== 'ambient' && m.music !== 'coast')) return m.music;
     let n = 0; for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (ZONE_OF[at(m, P.x + dx, P.y + dy)]) n++;
     if (n >= 5) nearFog = true; else if (n === 0) nearFog = false;
-    return nearFog ? 'nebel' : 'ambient';
+    return nearFog ? 'nebel' : m.music;
   };
   const surface = (m, c) => c === 'b' && m.kind === 'outdoor' ? 'wood' : m.kind === 'interior' ? 'floor' : (m.theme === 'moor' || c === 'q' || c === 'm') ? 'mud' : 'grass';
   async function onStep() {
@@ -1469,16 +1777,35 @@
     const w = m.warps[key];
     if (w) { await G.World.warp(w.to, w.x, w.y, w.dir); return; }
     if (m === K && story() === 7 && P.y >= 13 && P.x >= 10) { await arrivalScene(); return; }
+    if (m.id === 'hoehle' && P.y === 5 && (P.x === 17 || P.x === 18) && P.dir === 'up' && !S.flags.quantum) { await quantumScene(); return; }
     let zone = m.kind === 'outdoor' && ZONE_OF[at(m, P.x, P.y)];
     if (zone === 'nebelgras' && m.id === 'kueste') zone = 'kuestengras';
+    zone = zoneAt(m, P.x, P.y, zone);
     if (zone) {
       if (P.grace > 0) P.grace--;
       else if (Math.random() < (G.debugEncounterRate || (story() === 2 ? Math.max(0.3, G.WILD_AREAS[zone].rate) : G.WILD_AREAS[zone].rate))) { G.World.encounter(zone); return; }
     }
     await checkTrainers();
   }
+  // v15: Moorherz = eigener Bereich im Tiefen Moor (Torfstich-Kacheln in der Südwest-Ecke)
+  function zoneAt(m, x, y, zone) {
+    if (!zone) return zone;
+    for (const id in G.WILD_AREAS) { const A = G.WILD_AREAS[id], r = A.region; if (r && A.map === m.id && x >= r[0] && y >= r[1] && x <= r[2] && y <= r[3]) return id; }
+    return zone;
+  }
+  // v15: Bedingungen der seltenen Geister (am aktuellen Standort)
+  const RARE_COND = {
+    fog: (m, x, y) => { let n = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === '"') n++; return n >= 22; },
+    shore: (m, x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === '~') return true; return false; },
+    lantern: (m, x, y) => { for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (at(m, x + dx, y + dy) === 'e' && G.flag(`lit_${m.id}_${x + dx}_${y + dy}`)) return true; return false; },
+    hidden: (m, x, y) => m.id === 'tiefesmoor' && x >= 2 && x <= 3 && y >= 21 && y <= 22
+  };
+  G.World.rareCond = RARE_COND;
+  G.World.rareFor = (zone, m = G.map, x = P.x, y = P.y) => (G.RARE_SPAWNS || []).find(r => r.zone === zone && RARE_COND[r.cond](m, x, y));
   G.World.encounter = (zone) => {
     const A = G.WILD_AREAS[zone || 'nebelgras'];
+    const rs = G.FEAT.rare && zone && G.World.rareFor(zone), rare = !!rs && Math.random() < (G.debugRareRate || rs.chance);
+    if (rare) { P.grace = ENCOUNTER_GRACE; const l = G.rnd(rs.lvl[0], rs.lvl[1]); G.state.rareSeen = (G.state.rareSeen || 0) + 1; return G.Battle.start({ team: [G.makeMon(rs.sp, l)], rare: true }); }
     const sp = G.pickWeighted(A.table);
     const lead = Math.max(...G.state.team.map(m => m.lvl));
     const cap = zone === 'nebelgras' || !zone ? 1 : 2;
@@ -1559,6 +1886,7 @@
       if (npc.trainer) return G.World.talk(G.TRAINERS[npc.trainer].after);
       G.lock++; await npc.talk(); G.UI.hideText(); G.lock--; return;
     }
+    { const cat = catAt(fx, fy); if (cat) { G.lock++; await petCat(cat); G.UI.hideText(); G.lock--; return; } }
     if (m.signs[key]) return G.World.talk(m.signs[key]);
     if (c === 'D' && m.doors[key]) return enterDoor(m.doors[key], fx, fy);
     if (c === 'e') {
@@ -1814,6 +2142,7 @@
       const lit = c === 'L' || G.flag(`lit_${m.id}_${x}_${y}`), sx = x * T - cx, sy = y * T - cy;
       ents.push({ y: y * T + 2, lantern: [x, y], draw: () => ctx.drawImage(lanternHi(lit), sx, sy, 16, 16) });
     }
+    if (m.id === 'katzen') { updateCats(m, dt); catEnts(ctx, m, cx, cy, ents, t); }
     const pf = opt.hidePlayer ? null : playerFrame(dt);
     if (!opt.hidePlayer) ents.push({ y: P.py, draw: () => {
       // 4-Phasen-Gang: Kontakt links, Durchschwung, Kontakt rechts, Durchschwung (Wippen), im Stand Atmen/Blinzeln
@@ -1837,7 +2166,7 @@
       // im Nebel bleibt die Spielfigur lesbar: sie wird über den Schwaden erneut gezeichnet
       if (drawPlayer && (ZONE_OF[at(m, P.x, P.y)] || ZONE_OF[at(m, P.tx, P.ty)])) drawPlayer();
     }
-    const FL = m.kind === 'outdoor' && !G.lowFx && !G.fxOff.fog ? FOGLAYERS[m.theme === 'moor' ? 'moor' : m === K ? 'kueste' : 'dorf'] : null;
+    const FL = m.kind === 'outdoor' && m.theme !== 'cave' && !G.lowFx && !G.fxOff.fog ? FOGLAYERS[m.theme === 'moor' ? 'moor' : m === K ? 'kueste' : 'dorf'] : null;
     // Dunkelheit + Lichter (vorgerechnete, weich auslaufende Licht-Sprites)
     const dusk = G.dusk(), dark = Math.max(0.12, 0.34 + 0.28 * dusk + m.dark), night = Math.max(0, Math.min(1, (dark - 0.3) / 0.5));
     lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, VW, VH);
@@ -1850,13 +2179,15 @@
       const fl = L.warm ? 1 + 0.05 * Math.sin(t * 9 + L.fl) + 0.03 * Math.sin(t * 23 + L.fl * 2) : 0.8 + 0.2 * Math.sin(t * 1.5 + L.fl);
       vis.push([x, y, L.r * fl, L]);
     }
-    if (!opt.hidePlayer) vis.push([plx, ply, m.plight * (1 + 0.04 * Math.sin(t * 11)), { warm: 1 }]);
+    if (!opt.hidePlayer) vis.push([plx, ply, m.plight * (1 + 0.04 * Math.sin(t * 11)), { warm: 1, self: 1 }]);
     const wisps = m.theme === 'moor' && m.kind === 'outdoor' ? updateWisps(m, t, dt) : null;
     for (const [x, y, r, L] of vis) { spr(lg, LSPR.hole, x, y, r); if (L.win) spr(lg, LSPR.hole, x, y + 18, 22, 8); }
     if (wisps) for (const w of wisps) spr(lg, LSPR.hole, w.x - cx, w.y - cy, 20 * w.a);
     ctx.drawImage(lightC, 0, 0);
     ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true;
     for (const [x, y, r, L] of vis) {
+      // eigene Laterne: schwächerer, tiefer liegender Schein, damit die Figur (schwarzes Haar) nicht ausbleicht
+      if (L.self) { ctx.globalAlpha = 0.14; spr(ctx, LSPR.warm, x, y + 7, r * 0.8); continue; }
       ctx.globalAlpha = L.warm ? 0.3 : 0.2; spr(ctx, L.warm ? LSPR.warm : L.ghost ? LSPR.ghost : LSPR.cool, x, y, r * 0.8);
       // Fensterlicht fällt als warmer Schein auf den Boden vor dem Haus (nachts stärker)
       if (L.win) { ctx.globalAlpha = 0.16 + 0.3 * night; spr(ctx, LSPR.warm, x, y + 18, 22, 8); ctx.globalAlpha = 0.35 + 0.3 * night; spr(ctx, LSPR.warm, x, y, 7, 5); }
@@ -1884,7 +2215,9 @@
       ctx.fillStyle = gr; ctx.fillRect(x - f.r, y - f.r, f.r * 2, f.r * 2);
     }
     if (FL) fogLayers(ctx, cx, cy, t, FL);   // ferne (Parallaxe 0.55) und nahe (1.25) Nebelschicht
+    renderEvents(ctx, m, cx, cy, t, dt, opt);
     ctx.drawImage(vign, 0, 0);
+    renderLegend(ctx, cx, cy, t);
     if (!opt.hidePlayer) renderMarkers(ctx, m, cx, cy, t);
     // Laternenstein-Vorstellung: der Geist gross im Bild, während man seine Beschreibung liest
     if (G.World.showcase && !opt.hidePlayer) {
@@ -1896,6 +2229,87 @@
     }
     G.map = saved;
   };
+  // ---------- v15: seltene Umgebungs-Ereignisse ----------
+  // Blätterwirbel (Dorf/Küste), Schilfflaum (Moor), Krähen, Fischsprung, Sternschnuppe – je nach Ort, Tageszeit und Nebel.
+  // Selten: pro Art zufällige Abklingzeit 60–180 s, dazu mindestens 75 s zwischen zwei beliebigen Ereignissen; nie mehrere gleichzeitig.
+  const AMB = { next: {}, last: -1e9, cur: null, log: [], GAP: 75, CD: [60, 180] };
+  const visibleWater = (m, cx, cy) => { const out = []; for (let y = Math.max(0, cy / T | 0); y < Math.min(m.h, (cy + VH) / T | 0); y++) for (let x = Math.max(0, cx / T | 0); x < Math.min(m.w, (cx + VW) / T | 0); x++) { const c = m.tiles[y][x]; if ((c === '~' || c === 'w') && at(m, x, y - 1) !== 'T') out.push([x, y]); } return out; };
+  // welche Ereignisse passen hier gerade? (ctx: { map, theme, kind, dusk, fog, water })
+  function ambKinds(c) {
+    if (c.kind !== 'outdoor' || c.theme === 'cave') return [];
+    const k = [];
+    if (c.theme !== 'moor' && (c.map === 'dorf' || c.map === 'kueste')) k.push('leaves');
+    if (c.theme === 'moor') k.push('fluff');
+    if (c.map === 'dorf' || c.theme === 'moor') k.push('crows');
+    if (c.water) k.push('fish');
+    if (c.dusk > 0.45 && c.fog < 0.12) k.push('star');
+    return k;
+  }
+  // ein Takt der Ereignis-Uhr (reine Logik, auch für Tests): liefert die gestartete Art oder null
+  function ambTick(now, c, rnd = Math.random) {
+    if (AMB.cur || now - AMB.last < AMB.GAP) return null;
+    const kinds = ambKinds(c).filter(k => { if (AMB.next[k] == null) AMB.next[k] = now + 20 + rnd() * 60; return now >= AMB.next[k]; });
+    if (!kinds.length || rnd() > 0.006) return null;      // ~0,6 % pro Takt (Takt ≈ 0.25 s), sobald etwas bereit ist
+    const k = kinds[rnd() * kinds.length | 0];
+    AMB.next[k] = now + AMB.CD[0] + rnd() * (AMB.CD[1] - AMB.CD[0]); AMB.last = now;
+    AMB.log.push({ k, t: now, map: c.map }); if (AMB.log.length > 200) AMB.log.shift();
+    return k;
+  }
+  let ambAcc = 0;
+  function startAmb(k, m, cx, cy, wat) {
+    const dir = Math.random() < 0.5 ? 1 : -1, E = { k, t: 0, dur: 4, parts: [], dir };
+    const wind = m.id === 'kueste' ? -1 : 1;  // Küstenwind weht landeinwärts (nach Westen), sonst nach Osten
+    if (k === 'leaves' || k === 'fluff') {
+      E.dir = wind; E.dur = k === 'leaves' ? 4.5 : 6;
+      const n = k === 'leaves' ? 14 : 18, cols = k === 'leaves' ? ['#c8642a', '#e09a3a', '#a8402a', '#d8b050', '#8a5a2a'] : ['#f0ece0', '#e4e0d4', '#d8d0c0'];
+      for (let i = 0; i < n; i++) E.parts.push({ x: (wind > 0 ? -20 - Math.random() * 120 : VW + 20 + Math.random() * 120), y: 20 + Math.random() * (VH - 50), vx: wind * (60 + Math.random() * 50) * (k === 'fluff' ? 0.5 : 1),
+        vy: (Math.random() - 0.5) * 12, ph: Math.random() * 6, spin: 3 + Math.random() * 5, c: cols[i % cols.length], s: k === 'leaves' ? 2 + (Math.random() < 0.4) : 1 });
+      G.Snd.sfx('gust', wind * 0.4, k === 'fluff' ? 0.6 : 1);
+    } else if (k === 'crows') {
+      E.dur = 5.5; const y0 = 14 + Math.random() * 40, n = 2 + (Math.random() < 0.5);
+      for (let i = 0; i < n; i++) E.parts.push({ x: dir > 0 ? -16 - i * 18 : VW + 16 + i * 18, y: y0 + i * 7 + Math.random() * 5, vx: dir * (58 + Math.random() * 10), ph: Math.random() * 6 });
+      setTimeout(() => G.Snd.sfx('caw', dir * -0.5, 0.8), 900);
+    } else if (k === 'fish') {
+      const [x, y] = wat[Math.random() * wat.length | 0]; E.dur = 1.8; E.wx = x * T + 8; E.wy = y * T + 9; E.dir = dir; G.Snd.sfx('fish', 0, 0.8);
+    } else if (k === 'star') {
+      E.dur = 1.2; E.x0 = 40 + Math.random() * (VW - 80); E.y0 = 8 + Math.random() * 30; E.dir = dir; G.Snd.sfx('star', 0, 0.7);
+    }
+    AMB.cur = E; G.World.lastAmbient = k;
+  }
+  function renderEvents(ctx, m, cx, cy, t, dt, opt) {
+    if (opt.hidePlayer || G.mode !== 'world') return;
+    ambAcc += dt;
+    if (ambAcc >= 0.25 && !G.World.camFocus && G.lock === 0) {
+      ambAcc = 0;
+      const wat = m.kind === 'outdoor' ? visibleWater(m, cx, cy) : [];
+      const k = ambTick(G.time, { map: m.id, theme: m.theme, kind: m.kind, dusk: G.dusk(), fog: m.fogA + (ZONE_OF[at(m, P.x, P.y)] ? 0.2 : 0), water: wat.length > 0 });
+      if (k) startAmb(k, m, cx, cy, wat);
+    }
+    const E = AMB.cur; if (!E) return;
+    E.t += dt; if (E.t > E.dur || G.map.id !== (E.map || (E.map = m.id))) { AMB.cur = null; return; }
+    const f = Math.min(1, E.t / 0.4, (E.dur - E.t) / 0.6);
+    if (E.k === 'leaves' || E.k === 'fluff') for (const p of E.parts) {
+      p.x += p.vx * dt; p.ph += dt * p.spin; p.y += (p.vy + Math.sin(p.ph) * (E.k === 'leaves' ? 22 : 8)) * dt;
+      ctx.globalAlpha = f * (E.k === 'fluff' ? 0.8 : 1); ctx.fillStyle = p.c;
+      if (E.k === 'leaves') { const w = Math.abs(Math.cos(p.ph)) * p.s + 1; ctx.fillRect(Math.round(p.x), Math.round(p.y), Math.round(w), p.s); ctx.fillStyle = '#5a2a1a'; ctx.fillRect(Math.round(p.x), Math.round(p.y + p.s), 1, 1); }
+      else { ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); ctx.globalAlpha *= 0.4; ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y), 3, 1); ctx.fillRect(Math.round(p.x), Math.round(p.y) - 1, 1, 3); }
+    } else if (E.k === 'crows') for (const p of E.parts) {
+      p.x += p.vx * dt; p.ph += dt * 9; const wy = Math.sin(p.ph) > 0 ? -2 : 1, x = Math.round(p.x), y = Math.round(p.y + Math.sin(p.ph * 0.2) * 3);
+      ctx.globalAlpha = 0.9 * f; ctx.fillStyle = '#0c0a12'; ctx.fillRect(x - 1, y, 3, 2); ctx.fillRect(x - 4, y + wy, 3, 1); ctx.fillRect(x + 2, y + wy, 3, 1); ctx.fillRect(x - 2, y + wy * 0.5, 1, 1); ctx.fillRect(x + 2, y + wy * 0.5, 1, 1); ctx.fillRect(x + (E.dir > 0 ? 2 : -2), y, 1, 1);
+    } else if (E.k === 'fish') {
+      const q = Math.min(1, E.t / 0.9), x = E.wx - cx + E.dir * (q - 0.5) * 14, y = E.wy - cy - Math.sin(q * Math.PI) * 12;
+      if (E.t < 0.9) { ctx.globalAlpha = 1; ctx.fillStyle = '#a8c0d0'; ctx.fillRect(Math.round(x) - 2, Math.round(y), 5, 2); ctx.fillStyle = '#e8f4ff'; ctx.fillRect(Math.round(x) - 1, Math.round(y), 2, 1); ctx.fillStyle = '#6a8aa0'; ctx.fillRect(Math.round(x) - E.dir * 3, Math.round(y) + (q < 0.5 ? 1 : -1), 1, 2); }
+      for (const [t0, x0] of [[0, -E.dir * 7], [0.9, E.dir * 7]]) { const a = E.t - t0; if (a < 0 || a > 0.9) continue; ctx.globalAlpha = (1 - a / 0.9) * 0.8; ctx.strokeStyle = '#cfe4f4'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(E.wx - cx + x0, E.wy - cy, 2 + a * 9, 1 + a * 3, 0, 0, Math.PI * 2); ctx.stroke(); }
+    } else if (E.k === 'star') {
+      const q = E.t / E.dur, x = E.x0 + E.dir * q * 70, y = E.y0 + q * 26;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 12; i++) { const b = (1 - i / 12) * Math.sin(q * Math.PI); ctx.globalAlpha = b * 0.8; ctx.fillStyle = i ? '#b8d0ff' : '#ffffff'; ctx.fillRect(Math.round(x - E.dir * i * 2.2), Math.round(y - i * 0.8), 1, 1); }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.globalAlpha = 1;
+  }
+  G.World.ambient = { AMB, ambKinds, ambTick, reset: () => { AMB.next = {}; AMB.last = -1e9; AMB.cur = null; AMB.log = []; },
+    force: k => { const m = G.map, [cx, cy] = G.World.camera(false, 0); const wat = visibleWater(m, cx, cy); if (k === 'fish' && !wat.length) return false; startAmb(k, m, cx, cy, wat); AMB.log.push({ k, t: G.time, map: m.id, forced: 1 }); return true; } };
   // ---------- Schmiede & Mühle: Esse, Funken, Wasserrad, Klänge ----------
   const sparks = []; let hammerT = 0.6, creakT = 1, splashT = 0.3;
   const spark = (x, y, vx, vy, life = 0.7, kind) => { const o = { x, y, vx, vy, life, max: life, moon: kind === 'moon' }; if (sparks.length < 90) sparks.push(o); return o; };
@@ -2036,7 +2450,8 @@
       { id: 'wido', m: () => q1() === 1 ? '!' : null },
     ],
     home: [{ id: 'mutter', m: () => story() === 6 ? '!' : null }, { id: 'vater', m: () => story() === 6 ? '!' : null }],
-    kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 ? '!' : null }, { id: 'wenke', m: () => story() >= 8 && !G.flag('wenke') ? '!' : null }],
+    hoehle: [{ id: 'mandy', m: () => story() >= 4 && !G.flag('quantum') ? '!' : null }],
+    kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 && (!G.FEAT.cave || G.flag('quantum')) ? '!' : null }, { id: 'wenke', m: () => story() >= 8 && !G.flag('wenke') ? '!' : null }],
     tiefesmoor: [{ id: 'kaspar', m: () => q1() === 4 ? '!' : null }]
   };
   // aktuelle Markierungen einer Karte: [{ id, kind, x, y }]

@@ -181,6 +181,33 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v15: Neue Geister, Gebiete, Streicher-Musik, Umgebungs-Ereignisse
+- **Hafenkapelle entfernt:** Bruder Tamme und die Kapelle an der Nebelküste gibt es nicht mehr; einzige Heilungskirche ist die
+  Mondkirche. Alte Spielstände mit Wiedererwachen in der Kapelle erwachen in der Mondkirche (wer in der Kapelle stand, steht vor
+  ihrem früheren Platz an der Küste).
+- **Abschied & Dialoge:** Der Abschied von den Eltern ist neu geschrieben (ruhiger, ohne Pathos: Sorge, Stolz, Tee und Vaters
+  Kompass, «Wenn es nicht mehr geht, kommst du heim. Das ist keine Schande.»). Einige zu blumige Sätze (Brann, Mathis, Wido,
+  Jorin, Onno, Selma, Ilse, Eltern) wurden schlichter.
+- **Musik:** alle Gebiets-Stücke und die Kampfmusik sind Streicher-Stücke (Solo-Violine/Viola, Cello-Liegetöne, Flageoletts,
+  Streicherflächen, Harfe/Klavier als Farbe; Kampf mit Spiccato-Achteln, Cello-Puls und Rahmentrommel).
+  Offline-Vorschau: `python3 tests/music_preview.py` (WAV nach `/workspace/music_previews`).
+- **Starter nie wild:** keine Stufe der drei Starter-Linien steht in einer Wild-Tabelle (Beschwörer dürfen sie haben).
+- **15 neue Tier- und Naturgeister (#28–#42):** Tauhase, Funkmaus, Moosigel → Farnigel, Gischtkrebs, Glimmfuchs → Glutfähe,
+  Tropfsteinmolch → Kristallmolch, Flatterhauch, Blitzreiher, Sumpfnatter, Grubenkäfer, Keilerling → Moorkeiler. Alle 9 Typen,
+  jede Linie mit eigener Attacke und eigener Animation (≤ 3 s), Chronik-Eintrag, gemässigte Werte (jeder Wert 70–135 % des Mittels).
+- **Gebietstabellen:** jedes Gebiet 4–6 passende Arten mit einem seltenen Geist (Gewicht ≤ 8), keine Art in allen Gebieten,
+  höchstens in zwei: Nebelgras (Hase, Motte, Igel), Küstengras (Maus, Krebs, Kauz, Molch an den Felsen), Schilfrand (Natter,
+  Reiher), Torfstich (Keiler, Käfer), Versunkene Kapelle (Hauch, Falter, Fledermaus), Moorherz (Farnigel, Kristallmolch).
+- **Seltene Umgebungs-Ereignisse** (`G.World.ambient`): Blätterwirbel (Dorf/Küste, in Windrichtung, leises Rauschen),
+  Schilfflaum (Moor), Krähen (Dorf/Moor), Fischsprung (sichtbares Wasser), Sternschnuppe (nur klare Dämmerung). Nie in
+  Innenräumen, nie gleichzeitig; je Art 60–180 s Abklingzeit (zufällig), dazu mindestens 75 s zwischen zwei beliebigen – etwa
+  ein Ereignis alle 2 Minuten.
+- **Spielerfigur:** Kapuze ab – schwarze, zackige, zur Seite gestrichene Haare mit langen Gesichtssträhnen und kühlem
+  blauem Streiflicht; die eigene Laterne bleicht die Figur nicht mehr aus.
+- **Stufenweise Veröffentlichung:** Klippenhöhle/Team Quantum, Legende, Katzenhaus (v16) und seltene Sondergeister (v17) sind im
+  Code vorbereitet, aber über `G.FEAT` (in `js/data.js`) abgeschaltet.
+- Tests: `tests/test_v15.py`; Bilder: `tests/shots_v15.py`.
+
 ## v14: Neue Starter, Pflanze, Kampf-Feedback, Klang & Steuerung
 - **Neue Starter-Linien** (Drache, Ente, Feenbaum) und **Typ Pflanze** – siehe «Elemente & Typentabelle»; alle 9 Stufen im
   Comic-Pixelstil mit Blinzel-/Atem-Idle, Pflanzen-Treffer mit Blattwirbel-Partikeln und eigenem Klang (Rascheln, Holzklopfen, Zupfakkord).
@@ -215,8 +242,8 @@ schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
 ## v13: Heilungskirchen, Aufgaben-Markierungen, robuster Ton
 - **Heilungskirchen** (wiederverwendbare Vorlage `addChurch(Karte, {x, y, id, name, healer})` in `js/world.js`: Gebäude 4×3
-  Kacheln mit Tür, Innenraum mit Mondaltar, Bänken, Läufer und Heiler/in). Eldenghost: **Mondkirche** mit **Schwester Alwine**;
-  Nebelküste (Hafen + Leuchtturm zählen als Siedlung): **Hafenkapelle** mit **Bruder Tamme**. Heilen (kostenlos) stellt HP,
+  Kacheln mit Tür, Innenraum mit Mondaltar, Bänken, Läufer und Heiler/in). Eldenghost: **Mondkirche** mit **Schwester Alwine**
+  (die frühere Hafenkapelle an der Nebelküste wurde in v15 entfernt, siehe unten). Heilen (kostenlos) stellt HP,
   Bewegungspunkte und Status wieder her (Mondlicht-Säule, Heil-Jingle) und setzt den **Ort des Wiedererwachens**; schon das
   Betreten einer Kirche setzt ihn. Nach verlorenem Kampf erwacht man in der zuletzt besuchten Kirche (bzw. an der zuletzt
   entzündeten Moorlaterne). Das Bett zu Hause heilt weiterhin (und speichert); Ilse füllt nur Seelenfänger auf.

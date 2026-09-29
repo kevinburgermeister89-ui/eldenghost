@@ -98,6 +98,15 @@
     if (c.tail && !up) S.C(side ? cx + 5 : cx + 5.2, hy, side ? cx + 6 + (walk ? swing * 0.3 : 0) : cx + 6, hy + 5, 2.2, c.hair, { name: 'tail' });
     if (c.tail && up) S.C(cx, hy + 1, cx + (walk ? swing * 0.4 : 0), hy + 6.4, 2.4, c.hair);
     S.E(cx, hy, hr, hr - 0.4, hair, { name: 'head', g: 'head' });
+    if (c.spiky) {   // v15: zackige schwarze Haare, zur Seite gestrichen (über den Kopfumriss hinaus), kühles Blau-Streiflicht
+      const sw = side ? 1 : 0.55, rim = c.hairRim || '#6a8ac0', R0 = hr - 0.6, Rt = hr + 2.4;
+      const angs = up ? [-165, -135, -105, -75, -45, -15] : side ? [-170, -140, -110, -80, -50] : [-160, -130, -100, -70, -40, -15];
+      for (const d of angs) {
+        const a = d * Math.PI / 180, w = 0.34, t = a + sw * 0.5 * (side ? 1 : 1);
+        S.P([[cx + Math.cos(a - w) * R0, hy + Math.sin(a - w) * (R0 - 0.4)], [cx + Math.cos(t) * Rt, hy + Math.sin(t) * (Rt - 0.6)], [cx + Math.cos(a + w) * R0, hy + Math.sin(a + w) * (R0 - 0.4)]], c.hair, { g: 'head' });
+      }
+      for (const d of angs.slice(1, 4)) { const a = d * Math.PI / 180, t = a + sw * 0.5; S.C(cx + Math.cos(a) * (R0 - 0.2), hy + Math.sin(a) * (R0 - 0.6), cx + Math.cos(t) * (Rt - 0.8), hy + Math.sin(t) * (Rt - 1.4), 0.24, rim, { flat: true, line: false, alpha: 0.75 }); }
+    }
     // Haarsträhnen / Stoffstruktur der Kapuze (fein, hell)
     const hl = lift(hair, 0.28);
     for (const [x0, x1] of up ? [[-3, -2], [0, 0.6], [3, 2]] : side ? [[1, 2.6], [3.4, 4.4]] : [[-4, -3.2], [4, 3.2]]) S.C(cx + x0, hy - hr + 1.4, cx + x1, hy - hr + 4.4, 0.5, hl, { clip: 'head', flat: true, line: false });
@@ -105,9 +114,18 @@
     if (!up) {
       const fx = side ? cx - 2.2 : cx, frx = side ? 3.8 : 4.9;
       S.E(fx, hy + 2, frx, 4.2, c.skin, { clip: 'head', g: 'head', line: false, name: 'face', flatten: 0.25 });
-      if (c.hood) S.E(fx, hy - 2.2, frx + 0.3, 1.5, c.hair || '#3a2a30', { clip: 'face', flat: true, line: false });  // Haarsträhnen unter der Kapuze
+      if (c.spiky) {   // v15: schwarze, zackige Strähnen, zur Seite gestrichen, lange Gesichtssträhnen, kühles Blau-Streiflicht
+        const hc = c.hair, rim = c.hairRim || '#6a8ac0', o = { clip: 'face', flat: true, line: false };
+        S.E(fx, hy - 2.5, frx + 0.3, 1.2, hc, o);
+        const sp = side ? [[-3.6, -3.2, -2.6, 0.4, -1.2], [-1.6, -3.2, 0.2, 0.6, 1], [0.6, -3.2, 2.6, -0.4, 3]] : [[-4.8, -3.2, -3.2, 0.2, -2], [-2.4, -3.2, -0.4, 0.8, 0.4], [0, -3.2, 2.2, 0.2, 2.6], [2.4, -3.2, 4.4, -0.8, 4.8]];
+        for (const [a, ay, tx, ty, b] of sp) S.P([[fx + a, hy + ay], [fx + tx, hy + ty], [fx + b, hy + ay]], hc, o);
+        if (side) S.C(fx - frx + 0.9, hy - 1.6, fx - frx + 0.5, hy + 3.4, 0.7, hc, o);
+        else { S.C(fx - frx + 0.5, hy - 1.8, fx - frx + 0.3, hy + 3.6, 0.75, hc, o); S.C(fx + frx - 0.5, hy - 1.8, fx + frx - 0.4, hy + 3.2, 0.7, hc, o); }
+        for (const [a, ay, tx, ty] of sp.slice(0, 2)) S.C(fx + a + 0.3, hy + ay + 0.5, fx + (a + tx) / 2 + 0.3, hy + (ay + ty) / 2, 0.22, rim, o);
+        if (!side) S.C(fx - frx + 0.3, hy - 0.8, fx - frx + 0.2, hy + 2.4, 0.2, rim, o);
+      } else if (c.hood) S.E(fx, hy - 2.2, frx + 0.3, 1.5, c.hair || '#3a2a30', { clip: 'face', flat: true, line: false });  // Haarsträhnen unter der Kapuze
       else S.E(side ? fx + 0.8 : fx, hy - 2.5, frx + 1, 1.9, c.hair, { clip: 'face', line: false });                 // Pony
-      if (!c.hood && !side) S.P([[cx - 1.2, hy - 1.2], [cx, hy - 2.6], [cx + 0.6, hy - 1]], c.hair, { clip: 'face', flat: true, line: false }); // Stirnsträhne
+      if (!c.hood && !c.spiky && !side) S.P([[cx - 1.2, hy - 1.2], [cx, hy - 2.6], [cx + 0.6, hy - 1]], c.hair, { clip: 'face', flat: true, line: false }); // Stirnsträhne
       const ey = hy + 1.2, eh = blink ? 0.6 : 2, eo = blink ? 1.2 : 0;
       if (side) { S.R(fx - 1.8, ey + eo, 1, eh, '#1a1428', { flat: true, line: false }); if (!blink) S.R(fx - 1.8, ey, 0.5, 0.5, '#fafaff', { flat: true, line: false }); }
       else { S.R(cx - 2.6, ey + eo, 1, eh, '#1a1428', { flat: true, line: false }).R(cx + 1.6, ey + eo, 1, eh, '#1a1428', { flat: true, line: false }); if (!blink) S.R(cx - 2.6, ey, 0.5, 0.5, '#fafaff', { flat: true, line: false }).R(cx + 1.6, ey, 0.5, 0.5, '#fafaff', { flat: true, line: false }); }
@@ -129,7 +147,7 @@
   const hi = c => { c.s = K; c.lw = c.width / K; c.lh = c.height / K; return c; };
   function mirror(src) { const c = G.mk(src.width, src.height), g = c.getContext('2d'); g.translate(src.width, 0); g.scale(-1, 1); G.rawDraw(g, src, 0, 0); return src.s ? hi(c) : c; }
   const PEOPLE = {
-    player: { hood: '#2f5a72', hoodRim: '#4a7a92', hair: '#3a2a34', skin: '#f0d8c4', body: '#2c4c62', legs: '#2a2838', boot: '#1e1820', scarf: '#a8404e', item: 'lamp', strap: '#6a4a34', belt: '#3a2a24' },
+    player: { hair: '#15131a', hairRim: '#6a8ac0', spiky: true, skin: '#f0d8c4', body: '#2c4c62', legs: '#2a2838', boot: '#1e1820', scarf: '#a8404e', item: 'lamp', strap: '#6a4a34', belt: '#3a2a24' },
     ilse:   { hair: '#c4bcca', skin: '#ecd4c0', body: '#6a4478', skirt: '#3e2c44', item: 'staff', staffGem: '#bfe8ff', bun: true, cheek: false, scarf: '#8a6a9a', brows: '#9a90a0' },
     hedda:  { hair: '#c8743e', skin: '#f0d4bc', body: '#6e4c2e', apron: '#e2d4b2', legs: '#4a3424', tail: true, belt: '#4a3424' },
     oda:    { hair: '#5a3e30', skin: '#e8ccb4', body: '#4a5c78', legs: '#34405a', bun: true, glasses: true, apron: '#c8b890' },
@@ -147,9 +165,16 @@
     // Kapitänin Wenke: langer Kapitänsmantel mit Goldknöpfen und Schulterstücken, Mütze mit Abzeichen
     wenke:  { hair: '#b8583a', skin: '#ecd0bc', body: '#26344e', coat: '#26344e', buttons: '#e8c058', epaulette: '#e8c058', legs: '#1e2638', boot: '#16181e', hat: '#1a2030', hatBand: '#e8c058', badge: '#ffe08a', tail: true, scarf: '#d8c8a0' },
     // Mondpriesterin Alwine (Heilungskirche): silbernes Gewand, Schleier, leuchtender Mondanhänger
-    alwine: { hair: '#d8d0e8', skin: '#f0dccc', body: '#dcd8ec', robe: '#c4bedc', veil: '#eeeaf8', pendant: '#bfe8ff', cheek: true, item: 'book', legs: '#8a84a4', boot: '#6a6488' },
-    // Bruder Tamme (Hafenkapelle): tiefblaue Kutte, Seemannsbart, goldener Leuchtfeuer-Anhänger
-    tamme:  { hair: '#8a7460', skin: '#e0c0a6', body: '#3e4c6e', robe: '#34405e', pendant: '#ffd878', beard: '#9a8470', cheek: false, item: 'book', legs: '#2a3048', boot: '#1e2232', brows: '#8a7460' }
+    // v15: Kevin und Cassandra (Katzenhaus im Dorf) – gemütliche Strickpullis
+    kevin:     { hair: '#1e1a1e', skin: '#ecd0ba', body: '#3e6a5a', legs: '#2e3a52', boot: '#2a2220', belt: '#3a2a22', scarf: '#c8a060' },
+    cassandra: { hair: '#8a3e2a', skin: '#f2dac8', body: '#b0607a', skirt: '#3e3a58', tail: true, cheek: true, scarf: '#e8d8c0' },
+    // v15: Team Quantum – dunkelvioletter Mantel mit silbernem «Q»-Abzeichen
+    mandy:     { hair: '#d84a8a', skin: '#f0d4c4', body: '#2e2440', coat: '#2e2440', buttons: '#c8c8d8', badge: '#c8e8ff', legs: '#1e1a2a', boot: '#141018', tail: true, cheek: false, brows: '#a83a6a' },
+    hans:      { hair: '#c8b060', skin: '#e8c8b0', body: '#2e2440', coat: '#2e2440', buttons: '#c8c8d8', badge: '#c8e8ff', legs: '#1e1a2a', boot: '#141018', hat: '#241c34', hatBand: '#8a6ac8', cheek: false },
+    // v15: Höhlen-Beschwörer
+    ruedi:     { hair: '#6a5040', skin: '#dcb89c', body: '#7a6a3a', legs: '#3a3428', boot: '#2a2218', cap: '#c8a030', beard: '#6a5040', strap: '#4a3a24', item: 'lamp' },
+    nele:      { hair: '#e0c070', skin: '#f2dcc8', body: '#4a6a8a', legs: '#2e3a4a', tail: true, item: 'lamp', scarf: '#c86a4a', belt: '#4a3424' },
+    alwine: { hair: '#d8d0e8', skin: '#f0dccc', body: '#dcd8ec', robe: '#c4bedc', veil: '#eeeaf8', pendant: '#bfe8ff', cheek: true, item: 'book', legs: '#8a84a4', boot: '#6a6488' }
   };
   const DIRS3 = ['down', 'up', 'left'];
   // Figur: Stand (down/up/left/right), 4 Gangphasen je Richtung (walk), 3 Ruhebilder je Richtung (idle: Atem aus/ein, Blinzeln)

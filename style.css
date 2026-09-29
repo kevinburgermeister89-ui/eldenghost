@@ -208,3 +208,6 @@ body.touch #btn-snd{display:block}
 #btn-snd.on .x{display:none}#btn-snd.on .w1,#btn-snd.on .w2{display:block}#btn-snd.on svg{stroke:#b8aee0}#btn-snd.on .spk{fill:#b8aee0}
 #btn-snd.press{transform:translateY(2px);box-shadow:0 1px 0 #0b0a10,inset 0 1px 3px #000a}
 body.touch.landscape #btn-snd{right:auto;bottom:auto;left:max(18px,env(safe-area-inset-left));top:14px;pointer-events:auto}
+/* v15: Lebensbalken-Punkte (zweiphasiger Gegner) */
+.pips b { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff4a6a; margin-left: 2px; box-shadow: 0 0 4px #ff4a6a; vertical-align: middle; }
+.pips b.gone { background: #3a3040; box-shadow: none; }

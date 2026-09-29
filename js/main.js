@@ -28,7 +28,13 @@
     const n = Object.assign(newState(), s);
     n.items = Object.assign(newItems(), { laterne: 0 }, s.items || {});
     n.flags = Object.assign({ q1: 0 }, s.flags || {});
+    // v15: Hafenkapelle entfernt – Wiedererwachen dort -> Mondkirche; wer in der Kapelle stand, steht vor ihrem früheren Platz
+    if (n.respawn && (n.respawn.church === 'kapelle' || n.respawn.map === 'kapelle')) n.respawn = { church: 'kirche', map: 'kirche', x: 4, y: 3 };
+    if (s.map === 'kapelle') { n.map = 'kueste'; n.player = { x: 11, y: 6, dir: 'down' }; }
     if (!G.MAPS[n.map]) n.map = 'dorf';
+    // v15: Klippenhöhle vor Onno – wer Onno schon geweckt hat, hat Team Quantum «schon hinter sich»; neu bebaute Kacheln räumen
+    if ((n.flags.story || 0) >= 6) n.flags.quantum = 1;
+    if (n.player && (n.map === 'kueste' || n.map === 'dorf') && G.World && G.World.solidAt(G.MAPS[n.map], n.player.x, n.player.y)) n.player = n.map === 'kueste' ? { x: 15, y: 7, dir: 'down' } : { x: 16, y: 7, dir: 'down' };
     if ((s.v || 1) < 2) {
       n.map = 'dorf';
       if (s.flags && s.flags.ilse && !n.flags.q1) n.flags.q1 = 1;
@@ -157,10 +163,11 @@
     const html = G.SPECIES_ORDER.map((sp, i) => {
       const s = G.SPECIES[sp], seen = S.seen[sp] || S.caught[sp];
       return `<div class="chron"><img src="${seen ? G.SPR.mon[sp].icon : G.SPR.mon[sp].darkIcon}" alt=""><div><b>#${i + 1} ${seen ? s.name : '???'}</b>
-        ${seen ? UI.typeBadges(sp) : ''} ${S.caught[sp] ? '<span style="color:#e8c870">◆ gefangen</span>' : ''}
+        ${seen ? UI.typeBadges(sp) : ''} ${S.caught[sp] ? '<span style="color:#e8c870">◆ gefangen</span>' : seen ? '<span class="sighted" style="color:#a8c8f0">◇ gesichtet</span>' : ''}
+        ${seen && s.legend ? ' <span style="color:#ffe8a0">★ Legendär</span>' : seen && s.rare ? ' <span style="color:#d8b8ff">✦ Selten</span>' : ''}
         <div class="desc">${seen ? s.desc : 'Noch nicht begegnet.'}</div></div></div>`;
     }).join('');
-    await UI.choose([], { area: 'full', cancel: true, title: `<h2>Geisterchronik</h2><div class="hint">Gefangen: ${n} / ${G.SPECIES_ORDER.length}</div>${html}${chartHtml()}` });
+    await UI.choose([], { area: 'full', cancel: true, title: `<h2>Geisterchronik</h2><div class="hint">Gefangen: ${n} / ${G.SPECIES_ORDER.filter(sp => G.SPECIES[sp].catch > 0).length}</div>${html}${chartHtml()}` });
   };
   let menuSel = 0;
   const FX_LABEL = { auto: 'Auto', hoch: 'Hoch', niedrig: 'Niedrig' };

@@ -16,7 +16,10 @@
     dorf: { g: '#2a4641', gD: '#213a36', gL: '#38594f', tip: '#4f7667', tall: '#21403e', tallL: '#33605a', tallT: '#4f8274', tallD: '#162c2c',
       path: '#4a4352', pathD: '#3b3544', pathL: '#5a5264', edge: '#1e2d2c', leaf: ['#2d5a4e', '#35456a'], trunk: '#4a3430' },
     moor: { g: '#25342c', gD: '#1c2822', gL: '#324538', tip: '#4c6148', tall: '#20332c', tallL: '#2f4a3c', tallT: '#4c6a52', tallD: '#141f1a',
-      path: '#3e3a3c', pathD: '#322e32', pathL: '#4c4648', edge: '#161e1a', leaf: ['#2c4638', '#383a58'], trunk: '#3e302a' }
+      path: '#3e3a3c', pathD: '#322e32', pathL: '#4c4648', edge: '#161e1a', leaf: ['#2c4638', '#383a58'], trunk: '#3e302a' },
+    // v15 Klippenhöhle: kühler, violettgrauer Fels, warmer Geröllboden
+    cave: { g: '#2b2731', gD: '#221e28', gL: '#36313d', tip: '#433c4a', tall: '#3a3030', tallL: '#4a3e3c', tallT: '#5c4e48', tallD: '#231c1e',
+      path: '#34303a', pathD: '#2a2630', pathL: '#403a46', edge: '#1a1720', leaf: ['#2c4638', '#383a58'], trunk: '#3e302a' }
   };
   const pal = m => PAL[m.theme] || PAL.dorf;
   const isPath = c => c === ',' || c === 'D';
@@ -33,6 +36,31 @@
       }
       if (R(30) < 0.25) { const px = 2 + R(31) * 11 | 0, py = 2 + R(32) * 11 | 0; d.r(px, py, 2, 1, P.gD); }
     };
+    // v15: Höhleneingang (auch an der Küste) und Höhlenkacheln
+    if (c === 'O') { if (m.theme === 'cave') caveFloor(d, R, P); else grass(1);
+      d.r(0, 4, 16, 12, '#4a4250'); d.r(1, 2, 14, 2, '#5a5262'); d.r(3, 1, 10, 1, '#6a6274'); d.r(0, 4, 1, 12, '#2a2430'); d.r(15, 4, 1, 12, '#2a2430');
+      d.r(4, 6, 8, 10, '#0a0810'); d.r(5, 5, 6, 1, '#0a0810'); d.r(5, 8, 6, 8, '#040308'); d.r(3, 7, 1, 9, '#2a2430'); d.r(12, 7, 1, 9, '#6a6274'); d.p(2, 3, '#7a7288'); d.p(13, 5, '#7a7288'); return; }
+    if (m.theme === 'cave') {
+      if (c === 'H') { // Felswand: dunkle Deckmasse, Stirnseite mit Schichtlinien zum Boden hin
+        const below = at(m, x, y + 1) !== 'H', l = at(m, x - 1, y) !== 'H', r = at(m, x + 1, y) !== 'H', up = at(m, x, y - 1) !== 'H';
+        d.r(0, 0, 16, 16, '#17141d');
+        for (let i = 0; i < 3; i++) d.r(R(i) * 12 | 0, R(i + 3) * 12 | 0, 3, 2, '#201c28');
+        if (below) { d.r(0, 6, 16, 10, '#453e4c'); d.r(0, 6, 16, 1, '#5c5466'); d.r(0, 10, 16, 1, '#3a3442'); d.r(0, 13, 16, 1, '#38323f'); d.r(0, 15, 16, 1, '#241f2a');
+          for (let i = 0; i < 3; i++) { const px = 1 + R(i + 9) * 13 | 0; d.r(px, 7, 1, 7, '#3a3442'); } if (R(20) < 0.3) { d.p(4 + R(21) * 8 | 0, 11, '#8ad8e8'); } }
+        if (up) d.r(0, 0, 16, 1, '#3a3446');
+        if (l) d.r(0, 0, 1, below ? 6 : 16, '#3a3446'); if (r) d.r(15, 0, 1, below ? 6 : 16, '#2a2432');
+        return;
+      }
+      if (c === 'j') { d.r(0, 0, 16, 16, P.tall); // Geröll: viele kleine Steine (Begegnungsboden)
+        for (let i = 0; i < 9; i++) { const px = R(i + 30) * 14 | 0, py = R(i + 50) * 14 | 0, big = R(i + 70) < 0.35; d.r(px, py + 1, big ? 3 : 2, 1, P.tallD); d.r(px, py, big ? 3 : 2, 1, i % 3 ? P.tallL : P.tallT); if (big) d.p(px + 1, py - 1, P.tallT); }
+        return; }
+      caveFloor(d, R, P);
+      if (c === 'Y') { // Tropfstein mit glimmenden Kristallen
+        d.r(3, 13, 10, 2, '#1a1720'); d.r(5, 4, 6, 10, '#5a5262'); d.r(6, 2, 4, 2, '#6a6274'); d.r(7, 0, 2, 2, '#7a7288'); d.r(5, 4, 1, 10, '#7a7288'); d.r(10, 5, 1, 9, '#3e3846');
+        d.r(3, 10, 2, 4, '#6ad0e4'); d.p(3, 9, '#b8f4ff'); d.r(11, 11, 2, 3, '#6ad0e4'); d.p(12, 10, '#b8f4ff'); d.p(8, 8, '#8ad8e8');
+      }
+      return;
+    }
     switch (c) {
       case ',': case 'D': {
         d.r(0, 0, 16, 16, P.path);
@@ -108,6 +136,11 @@
       case 'b': case '~': case 'w': if (m.theme === 'moor') { d.r(0, 0, 16, 16, P.g); break; } grass(1); break;
       default: grass(c === '.' ? 2 : 1);
     }
+  }
+  function caveFloor(d, R, P) {
+    d.r(0, 0, 16, 16, P.g);
+    for (let i = 0; i < 4; i++) { const px = R(i + 80) * 14 | 0, py = R(i + 90) * 14 | 0; d.r(px, py, 2, 1, i % 2 ? P.gL : P.gD); }
+    if (R(99) < 0.3) { const px = 2 + R(98) * 10 | 0, py = 2 + R(97) * 10 | 0; d.r(px, py, 3, 1, P.tip); d.r(px, py + 1, 3, 1, P.gD); }
   }
   // ---------------- Objekte (Art-Sprites, zwischengespeichert) ----------------
   const OC = {};

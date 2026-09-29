@@ -120,6 +120,7 @@
     he.querySelector('.nm').textContent = G.nm(en); he.querySelector('.lv').textContent = 'Lv' + en.lvl;
     he.querySelector('.ty').innerHTML = typeBadges(en.sp) + (G.state.caught[en.sp] && !B.tr ? ' <span style="color:#e8c870">◆</span>' : '') + statusBadge(en)
       + (B.tr && B.team.length > 1 ? ' <span class="balls">' + B.team.map((m, i) => `<i class="${i < B.eIdx ? 'gone' : ''}"></i>`).join('') + '</span>' : '');
+    if (en.phases > 1) he.querySelector('.ty').innerHTML += ' <span class="pips" title="Lebensbalken">' + Array.from({ length: en.phases }, (_, i) => `<b class="${i < (en.phase || 0) ? 'gone' : ''}"></b>`).join('') + '</span>';
     setBar(he.querySelector('.bar'), en.hp / G.stats(en).hp);
     const st = G.stats(al);
     ha.querySelector('.nm').textContent = G.nm(al); ha.querySelector('.lv').textContent = 'Lv' + al.lvl;

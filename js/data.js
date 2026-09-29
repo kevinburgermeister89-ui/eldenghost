@@ -35,6 +35,8 @@ window.G = window.G || {};
   G.eff = (mt, sp) => G.typesOf(sp).reduce((f, t) => f * G.eff1(mt, t), 1);
   G.hasType = (sp, t) => G.typesOf(sp).includes(t);
   G.isNeutral = id => G.MOVES[id] && G.MOVES[id].type === 'Neutral';
+  // Stufenweise Veröffentlichung: v16-Inhalte (Klippenhöhle/Team Quantum, Legende, Katzenhaus) und v17 (seltene Spezialgeister) sind vorbereitet, aber noch aus
+  G.FEAT = { cave: false, legend: false, cats: false, rare: false };
   G.TYPE_MOVE_LVL = 8; // erste Typ-Attacke frühestens ab Level 8
 
   // ---------- Statuseffekte ----------
@@ -53,7 +55,14 @@ window.G = window.G || {};
       persist: false,         // endet mit dem Kampf oder beim Auswechseln
       immune: ['Psycho'],
       msgOn: '{n} hat sich im Nebel verirrt!', msgTick: '{n} irrt umher und findet sein Ziel nicht.', msgOff: '{n} findet den Weg zurück.'
-    }
+    },
+    // v15: seltene Signatur-Zustände
+    schlaf: { name: 'Schlaf', short: 'SLF', color: '#9aa8e0', turns: [1, 3], sleep: true, persist: false, immune: [],
+      msgOn: '{n} schläft ein!', msgTick: '{n} schläft tief und fest.', msgOff: '{n} wacht auf!' },
+    brand: { name: 'Verbrennung', short: 'BRD', color: '#f08a4a', dot: 1 / 16, persist: false, immune: ['Feuer'],
+      msgOn: '{n} hat sich verbrannt!', msgTick: '{n} leidet unter der Verbrennung.', msgOff: '{n} ist nicht mehr verbrannt.' },
+    gift: { name: 'Vergiftung', short: 'GFT', color: '#b070e0', dot: 1 / 10, persist: false, immune: ['Gift', 'Stein'],
+      msgOn: '{n} wurde vergiftet!', msgTick: '{n} leidet unter dem Gift.', msgOff: '{n} ist das Gift los.' }
   };
 
   // ---------- Attacken (pp neu; bestehende power/acc unverändert) ----------
@@ -117,7 +126,34 @@ window.G = window.G || {};
     feensturm:      { name: 'Feensturm',      type: 'Pflanze', power: 90, acc: 85,  pp: 5 },
     // neue Starter-Linien: Drache und Ente
     drachenglut:    { name: 'Drachenglut',    type: 'Feuer',   power: 90, acc: 85,  pp: 5 },
-    schwanenruf:    { name: 'Schwanenruf',    type: 'Wasser',  power: 90, acc: 85,  pp: 5 }
+    schwanenruf:    { name: 'Schwanenruf',    type: 'Wasser',  power: 90, acc: 85,  pp: 5 },
+    // v15: eigene Attacken der neuen Geister (jede mit eigener Animation)
+    hakenschlag:    { name: 'Hakenschlag',    type: 'Neutral', power: 65, acc: 95,  pp: 15 },
+    echoruf:        { name: 'Echoruf',        type: 'Psycho', power: 60, acc: 100, pp: 15 },
+    schnurrfunken:  { name: 'Schnurrfunken',  type: 'Elektro', power: 55, acc: 100, pp: 20 },
+    speerblitz:     { name: 'Speerblitz',     type: 'Elektro', power: 75, acc: 90,  pp: 10 },
+    moosstacheln:   { name: 'Moosstacheln',   type: 'Pflanze', power: 60, acc: 95,  pp: 15 },
+    scherenzwick:   { name: 'Scherenzwick',   type: 'Wasser',  power: 60, acc: 95,  pp: 15 },
+    glutschweif:    { name: 'Glutschweif',    type: 'Feuer',   power: 60, acc: 95,  pp: 15 },
+    tropfstein:     { name: 'Tropfsteinregen',type: 'Stein',   power: 65, acc: 90,  pp: 15 },
+    kristallglanz:  { name: 'Kristallglanz',  type: 'Psycho',  power: 75, acc: 95,  pp: 10 },
+    nattergift:     { name: 'Nattergift',     type: 'Gift',    power: 60, acc: 95,  pp: 15, status: { id: 'klamm', chance: 15 } },
+    wuehlstoss:     { name: 'Wühlstoss',      type: 'Boden',   power: 65, acc: 95,  pp: 15 },
+    keileransturm:  { name: 'Keileransturm',  type: 'Kampf',   power: 70, acc: 90,  pp: 10 },
+    // seltene Geister
+    mondsprung:     { name: 'Mondsprung',     type: 'Psycho',  power: 80, acc: 95,  pp: 10 },
+    sternenfall:    { name: 'Sternenfall',    type: 'Elektro', power: 95, acc: 85,  pp: 5 },
+    walgesang:      { name: 'Walgesang',      type: 'Wasser',  power: 75, acc: 100, pp: 10 },
+    tiefenflut:     { name: 'Tiefenflut',     type: 'Wasser',  power: 100, acc: 85, pp: 5 },
+    funkenregen:    { name: 'Funkenregen',    type: 'Feuer',   power: 70, acc: 95,  pp: 10 },
+    phoenixflamme:  { name: 'Phönixflamme',   type: 'Feuer',   power: 100, acc: 85, pp: 5 },
+    wiedergeburt:   { name: 'Wiedergeburt',   type: 'Feuer',   power: 0,  acc: 100, pp: 5,  heal: 0.5 },
+    hainruf:        { name: 'Hainruf',        type: 'Pflanze', power: 75, acc: 95,  pp: 10 },
+    kronenlicht:    { name: 'Kronenlicht',    type: 'Pflanze', power: 100, acc: 90, pp: 5 },
+    // Synx (Team Quantum)
+    raetselblick:   { name: 'Rätselblick',    type: 'Psycho',  power: 60, acc: 95,  pp: 15, status: { id: 'verirrt', chance: 25 } },
+    sphinxkralle:   { name: 'Sphinxkralle',   type: 'Stein',   power: 70, acc: 90,  pp: 10 },
+    alptraum:       { name: 'Alptraum',       type: 'Psycho',  power: 85, acc: 90,  pp: 5 }
   };
   G.STAT_NAMES = { atk: 'Angriffskraft', def: 'Verteidigung', acc: 'Genauigkeit' };
 
@@ -228,6 +264,96 @@ window.G = window.G || {};
     moderhut: { name: 'Moderhut', g: 'm', type: 'Gift', types: ['Gift', 'Boden'], base: { hp: 74, atk: 70, def: 68, spd: 44 }, catch: 0.2, xp: 120,
       learn: [[1, 'rempler'], [1, 'haerten'], [6, 'kopfnuss'], [8, 'schattenstaub'], [10, 'aschestaub'], [11, 'schattenbiss'], [12, 'erdklumpen'], [13, 'moorkaelte'], [15, 'giftschlamm'], [18, 'torfwelle']],
       desc: 'Unter seinem breiten Hut wachsen Wurzeln bis tief ins Moor. Er erinnert sich an jeden, der je unter ihm Schutz vor dem Regen suchte.' },
+    // ===== v15: 15 neue Tier- und Naturgeister =====
+    tauhase: { name: 'Tauhase', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 42, atk: 46, def: 38, spd: 58 }, catch: 0.6, xp: 46,
+      learn: [[1, 'kratzer'], [1, 'starren'], [5, 'hakenschlag'], [8, 'nebelstoss'], [11, 'nebelschleier'], [14, 'seufzer']],
+      desc: 'Ein Feldhase aus Morgentau und Nebel. Wo er durchs Gras springt, bleiben winzige, glitzernde Spuren zurück, die erst bei Sonnenaufgang verdunsten.' },
+    funkmaus: { name: 'Funkmaus', g: 'f', type: 'Elektro', types: ['Elektro'], base: { hp: 40, atk: 46, def: 36, spd: 60 }, catch: 0.55, xp: 48,
+      learn: [[1, 'rempler'], [1, 'heuler'], [6, 'kratzer'], [8, 'funkenflug'], [10, 'schnurrfunken'], [12, 'blendlicht'], [15, 'glimmstrom']],
+      desc: 'Eine Feldmaus, deren Schnurrhaare knistern. Im Winter wärmt sie sich an alten Leuchtturmkabeln, und wenn sie niest, springt ein Funke.' },
+    moosigel: { name: 'Moosigel', g: 'm', type: 'Pflanze', types: ['Pflanze'], base: { hp: 48, atk: 42, def: 54, spd: 36 }, catch: 0.55, xp: 48,
+      learn: [[1, 'rempler'], [1, 'haerten'], [6, 'kopfnuss'], [8, 'blattwirbel'], [10, 'moosstacheln'], [12, 'rankensog'], [14, 'erdklumpen']],
+      evo: { to: 'farnigel', lvl: 16 },
+      desc: 'Seine Stacheln sind weiche Moospolster. Er rollt sich unter Laternen zusammen und schläft so tief, dass Pilze auf ihm wachsen.' },
+    farnigel: { name: 'Farnigel', g: 'm', type: 'Pflanze', types: ['Pflanze', 'Boden'], base: { hp: 68, atk: 62, def: 78, spd: 46 }, catch: 0.25, xp: 112,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'blattwirbel'], [10, 'moosstacheln'], [12, 'rankensog'], [14, 'erdklumpen'], [16, 'wurzelhieb'], [19, 'torfwelle']],
+      desc: 'Aus dem Moospolster sind Farnwedel geworden, die sich bei Gefahr aufstellen. Im Moorherz hält er alte Wurzelgänge frei.' },
+    gischtkrebs: { name: 'Gischtkrebs', g: 'm', type: 'Wasser', types: ['Wasser', 'Stein'], base: { hp: 50, atk: 52, def: 58, spd: 38 }, catch: 0.5, xp: 56,
+      learn: [[1, 'kratzer'], [1, 'haerten'], [6, 'biss'], [8, 'wasserstrahl'], [10, 'scherenzwick'], [12, 'kieselhagel'], [15, 'felsruf'], [18, 'moorflut']],
+      desc: 'Ein Einsiedlerkrebs, der in einem leeren Schneckenhaus voller Seeleuchten wohnt. Bei Flut klopft er mit der Schere an die Steine, als würde er zählen.' },
+    glimmfuchs: { name: 'Glimmfuchs', g: 'm', type: 'Feuer', types: ['Feuer'], base: { hp: 40, atk: 52, def: 38, spd: 58 }, catch: 0.35, xp: 58,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [6, 'biss'], [8, 'irrfeuer'], [10, 'glutschweif'], [13, 'irrweg'], [15, 'glutschein'], [18, 'seelenbrand']],
+      evo: { to: 'glutfaehe', lvl: 18 },
+      desc: 'Ein kleiner Fuchs mit einer glimmenden Schwanzspitze. Man sieht ihn selten – meist nur als Funken, der zwischen Torfhaufen verschwindet.' },
+    glutfaehe: { name: 'Glutfähe', g: 'f', type: 'Feuer', types: ['Feuer', 'Psycho'], base: { hp: 60, atk: 76, def: 54, spd: 84 }, catch: 0.15, xp: 125,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'irrfeuer'], [10, 'glutschweif'], [13, 'irrweg'], [15, 'glutschein'], [18, 'seelenbrand'], [21, 'schleiersturz']],
+      desc: 'Eine Füchsin mit drei glühenden Schweifen. Alte Torfstecher sagen, sie hüte die Feuer unter dem Moor, damit sie nie ganz ausgehen.' },
+    tropfsteinmolch: { name: 'Tropfsteinmolch', g: 'm', type: 'Stein', types: ['Stein'], base: { hp: 50, atk: 46, def: 52, spd: 36 }, catch: 0.5, xp: 52,
+      learn: [[1, 'rempler'], [1, 'haerten'], [5, 'kopfnuss'], [8, 'kieselhagel'], [10, 'tropfstein'], [13, 'grenzwacht'], [16, 'felsruf']],
+      evo: { to: 'kristallmolch', lvl: 18 },
+      desc: 'Ein Höhlenmolch mit kleinen Tropfsteinen auf dem Rücken. Er trinkt nur Wasser, das tausend Jahre durch den Fels gesickert ist.' },
+    kristallmolch: { name: 'Kristallmolch', g: 'm', type: 'Stein', types: ['Stein', 'Psycho'], base: { hp: 72, atk: 64, def: 78, spd: 54 }, catch: 0.2, xp: 118,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'kieselhagel'], [10, 'tropfstein'], [13, 'grenzwacht'], [16, 'felsruf'], [18, 'kristallglanz'], [22, 'menhirschlag']],
+      desc: 'Aus den Tropfsteinen sind Kristalle gewachsen, in denen sich Erinnerungen spiegeln. Wer hineinsieht, erkennt Orte, an denen er nie war.' },
+    flatterhauch: { name: 'Flatterhauch', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 40, atk: 44, def: 38, spd: 60 }, catch: 0.6, xp: 46,
+      learn: [[1, 'hauch'], [1, 'starren'], [5, 'biss'], [8, 'echoruf'], [11, 'nebelschleier'], [14, 'seufzer']],
+      desc: 'Eine kleine Fledermaus mit Flügeln wie dünnes Pergament. Sie findet in völliger Dunkelheit jeden Weg – und führt Verirrte manchmal hinaus.' },
+    blitzreiher: { name: 'Blitzreiher', g: 'm', type: 'Elektro', types: ['Elektro', 'Wasser'], base: { hp: 56, atk: 64, def: 48, spd: 66 }, catch: 0.3, xp: 96,
+      learn: [[1, 'kratzer'], [1, 'starren'], [6, 'kopfnuss'], [8, 'funkenflug'], [9, 'wasserstrahl'], [11, 'speerblitz'], [14, 'glimmstrom'], [17, 'blitzschlag']],
+      desc: 'Ein grauer Reiher, der reglos im Schilf steht. Wenn er zustösst, zuckt ein Blitz über das Wasser – und danach ist es sehr still.' },
+    sumpfnatter: { name: 'Sumpfnatter', g: 'f', type: 'Gift', types: ['Gift', 'Wasser'], base: { hp: 54, atk: 62, def: 50, spd: 64 }, catch: 0.35, xp: 94,
+      learn: [[1, 'biss'], [1, 'starren'], [6, 'kratzer'], [8, 'schattenstaub'], [9, 'nattergift'], [12, 'sumpfsog'], [15, 'giftschlamm']],
+      desc: 'Eine schwarze Natter mit leuchtend grünen Streifen. Sie gleitet lautlos durch das Moorwasser und rollt sich nachts um warme Steine.' },
+    grubenkaefer: { name: 'Grubenkäfer', g: 'm', type: 'Boden', types: ['Boden', 'Stein'], base: { hp: 60, atk: 62, def: 68, spd: 42 }, catch: 0.35, xp: 98,
+      learn: [[1, 'rempler'], [1, 'haerten'], [6, 'kopfnuss'], [8, 'schlammwurf'], [10, 'wuehlstoss'], [13, 'kieselhagel'], [16, 'torfwelle']],
+      desc: 'Ein Käfer mit einem Panzer wie nasser Schiefer. Er gräbt Gänge durch Torf und Fels und hinterlässt dabei feine, leuchtende Adern.' },
+    keilerling: { name: 'Keilerling', g: 'm', type: 'Kampf', types: ['Kampf'], base: { hp: 52, atk: 60, def: 46, spd: 42 }, catch: 0.45, xp: 58,
+      learn: [[1, 'rempler'], [1, 'heuler'], [6, 'kopfnuss'], [8, 'prankenhieb'], [10, 'keileransturm'], [12, 'schlammwurf'], [15, 'haerten']],
+      evo: { to: 'moorkeiler', lvl: 17 },
+      desc: 'Ein gestreiftes Wildschweinferkel mit Moos hinter den Ohren. Es rennt gern mit dem Kopf voran gegen Baumstümpfe – und gewinnt meistens.' },
+    moorkeiler: { name: 'Moorkeiler', g: 'm', type: 'Kampf', types: ['Kampf', 'Boden'], base: { hp: 76, atk: 88, def: 64, spd: 54 }, catch: 0.2, xp: 124,
+      learn: [[1, 'rempler'], [1, 'heuler'], [8, 'prankenhieb'], [10, 'keileransturm'], [12, 'schlammwurf'], [15, 'haerten'], [17, 'grimmstoss'], [20, 'torfwelle']],
+      desc: 'Ein mächtiger Keiler mit Hauern aus altem Wurzelholz. Wenn er durch das Moor zieht, weichen sogar die Irrlichter zur Seite.' },
+    // ===== v15: seltene Sondergeister (1–2 %, besondere Orte) mit grossen Entwicklungen =====
+    mondluchs: { name: 'Mondluchs', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 56, atk: 66, def: 52, spd: 78 }, catch: 0.2, xp: 110, rare: true,
+      learn: [[1, 'kratzer'], [1, 'starren'], [6, 'biss'], [8, 'nebelstoss'], [10, 'mondsprung'], [13, 'irrnebel'], [16, 'schleiersturz']],
+      evo: { to: 'sternenluchs', lvl: 20 },
+      desc: 'Ein Luchs mit silbernen Pinselohren, dessen Fell im Nebel wie Mondlicht schimmert. Er zeigt sich nur, wenn der Nebel so dicht ist, dass man die eigene Hand nicht mehr sieht.' },
+    sternenluchs: { name: 'Sternenluchs', g: 'm', type: 'Psycho', types: ['Psycho', 'Elektro'], base: { hp: 80, atk: 94, def: 70, spd: 104 }, catch: 0.08, xp: 220, rare: true,
+      learn: [[1, 'kratzer'], [8, 'nebelstoss'], [10, 'mondsprung'], [13, 'irrnebel'], [16, 'schleiersturz'], [20, 'sternenfall'], [24, 'blitzschlag']],
+      desc: 'In seinem Fell stehen Sternbilder, die es am Himmel nicht gibt. Wenn er springt, zieht er einen Schweif aus Sternenstaub hinter sich her.' },
+    tiefenkalb: { name: 'Tiefenkalb', g: 'n', type: 'Wasser', types: ['Wasser', 'Psycho'], base: { hp: 74, atk: 56, def: 66, spd: 46 }, catch: 0.2, xp: 110, rare: true,
+      learn: [[1, 'rempler'], [1, 'starren'], [6, 'kopfnuss'], [8, 'wasserstrahl'], [10, 'walgesang'], [13, 'moorkaelte'], [16, 'moorflut']],
+      evo: { to: 'nebelwal', lvl: 20 },
+      desc: 'Ein junges Walkalb aus Nebel und Meerleuchten, das sich in die Brandung verirrt hat. Sein leiser Gesang lässt die Wellen stillstehen.' },
+    nebelwal: { name: 'Nebelwal', g: 'm', type: 'Wasser', types: ['Wasser', 'Psycho'], base: { hp: 110, atk: 82, def: 94, spd: 56 }, catch: 0.08, xp: 220, rare: true,
+      learn: [[1, 'rempler'], [8, 'wasserstrahl'], [10, 'walgesang'], [13, 'moorkaelte'], [16, 'moorflut'], [20, 'tiefenflut'], [24, 'erinnerung']],
+      desc: 'Ein riesiger Geisterwal, der durch den Nebel schwimmt wie durch das Meer. Auf seinem Rücken leuchten Lichter wie die Fenster einer fernen Stadt.' },
+    funkenkueken: { name: 'Funkenküken', g: 'n', type: 'Feuer', types: ['Feuer', 'Psycho'], base: { hp: 50, atk: 64, def: 48, spd: 76 }, catch: 0.2, xp: 110, rare: true,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [6, 'biss'], [8, 'irrfeuer'], [10, 'funkenregen'], [13, 'glutschein'], [16, 'seelenbrand']],
+      evo: { to: 'aschephoenix', lvl: 20 },
+      desc: 'Ein Küken aus Funken, das nur schlüpft, wo eine erloschene Laterne wieder entzündet wurde. Sein Flaum knistert leise, wenn es friert.' },
+    aschephoenix: { name: 'Aschephönix', g: 'm', type: 'Feuer', types: ['Feuer', 'Psycho'], base: { hp: 78, atk: 98, def: 70, spd: 102 }, catch: 0.08, xp: 220, rare: true,
+      learn: [[1, 'kratzer'], [8, 'irrfeuer'], [10, 'funkenregen'], [13, 'glutschein'], [16, 'seelenbrand'], [20, 'phoenixflamme'], [24, 'wiedergeburt']],
+      desc: 'Ein Vogel aus Glut und Asche mit einem Schweif wie ein Sonnenuntergang. Er verbrennt nie ganz – aus jeder Asche steigt er von Neuem auf.' },
+    farnkitz: { name: 'Farnkitz', g: 'n', type: 'Pflanze', types: ['Pflanze'], base: { hp: 58, atk: 56, def: 58, spd: 66 }, catch: 0.2, xp: 110, rare: true,
+      learn: [[1, 'rempler'], [1, 'starren'], [6, 'kopfnuss'], [8, 'blattwirbel'], [10, 'hainruf'], [13, 'feenstaub'], [16, 'rankensog']],
+      evo: { to: 'hainhirsch', lvl: 20 },
+      desc: 'Ein Rehkitz mit Tupfen aus Farnblättern. Es lebt im Moorherz, wo die ältesten Wurzeln liegen, und verschwindet, sobald man zu laut atmet.' },
+    hainhirsch: { name: 'Hainhirsch', g: 'm', type: 'Pflanze', types: ['Pflanze', 'Psycho'], base: { hp: 78, atk: 82, def: 80, spd: 84 }, catch: 0.08, xp: 200, rare: true,
+      learn: [[1, 'rempler'], [8, 'blattwirbel'], [10, 'hainruf'], [13, 'feenstaub'], [16, 'rankensog'], [20, 'wurzelhieb'], [24, 'waldsegen']],
+      evo: { to: 'kronenhirsch', lvl: 32 },
+      desc: 'Ein Hirsch, in dessen Geweih Blüten und kleine Lichter wachsen. Wo er steht, grünt das Moor über Nacht.' },
+    kronenhirsch: { name: 'Kronenhirsch', g: 'm', type: 'Pflanze', types: ['Pflanze', 'Psycho'], base: { hp: 100, atk: 104, def: 100, spd: 96 }, catch: 0.05, xp: 260, rare: true,
+      learn: [[1, 'rempler'], [8, 'blattwirbel'], [10, 'hainruf'], [16, 'rankensog'], [20, 'wurzelhieb'], [24, 'waldsegen'], [32, 'kronenlicht']],
+      desc: 'Sein Geweih ist eine ganze Baumkrone voller Geisterlichter. Man sagt, er sei der Hüter aller Wälder, die es je gab – und aller, die noch wachsen werden.' },
+    // ===== Team Quantum & Legende =====
+    synx: { name: 'Synx', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 54, atk: 50, def: 50, spd: 54 }, catch: 0, xp: 150, boss: true,
+      learn: [[1, 'kratzer'], [8, 'raetselblick'], [8, 'sphinxkralle'], [8, 'nebelwand'], [10, 'irrnebel']],
+      desc: 'Ein sprechender Sphinx-Kater von Team Quantum, mit steinernen Flügeln und Augen wie zwei Rätsel. Er stellt Fragen, auf die es keine gute Antwort gibt – und geniesst es.' },
+    fyrlumen: { name: 'Fyrlumen', g: 'n', type: 'Psycho', types: ['Psycho', 'Elektro'], base: { hp: 110, atk: 100, def: 100, spd: 110 }, catch: 0, xp: 300, boss: true, legend: true,
+      learn: [[1, 'hauch'], [8, 'blendlicht'], [8, 'glimmstrom'], [9, 'nebelschleier']],
+      desc: 'Gesichtet über dem Leuchtturm der Nebelküste: ein Geist aus Licht und Nebel mit Schwingen wie ein Leuchtfeuer. Er bricht nur auf, wenn eine grosse Geschichte beginnt – und Ungemach droht.' },
     // Wächter (Boss)
     nebelahn: { name: 'Nebelahn', g: 'm', type: 'Psycho', types: ['Psycho', 'Kampf'], base: { hp: 96, atk: 70, def: 70, spd: 56 }, catch: 0, xp: 160, boss: true,
       learn: [[1, 'rempler'], [8, 'irrnebel'], [8, 'ahnenstoss'], [8, 'nebelwand'], [10, 'schleiersturz'], [16, 'ahnenruf']],
@@ -236,7 +362,17 @@ window.G = window.G || {};
   G.SPECIES_ORDER = ['flackerling', 'glutwurm', 'seelendrache', 'pfuetzling', 'nebelente', 'mondschwan', 'blattling', 'hainfee', 'feenlinde',
     'kleeling', 'moorranke', 'moorlurch', 'moorunke', 'kieselgeist', 'menhirgeist',
     'schattenmotte', 'grabfalter', 'nebelkauz', 'schleierkauz', 'laternchen', 'totenleuchte',
-    'torfwicht', 'hauchling', 'raufdachs', 'grimmdachs', 'schwammling', 'moderhut', 'nebelahn'];
+    'torfwicht', 'hauchling', 'raufdachs', 'grimmdachs', 'schwammling', 'moderhut',
+    'tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
+    'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler',
+    'mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch',
+    'nebelahn', 'synx', 'fyrlumen'];
+  // v15: neue Tier- und Naturgeister (15) und seltene Sondergeister (4 Linien)
+  G.NEW15 = ['tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
+    'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler'];
+  G.RARE = ['mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch'];
+  // Stufenweise: noch nicht freigeschaltete Geister erscheinen nicht in der Chronik
+  G.SPECIES_ORDER = G.SPECIES_ORDER.filter(sp => (G.FEAT.rare || !G.RARE.includes(sp)) && (G.FEAT.cave || sp !== 'synx') && (G.FEAT.legend || sp !== 'fyrlumen'));
   // Starter-Dreieck: Feuer schlägt Pflanze, Pflanze schlägt Wasser, Wasser schlägt Feuer
   G.STARTERS = ['flackerling', 'pfuetzling', 'blattling'];
   // alte Arten-IDs (Spielstand-Migration): der Glutfuchs Irrfackel wurde zum Glutwurm der neuen Drachen-Linie
@@ -249,21 +385,42 @@ window.G = window.G || {};
 
   // ---------- Wildgebiete ----------
   // G.WILD bleibt für Nebelgras (Kompatibilität). lvl: [min, max]; Formel siehe design.md §10.
-  G.WILD = [['schattenmotte', 20], ['nebelkauz', 18], ['laternchen', 20], ['kleeling', 14], ['schwammling', 8], ['raufdachs', 8], ['moorlurch', 8], ['kieselgeist', 4], ['flackerling', 4]];
+  // v15: jedes Gebiet hat seine eigenen 4–5 Arten passend zum Lebensraum, kaum Überschneidungen, je eine seltene Art (Gewicht ≤ 8).
+  // Starter-Linien (Flackerling, Pfützling, Blattling + Entwicklungen) kommen nirgends wild vor – nur bei Beschwörern.
+  G.WILD = [['tauhase', 28], ['schattenmotte', 26], ['moosigel', 22], ['laternchen', 18], ['kleeling', 6]];
   // Story-Reihenfolge der Wildgebiete; Level steigen monoton (siehe README «Level-Kurve»)
-  G.ZONE_ORDER = ['nebelgras', 'kuestengras', 'schilfrand', 'torfstich', 'kapelle'];
+  G.ZONE_ORDER = ['nebelgras', 'kuestengras', 'hoehle', 'schilfrand', 'torfstich', 'kapelle', 'moorherz'];
   G.WILD_AREAS = {
-    nebelgras: { tile: '"', rate: 0.055, lvl: [2, 6], table: G.WILD },
-    // Küstenweg zum Leuchtturm (Prolog-Ziel nach Fenn): etwas stärker als das Dorf-Nebelgras
-    kuestengras: { tile: '"', map: 'kueste', rate: 0.05, lvl: [5, 8],
-      table: [['schattenmotte', 18], ['nebelkauz', 20], ['laternchen', 18], ['kleeling', 14], ['moorlurch', 12], ['raufdachs', 10], ['kieselgeist', 4], ['hauchling', 4]] },
-    schilfrand: { tile: 'q', rate: 0.05, lvl: [8, 11],
-      table: [['torfwicht', 28], ['raufdachs', 16], ['nebelkauz', 18], ['schattenmotte', 14], ['kleeling', 10], ['laternchen', 9], ['moorlurch', 7]] },
-    torfstich: { tile: 'm', rate: 0.06, lvl: [10, 13],
-      table: [['torfwicht', 32], ['raufdachs', 14], ['schwammling', 12], ['moorlurch', 12], ['nebelkauz', 10], ['hauchling', 10], ['kieselgeist', 6], ['flackerling', 4]] },
-    kapelle: { tile: 'c', rate: 0.065, lvl: [12, 15],
-      table: [['hauchling', 28], ['schattenmotte', 18], ['laternchen', 14], ['schwammling', 12], ['grabfalter', 8], ['schleierkauz', 8], ['moorranke', 6], ['raufdachs', 6]] }
+    // Dorf-Nebelgras: Wiesen- und Feldgeister
+    nebelgras: { name: 'Nebelgras', tile: '"', rate: 0.055, lvl: [2, 6], table: G.WILD, rare: 'kleeling' },
+    // Küstenweg zum Leuchtturm: Strand, Dünen und Wind
+    kuestengras: { name: 'Küstenweg', tile: '"', map: 'kueste', rate: 0.05, lvl: [5, 8], rare: 'glimmfuchs',
+      table: [['funkmaus', 26], ['gischtkrebs', 24], ['nebelkauz', 22], ['moorlurch', 20], ['glimmfuchs', 6]] },
+    // Höhle am Leuchtturmpfad: Stein und Neutral
+    hoehle: { name: 'Klippenhöhle', tile: 'j', map: 'hoehle', rate: 0.07, lvl: [5, 9], rare: 'grubenkaefer',
+      table: [['flatterhauch', 32], ['tropfsteinmolch', 30], ['kieselgeist', 26], ['grubenkaefer', 6]] },
+    // Schilfrand (Tiefes Moor): Wasser und Schilf
+    schilfrand: { name: 'Schilfrand', tile: 'q', rate: 0.05, lvl: [8, 11], rare: 'moorunke',
+      table: [['sumpfnatter', 28], ['raufdachs', 24], ['blitzreiher', 22], ['schwammling', 20], ['moorunke', 5]] },
+    // Torfstich: Erde, Wurzeln, glimmender Torf
+    torfstich: { name: 'Torfstich', tile: 'm', rate: 0.06, lvl: [10, 13], rare: 'glimmfuchs',
+      table: [['keilerling', 30], ['torfwicht', 26], ['grubenkaefer', 24], ['glimmfuchs', 6]] },
+    // Versunkene Kapelle: Seelen, Falter, Käuze
+    kapelle: { name: 'Versunkene Kapelle', tile: 'c', rate: 0.065, lvl: [12, 15], rare: 'totenleuchte',
+      table: [['hauchling', 28], ['grabfalter', 20], ['schleierkauz', 18], ['moorranke', 18], ['totenleuchte', 8]] },
+    // Moorherz (Tiefes Moor, Torffeld bei Jorins Hütte): die ältesten, stärksten Geister
+    moorherz: { name: 'Moorherz', tile: 'm', map: 'tiefesmoor', region: [2, 21, 7, 27], rate: 0.06, lvl: [13, 16], rare: 'kristallmolch',
+      table: [['moderhut', 26], ['grimmdachs', 22], ['farnigel', 22], ['kristallmolch', 8]] }
   };
+  // v15 ohne Klippenhöhle (kommt in v16): Höhlenbewohner vorerst an Küstenfelsen und Grabsteinen – der Molch an der Brandung, die Fledermaus bei der Kapelle
+  if (!G.FEAT.cave) { G.WILD_AREAS.kuestengras.table.push(['tropfsteinmolch', 12]); G.WILD_AREAS.torfstich.table.push(['kieselgeist', 16]); G.WILD_AREAS.kapelle.table.push(['flatterhauch', 16]); delete G.WILD_AREAS.hoehle; G.ZONE_ORDER = G.ZONE_ORDER.filter(z => z !== 'hoehle'); }
+  // Sondergeister: sehr selten (1,5 %) und nur unter besonderen Bedingungen (in world.js geprüft)
+  G.RARE_SPAWNS = [
+    { sp: 'mondluchs', zone: 'nebelgras', chance: 0.015, lvl: [6, 8], cond: 'fog', hint: 'nur bei dichtem Nebel' },
+    { sp: 'tiefenkalb', zone: 'kuestengras', chance: 0.015, lvl: [7, 9], cond: 'shore', hint: 'im Küstengras direkt am Meer' },
+    { sp: 'funkenkueken', zone: 'torfstich', chance: 0.015, lvl: [11, 13], cond: 'lantern', hint: 'neben einer entzündeten Moorlaterne' },
+    { sp: 'farnkitz', zone: 'moorherz', chance: 0.02, lvl: [13, 15], cond: 'hidden', hint: 'in der verborgenen Ecke des Moorherzens' }
+  ];
 
   // ---------- Gegenstände ----------
   // kind: heal | cure | revive | catch | key.  battle/field: wo nutzbar.
@@ -287,7 +444,7 @@ window.G = window.G || {};
     jorinsbrief:  { name: 'Jorins Zettel', kind: 'key', battle: false, field: false,
       desc: '«Bin im Moor. Zurück, wenn der Nebel geht. – Jorin» Auf der Rückseite: eine Skizze der Bohlenwege.' },
     kompass:      { name: 'Vaters Kompass', kind: 'key', battle: false, field: false,
-      desc: 'Messing, mit einem Sprung im Glas. Die Nadel zeigt nicht nach Norden – sie zeigt nach Hause.' },
+      desc: 'Messing, mit einem Sprung im Glas. Vater hatte ihn auf jeder Fahrt dabei.' },
     marenslaterne:{ name: 'Marens Laterne', kind: 'key', battle: false, field: false,
       desc: 'Eine verbeulte Laterne mit einem eingeritzten «M». Sie ist kalt, aber nicht leer.' }
   };
@@ -325,9 +482,39 @@ window.G = window.G || {};
       decline: ['Selma: Klug. Das Schilf läuft nicht davon – und ich auch nicht.'],
       team: [['nebelkauz', 9], ['moorlurch', 10]],
       reward: { klarblick: 1, laterne: 3 },
-      intro: ['Selma: Du willst tiefer hinein? Dann zeig mir, dass deine Geister dich tragen, wenn der Steg es nicht mehr tut.'],
-      lose: ['Selma: Gut. Dein Licht zittert nicht. Das ist selten.'],
+      intro: ['Selma: Du willst tiefer hinein? Dann zeig mir zuerst, was deine Geister können.'],
+      lose: ['Selma: Gut gekämpft. Deine Geister vertrauen dir, das sieht man.'],
       after: ['Selma: Hinter den drei Weiden wird der Nebel dicker. Dort wirst du nicht mehr sehen, was dich angreift – nur hören.'] },
+    // v15: Klippenhöhle – zwei Beschwörer (nur auf Ansprache) und Team Quantum
+    ruedi: { name: 'Ruedi', title: 'Höhlenforscher', area: 'hoehle', pos: [14, 11], sight: 0,
+      ask: ['Ruedi: Pass auf, wo du hintrittst – hier bröckelt es überall. Ich kartiere die Gänge unter der Klippe.',
+        'Ruedi: Meine Geister kennen jeden Stein hier drin. Wenn deine noch unter Level 7 sind, üb lieber erst im Geröll.'],
+      askQ: 'Ruedi: Lust auf einen kleinen Kampf?',
+      decline: ['Ruedi: Auch recht. Ich bin noch eine Weile hier.'],
+      team: [['tropfsteinmolch', 7], ['flatterhauch', 8]],
+      reward: { kraeutertee: 2 },
+      intro: ['Ruedi: Na gut! Aber nicht weinen, wenn es staubt.'],
+      lose: ['Ruedi: Hui. Das war sauber. Du hast ein gutes Auge für die Schwachstellen.'],
+      after: ['Ruedi: Weiter oben hab ich vorhin Stimmen gehört. Zwei Leute und … eine Katze? Die klang, als würde sie reden.'] },
+    nele: { name: 'Nele', title: 'Laternenträgerin', area: 'hoehle', pos: [19, 9], sight: 0,
+      ask: ['Nele: Ich bringe Onno jede Woche Lampenöl – normalerweise über den Pfad. Aber heute ist der Weg zu seinem Baum versperrt.',
+        'Nele: Wenn du da hoch willst, solltest du stark genug sein. Kräutertee hilft, falls deine Geister müde sind.'],
+      askQ: 'Nele: Zeigst du mir, was du kannst?',
+      decline: ['Nele: Gut. Ruh dich aus, bevor du weitergehst.'],
+      team: [['kieselgeist', 8], ['tauhase', 8]],
+      reward: { kraeutertee: 2, laterne: 2 },
+      intro: ['Nele: Dann los – aber fair!'],
+      lose: ['Nele: Du bist stärker, als du aussiehst. Nimm den Tee mit, du wirst ihn brauchen.'],
+      after: ['Nele: Oben in der Kammer glimmt es seltsam. Als würde jemand das Licht vom Leuchtturm abzapfen.'] },
+    quantum: { name: 'Mandy und Hans', title: 'Team Quantum', area: 'hoehle', pos: [18, 2], sight: 0, noFlee: true, noCatch: true, music: 'quantum',
+      callers: ['Mandy', 'Hans', 'Mandy', 'Synx'],
+      team: [['sumpfnatter', 6], ['keilerling', 6], ['funkmaus', 7], ['synx', 9]],
+      phases: { synx: 2 }, hpMultFor: { synx: 0.75 },   // zwei Lebensbalken à 75 % (Balance-Simulation: README)
+      reward: { starktee: 1, laterne: 3 },
+      intro: ['Mandy: Also gut. Hans, du nimmst links.', 'Hans: Ich nehme immer links. Links ist meine Schokoladenseite.'],
+      lose: ['Synx: … Genug. Dieses Kind hat mehr Licht, als gut für uns ist.', 'Mandy: Das war nur ein Aufwärmen. Nur damit das klar ist.',
+        'Hans: Ich finde ja, wir haben gut ausgesehen.'],
+      after: [] },
     kaspar: { name: 'Kaspar Graumantel', title: 'Geisterbeschwörer', area: 'tiefesmoor', pos: [18, 9], sight: 4,
       team: [['grabfalter', 12], ['raufdachs', 12], ['hauchling', 13]],
       reward: { mondlaterne: 2, starktee: 1 },
@@ -353,7 +540,7 @@ window.G = window.G || {};
   G.xpFor = l => Math.floor(0.8 * l * l * l);
   G.stats = m => {
     const b = G.SPECIES[m.sp].base;
-    return { hp: Math.floor(G.hpCalc(b.hp, m.lvl) * (m.hpMult || 1)), atk: G.statCalc(b.atk, m.lvl), def: G.statCalc(b.def, m.lvl), spd: G.statCalc(b.spd, m.lvl) };
+    return { hp: Math.floor(G.hpCalc(b.hp, m.lvl) * (m.hpMult || 1)), atk: Math.floor(G.statCalc(b.atk, m.lvl) * (m.rage || 1)), def: G.statCalc(b.def, m.lvl), spd: Math.floor(G.statCalc(b.spd, m.lvl) * (m.rage || 1)) };
   };
   G.fillPP = m => { m.pp = m.pp || {}; for (const id of m.moves) m.pp[id] = G.MOVES[id].pp; return m; };
   G.makeMon = (sp, lvl) => {
