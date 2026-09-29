@@ -862,6 +862,110 @@
       S.E(22.5, 29, 1.9, 1.4, '#1a1410', X(F, { flat: true }));
       S.P([[27, 12], [29, 9], [31, 12], [29, 15]], gl, { glow: true });
     },
+    // ================= v17: seltene Sondergeister der Höhle, des Schilfrands und der Kapelle =================
+    glimmerwurm(S) { // Glimmerwurm: Höhlenwurm aus Ringsegmenten, auf jedem Ring ein Glimmerkristall; Fühler mit Funken
+      const sk = '#6a5a7a', sk2 = '#4a3e5a', bel = '#b8a8c0', cr = '#a8e8ff', cr2 = '#e8d0ff', gl = '#fff4a0';
+      const seg = [[56, 54, 6.5], [49, 55, 7.5], [41, 53, 8.5], [33, 49, 9], [26, 43, 9]];
+      for (const [x, y, r] of seg) S.E(x, y, r, r * 0.85, sk, { g: 'body' });
+      for (const [x, y, r] of seg) S.C(x - r * 0.8, y + r * 0.35, x + r * 0.6, y + r * 0.55, 0.9, sk2, { flat: true, line: false });
+      for (const [x, y, r] of seg.slice(0, 4)) S.E(x - 1, y + r * 0.35, r * 0.7, r * 0.28, bel, X(F, { flat: true, line: false }));
+      seg.forEach(([x, y, r], i) => { const c = i % 2 ? cr2 : cr; S.P([[x - 3, y - r + 2], [x - 1, y - r - 5 - i * 0.6], [x + 1, y - r + 1]], c, X(B, { glow: true })); S.P([[x - 2.6, y - r + 2.6], [x, y - r - 4 - i * 0.5], [x + 2.4, y - r + 2.4]], c, { glow: true, g: 'body' }); });
+      S.E(18, 34, 9, 8.4, sk, { name: 'head', g: 'head' });
+      S.P([[10, 38], [4, 42], [11, 42]], bel, X(F, { g: 'head' })).P([[12, 40], [7, 46], [14, 43]], bel, X(F, { g: 'head' }));
+      S.C(16, 27, 8, 16, 1, sk2, { g: 'head' }).C(20, 27, 22, 15, 1, sk2, { g: 'head' });
+      S.E(8, 15, 2, 2, gl, { glow: true, g: 'head' }).E(22, 14, 2, 2, cr, { glow: true, g: 'head' });
+      S.eye(13, 32, 2.4, 2.8, cr, { dark: '#2a4a7a', white: 0.5 }).eye(20, 32, 2.6, 3, cr, { dark: '#2a4a7a', white: 0.5 });
+      for (const [x, y] of [[4, 26], [34, 30], [62, 44]]) S.E(x, y, 1, 1, gl, { glow: true });
+    },
+    drusenlindwurm(S) { // Drusenlindwurm: gewaltiger Lindwurm, der Rücken eine aufgebrochene Druse voller Kristalle; Kristallkrone, Blitze
+      const sk = '#4a3e62', sk2 = '#2e2644', bel = '#a898b8', geo = '#1a1428', cr = '#9ae8ff', cr2 = '#d8a8ff', cr3 = '#fff0b0', bolt = '#fff8c0';
+      S.C(62, 58, 54, 52, 5, sk, { g: 'tail' }).C(54, 52, 46, 56, 7, sk, { g: 'tail' });
+      S.E(40, 48, 20, 12, sk, { name: 'body', g: 'body' });
+      S.E(38, 54, 14, 5, bel, X(F, { clip: 'body', line: false }));
+      for (let i = 0; i < 5; i++) S.C(28 + i * 5, 52, 30 + i * 5, 58, 0.8, '#8a7aa0', X(F, { clip: 'body', flat: true, line: false }));
+      S.E(42, 40, 14, 6, geo, { clip: 'body', flat: true, name: 'geode' });
+      const crys = [[32, 40, 5, cr], [37, 38, 7, cr2], [42, 37, 9, cr], [47, 38, 7, cr3], [52, 40, 5, cr2], [35, 41, 4, cr3], [45, 40, 5, cr2]];
+      for (const [x, y, h, c] of crys) S.P([[x - 2.4, y + 3], [x, y - h], [x + 2.4, y + 3]], c, { glow: true, g: 'crys' });
+      S.C(30, 56, 29, 61, 3.4, sk2, { g: 'legF' }).C(48, 56, 49, 61, 3.4, sk2, { g: 'legB' });
+      S.C(28, 46, 19, 30, 12, sk, { g: 'neck' }).C(19, 30, 16, 21, 10, sk, { g: 'neck' });
+      S.C(23, 46, 14, 31, 4, bel, X(F, { g: 'neck', line: false }));
+      S.E(14, 18, 11.5, 8.5, sk, { name: 'head', g: 'head' });
+      S.P([[6, 20], [-1, 24], [8, 25]], sk, { g: 'head' });
+      S.C(1, 23, 9, 23, 0.8, '#140e20', X(F, { flat: true, line: false }));
+      for (const [x, y, h, c] of [[12, 12, 8, cr], [17, 11, 10, cr2], [22, 13, 7, cr]]) S.P([[x - 2, y + 2], [x + 1, y - h], [x + 2.4, y + 2]], c, { glow: true, g: 'head' });
+      S.eye(10, 17, 2.4, 2.6, cr3, { dark: '#6a4a1a', white: 0.5 });
+      S.P([[54, 22], [58, 28], [56, 28], [60, 34]], bolt, { glow: true, line: false }).P([[4, 36], [8, 40], [6, 40], [9, 46]], bolt, { glow: true, line: false });
+      for (const [x, y] of [[30, 20], [62, 30], [2, 6], [50, 10]]) S.E(x, y, 1.2, 1.2, cr, { glow: true });
+    },
+    schilfotter(S) { // Schilfotter: aufrecht sitzender Otter, Fell wie nasses Schilf, silberne Brust, hält einen glatten Kiesel
+      const fur = '#7a6a44', fur2 = '#56482c', wh = '#dce4e8', gl = '#bfefff', peb = '#9ab0b8';
+      S.C(42, 55, 56, 58, 8, fur2, { g: 'tail' }).C(56, 58, 62, 53, 5, fur2, { g: 'tail' });
+      S.E(36, 44, 11, 15, fur, { name: 'body', g: 'body' });
+      S.E(32, 46, 6, 11, wh, X(F, { clip: 'body', line: false }));
+      for (const [x, y] of [[40, 36], [42, 44], [40, 52]]) S.C(x, y, x + 5, y + 2, 0.8, fur2, X(B, { clip: 'body', flat: true, line: false }));
+      S.C(30, 56, 27, 60, 3.4, fur2, { g: 'legF' }).C(40, 57, 42, 60, 3.4, fur2, { g: 'legB' });
+      S.E(28, 22, 9, 8, fur, { name: 'head', g: 'head' });
+      S.E(21, 26, 5.4, 4, wh, X(F, { g: 'head' }));
+      S.E(30, 14.5, 2.6, 2.2, fur2, { g: 'head' }).E(22, 15.5, 2.2, 2, fur2, { g: 'head' });
+      S.E(17.5, 24, 1.8, 1.4, '#2a1e14', X(F, { flat: true }));
+      for (const dy of [-1, 1.4]) S.C(19, 26 + dy, 11, 25 + dy * 2, 0.4, '#f0f4f8', X(F, { flat: true, line: false, alpha: 0.8 }));
+      S.eye(22, 20, 1.8, 2.2, '#1e2a34', { white: 0.7 }).eye(28, 20, 2, 2.4, '#1e2a34', { white: 0.7 });
+      S.C(28, 36, 22, 40, 2.4, fur, { g: 'arm' }).C(34, 38, 26, 42, 2.4, fur, { g: 'arm' });
+      S.E(22, 42, 4, 3.2, peb, { g: 'arm' }).E(21, 41, 1.4, 1, '#e8f4f8', { flat: true, line: false, g: 'arm' });
+      for (const [x, y] of [[8, 40], [50, 30], [14, 54]]) S.E(x, y, 1, 1.4, gl, { glow: true, alpha: 0.8 });
+    },
+    wogenotter(S) { // Wogenotter: mächtiger Otter mit einer Mähne aus Gischt, Wirbel am Schweif, kräftige Pranken
+      const fur = '#4a5a64', fur2 = '#2e3a44', wh = '#e0ecf2', sp = '#d8f4ff', sp2 = '#7ad0ff', gl = '#bff4ff';
+      S.C(44, 54, 58, 50, 5, fur2, { g: 'tail' }).C(58, 50, 62, 40, 3.6, fur2, { g: 'tail' });
+      for (let i = 0; i < 7; i++) { const a = i / 7 * 6.28; S.E(58 + Math.cos(a) * 5, 38 + Math.sin(a) * 4, 1.6, 1.6, i % 2 ? sp : sp2, { glow: true, g: 'tail' }); }
+      S.E(36, 42, 15, 16, fur, { name: 'body', g: 'body' });
+      S.E(31, 45, 8, 12, wh, X(F, { clip: 'body', line: false }));
+      S.C(28, 56, 25, 61, 4.6, fur2, { g: 'legF' }).C(44, 56, 46, 61, 4.6, fur2, { g: 'legB' });
+      S.P([[30, 12], [44, 10], [52, 20], [48, 34], [40, 26], [34, 30]], sp, X(B, { glow: true, alpha: 0.9 }));
+      for (const [x, y, r] of [[36, 10, 4], [44, 13, 4.4], [48, 21, 4], [46, 29, 3.4], [40, 8, 3]]) S.E(x, y, r, r * 0.9, sp, { glow: true, alpha: 0.85, g: 'mane' });
+      S.E(26, 20, 10, 9, fur, { name: 'head', g: 'head' });
+      S.E(18, 25, 6, 4.6, wh, X(F, { g: 'head' }));
+      S.E(29, 11.5, 2.8, 2.4, fur2, { g: 'head' });
+      S.E(13.5, 23, 2, 1.6, '#141c24', X(F, { flat: true }));
+      for (const dy of [-1, 1.6]) S.C(16, 26 + dy, 6, 25 + dy * 2.2, 0.45, '#f0f8ff', X(F, { flat: true, line: false, alpha: 0.85 }));
+      S.eye(19, 18, 2, 2.4, sp2, { dark: '#123a5a', white: 0.6 }).eye(26, 18, 2.2, 2.6, sp2, { dark: '#123a5a', white: 0.6 });
+      S.C(26, 36, 16, 44, 3.4, fur, { g: 'arm' }).E(15, 45, 3.6, 3, fur2, { g: 'arm' });
+      for (const [x, y] of [[4, 34], [8, 54], [56, 60], [60, 12]]) S.E(x, y, 1.2, 1.2, gl, { glow: true });
+    },
+    glockenrabe(S) { // Glockenrabe: Rabe mit violett schimmerndem Gefieder und einer kleinen Bronzeglocke am Hals, grünes Geisterauge
+      const fe = '#2a2438', fe2 = '#1a1624', sh = '#6a5a9a', bk = '#3a3440', br = '#c8964a', br2 = '#8a6030', eye = '#9aff9a';
+      S.C(40, 58, 40, 61, 1.2, '#4a4250').C(46, 58, 48, 61, 1.2, '#4a4250');
+      S.P([[48, 40], [62, 48], [60, 52], [50, 50]], fe2, { g: 'tail' });
+      S.E(40, 44, 12, 11, fe, { name: 'body', g: 'body' });
+      S.P([[36, 38], [56, 40], [58, 50], [42, 52]], fe2, { name: 'wing', g: 'wing' });
+      for (const [x0, y0, x1, y1] of [[42, 42, 56, 44], [42, 46, 56, 49]]) S.C(x0, y0, x1, y1, 0.8, sh, { clip: 'wing', flat: true, line: false });
+      S.C(40, 38, 50, 40, 1.2, sh, X(B, { clip: 'body', flat: true, line: false, glow: true }));
+      S.E(28, 28, 9, 8.4, fe, { name: 'head', g: 'head' });
+      S.P([[21, 27], [9, 31], [21, 32]], bk, { g: 'head' }).C(12, 30.4, 20, 30, 0.5, '#6a6474', { flat: true, line: false, g: 'head' });
+      S.C(26, 20, 32, 20, 1, sh, { flat: true, line: false, glow: true, g: 'head' });
+      S.eye(24, 26, 2, 2.4, eye, { dark: '#1a4a2a', white: 0.5 });
+      S.C(28, 36, 28, 40, 0.6, br2);
+      S.P([[25, 46], [26, 40], [30, 40], [31, 46]], br, { name: 'bell' }).E(28, 46.6, 1.2, 1.2, br2);
+      S.E(27, 42, 1, 1.6, '#f4d890', { clip: 'bell', flat: true, line: false });
+      for (const [x, y] of [[10, 18], [52, 26], [18, 50]]) S.E(x, y, 1, 1, eye, { glow: true, alpha: 0.8 });
+    },
+    seelenrabe(S) { // Seelenrabe: riesiger Rabe mit ausgebreiteten Nachtschwingen, an der Brust eine Glocke aus Licht, Seelenfunken an den Federspitzen
+      const fe = '#221c34', fe2 = '#141020', sh = '#8a6ad8', bk = '#3a3446', gl = '#f0e0a0', gl2 = '#c8a0ff', eye = '#b0ffb0';
+      S.P([[36, 34], [58, 6], [62, 18], [64, 26], [58, 36], [62, 42], [46, 46]], fe2, { name: 'wB', g: 'wing' });
+      for (const [x, y] of [[58, 8], [63, 22], [61, 40]]) { S.C(42, 38, x, y, 0.9, sh, { clip: 'wB', flat: true, line: false }); S.E(x, y, 1.6, 1.6, gl2, { glow: true, g: 'wing' }); }
+      S.P([[44, 48], [60, 58], [52, 60], [40, 54]], fe2, { g: 'tail' });
+      S.C(36, 56, 34, 61, 1.6, '#4a4254').C(42, 56, 44, 61, 1.6, '#4a4254');
+      S.E(38, 44, 14, 13, fe, { name: 'body', g: 'body' });
+      S.P([[30, 36], [4, 12], [8, 22], [0, 28], [10, 34], [4, 44], [30, 46]], fe2, { name: 'wF', g: 'wing' });
+      for (const [x, y] of [[6, 14], [2, 28], [6, 42]]) { S.C(28, 40, x, y, 0.9, sh, { clip: 'wF', flat: true, line: false }); S.E(x, y, 1.6, 1.6, gl2, { glow: true, g: 'wing' }); }
+      S.E(24, 26, 9.4, 8.6, fe, { name: 'head', g: 'head' });
+      S.P([[17, 25], [3, 30], [17, 31]], bk, { g: 'head' }).C(6, 29.4, 16, 29, 0.5, '#7a7486', { flat: true, line: false, g: 'head' });
+      for (const [x, y] of [[26, 17], [30, 16], [34, 18]]) S.P([[x - 1.4, y + 2], [x, y - 4], [x + 1.4, y + 2]], fe, { g: 'head' });
+      S.eye(20, 24, 2.2, 2.6, eye, { dark: '#1a5a2a', white: 0.5 }).eye(26, 24, 2.2, 2.6, eye, { dark: '#1a5a2a', white: 0.5 });
+      S.P([[31, 50], [32, 42], [38, 42], [39, 50]], gl, X(F, { glow: true, name: 'lbell' })).E(35, 51, 1.6, 1.4, '#fff8e0', X(F, { glow: true }));
+      S.C(35, 38, 35, 42, 0.8, gl, X(F, { glow: true, line: false }));
+      for (const [x, y] of [[12, 4], [48, 2], [2, 54], [60, 50], [26, 8]]) S.E(x, y, 1.1, 1.1, gl2, { glow: true });
+    },
     // ================= v15: Team Quantum & Legende =================
     nachtmahr(S, back) { // Nachtmahr: Alptraum-Geist von Team Quantum – Rauchleib ohne feste Form, übersät mit Augen, gezackter Schlund
       const sm0 = '#0e0a16', sm1 = '#1e1628', sm2 = '#30243e', sm3 = '#463456', red = '#ff3a5a', vio = '#c070ff';
@@ -914,7 +1018,8 @@
     schwammling: 'dots', moderhut: 'moss', hauchling: 'wisp', laternchen: null, totenleuchte: null,
     tauhase: 'fur', funkmaus: 'fuzz', moosigel: 'moss', farnigel: 'moss', gischtkrebs: 'stone', glimmfuchs: 'fur', glutfaehe: 'fur', tropfsteinmolch: 'dots', kristallmolch: 'dots',
     flatterhauch: 'fuzz', blitzreiher: 'feather', sumpfnatter: 'dots', grubenkaefer: 'stone', keilerling: 'fur', moorkeiler: 'fur', mondluchs: 'fur', sternenluchs: 'fur', tiefenkalb: 'dots',
-    nebelwal: 'dots', funkenkueken: 'fuzz', aschephoenix: 'feather', farnkitz: 'fur', hainhirsch: 'fur', kronenhirsch: 'fur', nachtmahr: 'wisp', fyrlumen: 'wisp' };
+    nebelwal: 'dots', funkenkueken: 'fuzz', aschephoenix: 'feather', farnkitz: 'fur', hainhirsch: 'fur', kronenhirsch: 'fur', nachtmahr: 'wisp', fyrlumen: 'wisp',
+    glimmerwurm: 'dots', drusenlindwurm: 'dots', schilfotter: 'fur', wogenotter: 'fur', glockenrabe: 'feather', seelenrabe: 'feather' };
   const hh = (x, y) => { let v = (x * 374761393 + y * 668265263) | 0; v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
   function texture(c, kind) {
     if (!kind) return;

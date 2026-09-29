@@ -42,6 +42,8 @@
       if (s.flags && s.flags.ilse && !n.flags.q1) n.flags.q1 = 1;
     }
     n.team = (n.team || []).map(G.migrateMon); n.box = (n.box || []).map(G.migrateMon);
+    // v6 (v17): neue, eigenständige Lernlisten – Attacken aller Geister einmalig für ihr Level neu ableiten (AP voll)
+    if ((s.v || 1) < 6) for (const m of n.team.concat(n.box)) { const f = G.makeMon(m.sp, m.lvl); m.moves = f.moves; m.pp = {}; G.fillPP(m); m.hp = Math.min(m.hp, G.stats(m).hp); }
     // v3: Mühle und Schmiede im Dorf – stand man auf einer jetzt bebauten Kachel, geht es auf den Dorfplatz
     if ((s.v || 1) < 3 && n.map === 'dorf' && n.player && G.World && G.World.solidAt(G.MAPS.dorf, n.player.x, n.player.y)) n.player = { x: 16, y: 7, dir: 'down' };
     // Starter-Wechsel (Schwammling statt Kieselgeist): Geister bleiben, nur die Starter-Linie wird vermerkt
@@ -133,11 +135,11 @@
     const st = G.stats(m), sp = G.SPECIES[m.sp], need = G.xpFor(m.lvl + 1) - m.xp;
     return `<div class="detail"><img src="${G.SPR.mon[m.sp].icon}" alt=""><div>
       <h2>${sp.name} <span style="color:#e8ddff;font-size:.8em">Lv ${m.lvl}</span></h2>
-      ${UI.typeBadges(m.sp)} ${UI.statusBadge(m)}${sp.evo ? ` <small>Entwickelt sich ab Lv ${sp.evo.lvl}</small>` : ''}
+      ${UI.typeBadges(m.sp)} ${UI.roleBadge(m.sp)} ${UI.statusBadge(m)}${sp.evo ? ` <small>Entwickelt sich ab Lv ${sp.evo.lvl}</small>` : ''}
       <table><tr><td>LP</td><td>${m.hp}/${st.hp}</td></tr><tr><td>Angriff</td><td>${st.atk}</td></tr>
       <tr><td>Verteidigung</td><td>${st.def}</td></tr><tr><td>Initiative</td><td>${st.spd}</td></tr>
       <tr><td>EP bis Level ${m.lvl + 1}</td><td>${need}</td></tr></table></div></div>
-      <div class="movelist"><b>Attacken:</b> ${m.moves.map(id => `${G.MOVES[id].name} <small>AP ${m.pp[id] || 0}/${G.MOVES[id].pp}</small> <span style="color:${G.TYPE_COLORS[G.MOVES[id].type]}">(${G.MOVES[id].type})</span>`).join(', ')}</div>
+      <div class="movelist"><b>Attacken:</b>${m.moves.map(id => `<div class="mvrow">${G.moveInfoHtml(id, m.pp[id] || 0)}</div>`).join('')}</div>
       <div class="desc">${sp.desc}</div>`;
   }
   G.Menu.team = async () => {
@@ -167,6 +169,7 @@
       return `<div class="chron"><img src="${seen ? G.SPR.mon[sp].icon : G.SPR.mon[sp].darkIcon}" alt=""><div><b>#${i + 1} ${seen ? s.name : '???'}</b>
         ${seen ? UI.typeBadges(sp) : ''} ${S.caught[sp] ? '<span style="color:#e8c870">◆ gefangen</span>' : seen ? '<span class="sighted" style="color:#a8c8f0">◇ gesichtet</span>' : ''}
         ${seen && s.legend ? ' <span style="color:#ffe8a0">★ Legendär</span>' : seen && s.rare ? ' <span style="color:#d8b8ff">✦ Selten</span>' : ''}
+        ${seen && s.role ? ' ' + UI.roleBadge(sp, true) : ''}
         <div class="desc">${seen ? s.desc : 'Noch nicht begegnet.'}</div></div></div>`;
     }).join('');
     await UI.choose([], { area: 'full', cancel: true, title: `<h2>Geisterchronik</h2><div class="hint">Gefangen: ${n} / ${G.SPECIES_ORDER.filter(sp => G.SPECIES[sp].catch > 0).length}</div>${html}${chartHtml()}` });

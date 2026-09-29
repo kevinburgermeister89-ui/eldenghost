@@ -110,7 +110,7 @@
   G.mkHi = mkHi; G.scale2x = scale2x; G.finish = finish; G.outline1 = outline1;
   G.mk = mk; G.pen = pen;
 
-  G.FLY = { laternchen: 1, totenleuchte: 1, schattenmotte: 1, grabfalter: 1, hauchling: 0.5, flatterhauch: 1, tiefenkalb: 0.6, nebelwal: 0.5, aschephoenix: 0.6, fyrlumen: 1 };
+  G.FLY = { laternchen: 1, totenleuchte: 1, schattenmotte: 1, grabfalter: 1, hauchling: 0.5, flatterhauch: 1, tiefenkalb: 0.6, nebelwal: 0.5, aschephoenix: 0.6, fyrlumen: 1, seelenrabe: 0.5 };
   // ---------- Geister: Comic-Pixelstil aus js/creatures.js (vorne 64, hinten 80, Boss 84 Pixel, beliebige Grössen per at()) ----------
   // Geister werden erst bei Bedarf gerastert (2× fein, hochaufgelöst): Vorderansicht, Atem, Blinzeln; Rück- und Bossansicht
   G.SPR = { mon: {} };

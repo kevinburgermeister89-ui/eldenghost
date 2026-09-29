@@ -53,7 +53,7 @@
     const grid = document.createElement('div'); grid.className = 'ch-grid';
     grid.style.gridTemplateColumns = `repeat(${cols},1fr)`; ch.appendChild(grid);
     let sel = Math.max(0, Math.min(cfg.start || 0, opts.length - 1));   // leere Liste (z. B. noch kein Geist): «Zurück» vorgewählt
-    const all = opts.slice();
+    const all = opts.slice(); let lastPtr = null;
     if (cfg.cancel && cfg.area === 'full') all.push({ label: cfg.backLabel || '✕ Zurück', back: true });
     const btns = all.map((o, i) => {
       const b = document.createElement('button');
@@ -61,8 +61,11 @@
       b.tabIndex = -1;
       b.innerHTML = o.html || `<span class="lb">${o.label}</span>${o.sub ? `<span class="sub">${o.sub}</span>` : ''}`;
       if (o.color) b.style.setProperty('--tc', o.color);
-      b.addEventListener('pointerdown', e => e.stopPropagation());
-      b.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); if (o.back) return done(-1); sel = i; hl(); pick(); });
+      // cfg.inspect (Attacken-Menü): auf dem Touchscreen zeigt der erste Tipp die Info der Attacke, der zweite setzt sie ein
+      b.addEventListener('pointerdown', e => { e.stopPropagation(); lastPtr = e.pointerType; });
+      b.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); if (o.back) return done(-1);
+        if (cfg.inspect && lastPtr === 'touch' && sel !== i && !o.disabled) { sel = i; lastPtr = null; G.Snd.sfx('tick'); hl(); return; }
+        lastPtr = null; sel = i; hl(); pick(); });
       (o.back ? ch : grid).appendChild(b);
       return b;
     });
@@ -135,6 +138,14 @@
   function typeBadge(t) { return `<span class="badge" style="background:${G.TYPE_COLORS[t]}">${t}</span>`; }
   const typeBadges = sp => G.typesOf(sp).map(typeBadge).join(' ');
   UI.typeBadge = typeBadge; UI.typeBadges = typeBadges;
+  // v17: Kampfrolle als Abzeichen (Chronik, Team-Übersicht)
+  const ROLE_COL = { Tank: '#8ab0d8', Sweeper: '#e89060', Speedster: '#8ae0c8', Bruiser: '#d87870', Support: '#a8d880', Status: '#c0a0e8' };
+  UI.roleBadge = (sp, long) => { const r = G.SPECIES[sp] && G.SPECIES[sp].role; if (!r) return '';
+    return `<span class="role" style="--rc:${ROLE_COL[r]}">${r}</span>${long ? `<small class="roled"> – ${G.ROLES[r].desc}</small>` : ''}`; };
+  // Attacken-Info (Kampf-Menü und Team-Übersicht)
+  G.moveInfoHtml = (id, pp, foe) => { const I = G.moveInfo(id, pp); if (!I) return '';
+    const h = foe && G.Battle.effHint ? G.Battle.effHint(id, foe) : null;
+    return `<div class="mi1"><b class="mn">${I.name}</b> <span class="badge" style="background:${I.color}">${I.type}</span> <span>Stärke <b>${I.power}</b></span> <span>Gen. <b>${I.acc}</b></span> <span>AP <b>${I.ap}</b></span>${I.prio > 0 && I.prio < 3 ? ' <span class="pr">Erstschlag</span>' : ''}${h ? ` <b class="eh ${h.cls}">${h.t} ${h.e === 0 ? 'wirkungslos' : h.e > 1 ? 'sehr effektiv' : 'schwach'}</b>` : ''}</div><div class="mi2">${I.desc}</div>`; };
 
   UI.monRow = (m, extra = '') => {
     const st = G.stats(m), f = m.hp / st.hp, cls = f <= 0.2 ? 'low' : f <= 0.5 ? 'mid' : '';

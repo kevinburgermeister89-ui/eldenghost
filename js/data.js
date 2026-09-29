@@ -4,7 +4,7 @@ window.G = window.G || {};
 (function (G) {
   G.VW = 256; G.VH = 240; G.T = 16;
   G.SAVE_KEY = 'eldenghost.save.v1';
-  G.SAVE_VERSION = 5; // v5: Pflanze als 9. Typ, neue Starter-Linien (Irrfackel -> Glutwurm); v4: typenlose Attacken unter Level 8 (Lernlisten neu abgeleitet)
+  G.SAVE_VERSION = 6; // v6: neue Lernlisten (v17-Attacken) – Attacken werden beim Laden neu abgeleitet; v5: Pflanze als 9. Typ, neue Starter-Linien (Irrfackel -> Glutwurm); v4: typenlose Attacken unter Level 8 (Lernlisten neu abgeleitet)
   // v3: 8 Elemente (IDs unverändert, alte Spielstände bleiben gültig)
 
   // 8 klassische Elemente (Kapitel 1 ab Spielstand v3). Tabelle: Angriffstyp -> Verteidigungstyp -> Faktor (fehlend = 1)
@@ -35,8 +35,8 @@ window.G = window.G || {};
   G.eff = (mt, sp) => G.typesOf(sp).reduce((f, t) => f * G.eff1(mt, t), 1);
   G.hasType = (sp, t) => G.typesOf(sp).includes(t);
   G.isNeutral = id => G.MOVES[id] && G.MOVES[id].type === 'Neutral';
-  // Stufenweise Veröffentlichung: v16 schaltet Klippenhöhle/Team Quantum, Legende und Katzenhaus frei; v17 (seltene Sondergeister) ist vorbereitet, aber noch aus
-  G.FEAT = { cave: true, legend: true, cats: true, rare: false };
+  // Stufenweise Veröffentlichung: v16 Klippenhöhle/Team Quantum, Legende, Katzenhaus; v17 seltene Sondergeister (mit Kampfzähler je Gebiet)
+  G.FEAT = { cave: true, legend: true, cats: true, rare: true };
   G.TYPE_MOVE_LVL = 8; // erste Typ-Attacke frühestens ab Level 8
 
   // ---------- Statuseffekte ----------
@@ -155,6 +155,131 @@ window.G = window.G || {};
     rauchgriff:     { name: 'Rauchgriff',     type: 'Gift',    power: 60, acc: 90,  pp: 10 },
     alptraum:       { name: 'Alptraum',       type: 'Psycho',  power: 85, acc: 90,  pp: 5 }
   };
+  // ================= v17: individuellere Attacken =================
+  // Gemeinsamer Pool (verwandte Arten teilen sich Grundattacken) + 1–2 Signatur-Attacken je Linie.
+  // Mechaniken: hits (Mehrfachtreffer), prio (Erstschlag), crit (hohe Volltreffer-Chance), sure (trifft immer), recoil, drain,
+  // heal, protect (Abwehr), eff2 (Zusatzeffekt nach Schaden), status (nur wenige Signatur-Attacken: Schlaf, Brand, Gift).
+  Object.assign(G.MOVES, {
+    // --- gemeinsamer Pool: typenlos (früh lernbar) ---
+    pickser:      { name: 'Pickser',       type: 'Neutral', power: 35, acc: 100, pp: 30, prio: 1, d: 'Schneller Schnabelhieb – schlägt immer zuerst zu.' },
+    schwanzhieb:  { name: 'Schwanzhieb',   type: 'Neutral', power: 45, acc: 95,  pp: 25, eff2: { who: 'foe', stat: 'def', n: -1, chance: 20 }, d: 'Peitschender Schwanz. 20 %: senkt die Verteidigung.' },
+    flatterstoss: { name: 'Flatterstoss',  type: 'Neutral', power: 40, acc: 100, pp: 30, d: 'Ein Stoss aus dem Flug heraus.' },
+    krallenhieb:  { name: 'Krallenhieb',   type: 'Neutral', power: 20, acc: 95,  pp: 20, hits: [2, 3], d: 'Mehrere schnelle Krallenschläge (2–3 Treffer).' },
+    rammbock:     { name: 'Rammbock',      type: 'Neutral', power: 65, acc: 90,  pp: 15, recoil: 0.2, d: 'Wuchtiger Anlauf – 20 % des Schadens als Rückstoss.' },
+    knabbern:     { name: 'Knabbern',      type: 'Neutral', power: 35, acc: 100, pp: 25, drain: 0.5, d: 'Kleine Bisse, die die Hälfte des Schadens heilen.' },
+    hufstampfer:  { name: 'Hufstampfer',   type: 'Neutral', power: 50, acc: 95,  pp: 20, d: 'Kräftiger Tritt mit den Hufen.' },
+    platscher:    { name: 'Platscher',     type: 'Neutral', power: 40, acc: 100, pp: 30, d: 'Nasser Bauchklatscher.' },
+    stachelstoss: { name: 'Stachelstoss',  type: 'Neutral', power: 50, acc: 90,  pp: 20, crit: 0.25, d: 'Spitzer Stich mit hoher Volltreffer-Chance.' },
+    einrollen:    { name: 'Einrollen',     type: 'Neutral', power: 0,  acc: 100, pp: 10, protect: true, d: 'Rollt sich ein und wehrt diese Runde jeden Angriff ab.' },
+    aufplustern:  { name: 'Aufplustern',   type: 'Neutral', power: 0,  acc: 100, pp: 20, effect: { who: 'self', stat: 'def', n: 1 }, d: 'Plustert sich auf: Verteidigung steigt.' },
+    fauchen:      { name: 'Fauchen',       type: 'Neutral', power: 0,  acc: 100, pp: 25, effect: { who: 'foe', stat: 'atk', n: -1 }, d: 'Bedrohliches Fauchen: senkt die Angriffskraft des Gegners.' },
+    // --- gemeinsamer Pool: Typ-Attacken (ab Level 8) ---
+    funkenschlag: { name: 'Funkenschlag',  type: 'Elektro', power: 60, acc: 95,  pp: 15, d: 'Ein knisternder Schlag.' },
+    steinwurf:    { name: 'Steinwurf',     type: 'Stein',   power: 55, acc: 90,  pp: 20, crit: 0.2, d: 'Gezielter Wurf – hohe Volltreffer-Chance.' },
+    wellenschlag: { name: 'Wellenschlag',  type: 'Wasser',  power: 65, acc: 90,  pp: 15, d: 'Eine schwere Welle.' },
+    glutstoss:    { name: 'Glutstoss',     type: 'Feuer',   power: 55, acc: 100, pp: 20, d: 'Ein Stoss aus heisser Glut.' },
+    blaetterklinge:{ name: 'Blätterklinge', type: 'Pflanze', power: 60, acc: 95, pp: 15, crit: 0.2, d: 'Scharfe Blätter – hohe Volltreffer-Chance.' },
+    geistesblitz: { name: 'Geistesblitz',  type: 'Psycho',  power: 45, acc: 100, pp: 20, sure: true, d: 'Ein Gedanke, dem man nicht ausweicht – trifft immer.' },
+    erdstoss:     { name: 'Erdstoss',      type: 'Boden',   power: 70, acc: 85,  pp: 10, d: 'Rammt die Erde hoch – stark, aber ungenau.' },
+    kampfschrei:  { name: 'Kampfschrei',   type: 'Kampf',   power: 0,  acc: 100, pp: 15, effect: { who: 'self', stat: 'atk', n: 2 }, d: 'Brüllt sich Mut an: Angriffskraft steigt stark.' },
+    // --- Signatur-Attacken je Linie ---
+    glutzunge:    { name: 'Glutzunge',     type: 'Feuer',   power: 50, acc: 100, pp: 20, status: { id: 'brand', chance: 20 }, d: 'Leckende Flammen. 20 %: Verbrennung.' },
+    tauchplatscher:{ name: 'Tauchplatscher', type: 'Wasser', power: 60, acc: 95, pp: 15, eff2: { who: 'self', stat: 'def', n: 1, chance: 50 }, d: 'Taucht ab und wieder auf. 50 %: eigene Verteidigung steigt.' },
+    blattschirm:  { name: 'Blattschirm',   type: 'Pflanze', power: 0,  acc: 100, pp: 10, protect: true, d: 'Ein Schirm aus Blättern wehrt diese Runde alles ab.' },
+    vierblatt:    { name: 'Vierblatt',     type: 'Neutral', power: 40, acc: 100, pp: 25, crit: 0.33, d: 'Glücksschlag – jeder dritte trifft voll.' },
+    glockenruf:   { name: 'Glockenruf',    type: 'Neutral', power: 0,  acc: 85,  pp: 15, status: { id: 'verirrt', chance: 100 }, d: 'Heller Unkenruf, der den Gegner verwirrt.' },
+    kieselkugel:  { name: 'Kieselkugel',   type: 'Stein',   power: 18, acc: 90,  pp: 20, hits: [2, 4], d: 'Rollt als Kugel mehrfach an (2–4 Treffer).' },
+    augenflecken: { name: 'Augenflecken',  type: 'Neutral', power: 0,  acc: 100, pp: 20, effect: { who: 'foe', stat: 'acc', n: -1 }, d: 'Starrende Flügelaugen: Genauigkeit des Gegners sinkt.' },
+    schuppenstaub:{ name: 'Schuppenstaub', type: 'Gift',    power: 0,  acc: 75,  pp: 10, status: { id: 'schlaf', chance: 100 }, d: 'Schimmernder Staub, der einschläfert.' },
+    nachtgesang:  { name: 'Nachtgesang',   type: 'Psycho',  power: 0,  acc: 70,  pp: 10, status: { id: 'schlaf', chance: 100 }, d: 'Ein Eulenlied, das den Gegner einschlafen lässt.' },
+    nachtschwinge:{ name: 'Nachtschwinge', type: 'Psycho',  power: 50, acc: 100, pp: 15, prio: 1, d: 'Lautloser Sturzflug – schlägt zuerst zu.' },
+    irrlichttanz: { name: 'Irrlichttanz',  type: 'Elektro', power: 25, acc: 95,  pp: 15, hits: [2, 3], d: 'Tanzende Lichter treffen 2–3×.' },
+    maulwurfsgrab:{ name: 'Maulwurfsgrab', type: 'Boden',   power: 60, acc: 95,  pp: 15, eff2: { who: 'self', stat: 'def', n: 1, chance: 50 }, d: 'Wühlt sich ein. 50 %: eigene Verteidigung steigt.' },
+    morgentau:    { name: 'Morgentau',     type: 'Neutral', power: 0,  acc: 100, pp: 5,  heal: 0.5, d: 'Sammelt Tau und heilt die Hälfte der LP.' },
+    dachsfaust:   { name: 'Dachsfaust',    type: 'Kampf',   power: 40, acc: 100, pp: 25, prio: 1, d: 'Blitzschneller Faustschlag – schlägt zuerst zu.' },
+    sporenschlaf: { name: 'Sporenschlaf',  type: 'Gift',    power: 0,  acc: 75,  pp: 10, status: { id: 'schlaf', chance: 100 }, d: 'Eine Wolke schläfriger Sporen.' },
+    pilzsog:      { name: 'Pilzsog',       type: 'Gift',    power: 55, acc: 95,  pp: 15, drain: 0.5, d: 'Saugt Kraft über feine Fäden – heilt die Hälfte des Schadens.' },
+    tausprung:    { name: 'Tausprung',     type: 'Neutral', power: 40, acc: 100, pp: 25, prio: 1, d: 'Ein Satz aus dem Stand – schlägt zuerst zu.' },
+    zappelfunk:   { name: 'Zappelfunk',    type: 'Elektro', power: 15, acc: 90,  pp: 20, hits: [2, 5], d: 'Zappelnde Funken, 2–5 Treffer.' },
+    gischtschild: { name: 'Gischtschild',  type: 'Wasser',  power: 0,  acc: 100, pp: 10, protect: true, d: 'Eine Wand aus Gischt wehrt diese Runde alles ab.' },
+    fuchsfinte:   { name: 'Fuchsfinte',    type: 'Neutral', power: 45, acc: 100, pp: 20, sure: true, d: 'Eine Täuschung – trifft immer.' },
+    traumblick:   { name: 'Traumblick',    type: 'Psycho',  power: 0,  acc: 70,  pp: 10, status: { id: 'schlaf', chance: 100 }, d: 'Blasse Kristallaugen, die in den Schlaf ziehen.' },
+    nachtsauger:  { name: 'Nachtsauger',   type: 'Neutral', power: 40, acc: 100, pp: 20, drain: 0.5, d: 'Saugt Kraft – heilt die Hälfte des Schadens.' },
+    umschlingen:  { name: 'Umschlingen',   type: 'Neutral', power: 35, acc: 95,  pp: 20, eff2: { who: 'foe', stat: 'atk', n: -1, chance: 50 }, d: 'Schnürt ein. 50 %: senkt die Angriffskraft.' },
+    giftzahn:     { name: 'Giftzahn',      type: 'Gift',    power: 50, acc: 95,  pp: 15, status: { id: 'gift', chance: 30 }, d: 'Giftiger Biss. 30 %: vergiftet.' },
+    panzerstoss:  { name: 'Panzerstoss',   type: 'Stein',   power: 75, acc: 90,  pp: 10, recoil: 0.25, d: 'Stösst mit dem Steinpanzer zu – 25 % Rückstoss.' },
+    suhlen:       { name: 'Suhlen',        type: 'Boden',   power: 0,  acc: 100, pp: 5,  heal: 0.5, d: 'Wälzt sich im Schlamm und heilt die Hälfte der LP.' },
+    moornebel:    { name: 'Moornebel',     type: 'Gift',    power: 0,  acc: 85,  pp: 10, status: { id: 'gift', chance: 100 }, d: 'Fauliger Moordunst vergiftet den Gegner.' },
+    wutgeheul:    { name: 'Wutgeheul',     type: 'Kampf',   power: 0,  acc: 100, pp: 15, effect: { who: 'self', stat: 'atk', n: 2 }, d: 'Steigert die eigene Angriffskraft stark.' }
+  });
+  // bestehende Attacken: kleine Schärfung (Mechanik statt reiner Schaden), Status bleibt selten
+  Object.assign(G.MOVES.funkenflug, { prio: 1, power: 40, d: 'Schnelle Funken – schlagen zuerst zu.' });
+  Object.assign(G.MOVES.kieselhagel, { power: 20, hits: [2, 3], d: 'Prasselnde Kiesel, 2–3 Treffer.' });
+  Object.assign(G.MOVES.moosstacheln, { power: 22, hits: [2, 3], d: 'Moosige Stacheln, 2–3 Treffer.' });
+  Object.assign(G.MOVES.scherenzwick, { crit: 0.33, d: 'Zwickt präzise zu – hohe Volltreffer-Chance.' });
+  Object.assign(G.MOVES.speerblitz, { crit: 0.25, d: 'Ein Blitz wie ein Speer – hohe Volltreffer-Chance.' });
+  Object.assign(G.MOVES.keileransturm, { power: 85, recoil: 0.25, d: 'Rücksichtsloser Ansturm – 25 % Rückstoss.' });
+  Object.assign(G.MOVES.funkenregen, { power: 22, hits: [2, 4], d: 'Ein Regen aus Funken, 2–4 Treffer.' });
+  Object.assign(G.MOVES.nattergift, { status: { id: 'gift', chance: 30 }, d: 'Giftiger Natternbiss. 30 %: vergiftet.' });
+  Object.assign(G.MOVES.mondsprung, { prio: 1, power: 70, d: 'Ein Sprung im Mondlicht – schlägt zuerst zu.' });
+  Object.assign(G.MOVES.walgesang, { eff2: { who: 'foe', stat: 'atk', n: -1, chance: 30 }, d: 'Ein tiefer Gesang. 30 %: senkt die Angriffskraft.' });
+  Object.assign(G.MOVES.hakenschlag, { sure: true, power: 55, d: 'Plötzlicher Haken – trifft immer.' });
+  Object.assign(G.MOVES.echoruf, { eff2: { who: 'foe', stat: 'acc', n: -1, chance: 30 }, d: 'Hallender Ruf. 30 %: senkt die Genauigkeit.' });
+  Object.assign(G.MOVES.glutschweif, { eff2: { who: 'self', stat: 'atk', n: 1, chance: 30 }, d: 'Ein glühender Schweifhieb. 30 %: eigene Angriffskraft steigt.' });
+  Object.assign(G.MOVES.tropfstein, { power: 22, hits: [2, 4], acc: 90, d: 'Tropfsteine fallen von oben, 2–4 Treffer.' });
+
+  // --- v17: seltene Sondergeister der Höhle, des Schilfrands und der Kapelle ---
+  Object.assign(G.MOVES, {
+    mondklee:       { name: 'Mondkleekreis',  type: 'Pflanze', power: 50, acc: 100, pp: 15, eff2: { who: 'self', stat: 'def', n: 1, chance: 30 }, d: 'Ein Kreis aus Mondklee spriesst um den Gegner. 30 %: eigene Verteidigung steigt.' },
+    kristallbohrer: { name: 'Kristallbohrer', type: 'Stein',   power: 70, acc: 90,  pp: 10, crit: 0.25, d: 'Bohrt sich mit einer Kristallspitze voran – hohe Volltreffer-Chance.' },
+    drusenblitz:    { name: 'Drusenblitz',    type: 'Elektro', power: 80, acc: 95,  pp: 10, eff2: { who: 'self', stat: 'def', n: 1, chance: 30 }, d: 'Ein Blitz aus dem Inneren einer Druse. 30 %: eigene Verteidigung steigt.' },
+    geodenbruch:    { name: 'Geodenbruch',    type: 'Stein',   power: 110, acc: 85, pp: 5,  recoil: 0.25, d: 'Sprengt eine riesige Druse auf – 25 % des Schadens als Rückstoss.' },
+    wirbeltauchen:  { name: 'Wirbeltauchen',  type: 'Wasser',  power: 50, acc: 100, pp: 20, prio: 1, d: 'Taucht blitzschnell unter und schiesst hoch – schlägt zuerst zu.' },
+    otterpfoten:    { name: 'Otterpfoten',    type: 'Kampf',   power: 18, acc: 95,  pp: 20, hits: [2, 4], d: 'Flinke Pfotenschläge, 2–4 Treffer.' },
+    strudelwirbel:  { name: 'Strudelwirbel',  type: 'Wasser',  power: 95, acc: 90,  pp: 5,  eff2: { who: 'foe', stat: 'acc', n: -1, chance: 30 }, d: 'Ein reissender Strudel. 30 %: senkt die Genauigkeit des Gegners.' },
+    pechfeder:      { name: 'Pechfeder',      type: 'Gift',    power: 0,  acc: 85,  pp: 10, status: { id: 'gift', chance: 100 }, d: 'Schwarze Federn voller Moorgift – vergiften den Gegner.' },
+    totenlaeuten:   { name: 'Totenläuten',    type: 'Psycho',  power: 55, acc: 100, pp: 15, eff2: { who: 'foe', stat: 'def', n: -1, chance: 50 }, d: 'Ein Glockenschlag aus der Tiefe. 50 %: senkt die Verteidigung.' },
+    seelenkrah:     { name: 'Seelenkrähen',   type: 'Psycho',  power: 90, acc: 90,  pp: 5,  drain: 0.3, d: 'Ein Schrei, der Seelenkraft raubt – heilt 30 % des Schadens.' }
+  });
+  // kurze Beschreibungen der bisherigen Attacken (eine Zeile, was sie tut) und etwas mehr Mechanik bei einigen Signaturen
+  const D17 = {
+    hauch: 'Ein kühler Geisterhauch.', rempler: 'Ein einfacher Rempler mit vollem Körper.', kratzer: 'Kratzt mit kleinen Krallen.',
+    biss: 'Ein kräftiger Biss.', kopfnuss: 'Rammt den Kopf gegen den Gegner.', heuler: 'Klägliches Heulen: senkt die Angriffskraft des Gegners.',
+    starren: 'Starrer Blick: senkt die Verteidigung des Gegners.', grabesruf: 'Ruf aus dem Grab: senkt die Verteidigung des Gegners.',
+    irrfeuer: 'Ein tanzendes Irrlicht aus Feuer.', glutschein: 'Heisser Glutschein, der den Gegner umhüllt.', blendlicht: 'Greller Blitz: senkt die Genauigkeit des Gegners.',
+    schlammwurf: 'Wirft einen Batzen Moorschlamm.', sumpfsog: 'Saugt Kraft aus dem Sumpf – heilt die Hälfte des Schadens.', felsruf: 'Ruft einen Felsbrocken herab – stark, aber ungenau.',
+    haerten: 'Härtet den Körper: Verteidigung steigt.', schattenstaub: 'Ein Hauch aus Giftstaub.', schattenbiss: 'Giftiger Biss mit schattigen Zähnen.',
+    nebelstoss: 'Ein Stoss aus verdichtetem Gedanken-Nebel.', nebelschleier: 'Trügerischer Schleier: senkt die Genauigkeit des Gegners.', seufzer: 'Ein schwerer Seufzer – trifft immer genau.',
+    wehmut: 'Traurige Erinnerungen: senken die Angriffskraft des Gegners.', erinnerung: 'Erinnert sich an bessere Tage – heilt die Hälfte der LP.',
+    letzterhauch: 'Letzter Ausweg ohne AP – mit Rückstoss.', irrweg: 'Führt den Gegner in die Irre – er verirrt sich.', seelenbrand: 'Blaues Seelenfeuer, das tief brennt.',
+    moorkaelte: 'Eisige Moorkälte. 30 %: Gegner wird klamm.', klammgriff: 'Kalter Klammergriff. 20 %: Gegner wird klamm.', torfwelle: 'Eine Welle aus bebendem Torf.',
+    grenzwacht: 'Stellt sich wie ein Grenzstein auf: Verteidigung steigt stark.', menhirschlag: 'Schlägt mit der Wucht eines Menhirs zu.',
+    aschestaub: 'Eine Wolke aus Sporen: senkt die Angriffskraft des Gegners.', schattenschwinge: 'Ein Flügelschlag aus Traumstoff.',
+    irrnebel: 'Wirbelnder Nebel. 25 %: Gegner verirrt sich.', nebelwand: 'Eine Wand aus Nebel: Verteidigung steigt.', schleiersturz: 'Stürzt als Nebelschleier herab.',
+    ahnenruf: 'Die Ahnen antworten mit gewaltiger Kraft.', wasserstrahl: 'Ein gezielter Wasserstrahl.', moorflut: 'Eine Flut aus schwarzem Moorwasser.',
+    glimmstrom: 'Ein Strom aus Glimmlicht. 20 %: senkt die Genauigkeit.', blitzschlag: 'Ein Blitz aus heiterem Himmel – stark, aber ungenau.',
+    prankenhieb: 'Ein kräftiger Prankenschlag.', grimmstoss: 'Grimmiger Stoss mit vollem Einsatz – 20 % Rückstoss.', ahnenstoss: 'Stoss mit der Kraft der Ahnen.',
+    giftschlamm: 'Giftiger Moorschlamm. 20 %: vergiftet.', erdklumpen: 'Schleudert einen schweren Erdklumpen.', blattwirbel: 'Ein Wirbel aus scharfen Blättern.',
+    feenstaub: 'Glitzernder Staub: senkt die Genauigkeit des Gegners.', rankensog: 'Ranken saugen Kraft – heilen die Hälfte des Schadens.', wurzelhieb: 'Peitscht mit einer dicken Wurzel.',
+    waldsegen: 'Der Wald spendet Kraft – heilt die Hälfte der LP.', feensturm: 'Ein Sturm aus Feenlicht und Blüten.', drachenglut: 'Uralte Drachenglut – sehr stark.',
+    schwanenruf: 'Ein Ruf über das Moor. 30 %: senkt die Angriffskraft.', schnurrfunken: 'Schnurrende Funken aus dem Fell.', kristallglanz: 'Gleissender Kristallglanz.',
+    wuehlstoss: 'Wühlt sich unter den Gegner und stösst hoch.', sternenfall: 'Sterne fallen vom Himmel – sehr stark, aber ungenau.', tiefenflut: 'Eine Flut aus der Tiefe – sehr stark.',
+    phoenixflamme: 'Unsterbliches Phönixfeuer. 30 %: Verbrennung.', wiedergeburt: 'Steigt aus der Asche – heilt die Hälfte der LP.', hainruf: 'Der Hain antwortet mit wirbelnden Blättern.',
+    kronenlicht: 'Licht aus der Geweihkrone – heilt 30 % des Schadens.', augenstarren: 'Tausend starrende Augen. 25 %: Gegner verirrt sich.', rauchgriff: 'Ein Griff aus giftigem Rauch.',
+    alptraum: 'Der Alptraum selbst greift an.'
+  };
+  for (const id in D17) if (G.MOVES[id] && !G.MOVES[id].d) G.MOVES[id].d = D17[id];
+  Object.assign(G.MOVES.seufzer, { sure: true, power: 50 });
+  Object.assign(G.MOVES.grimmstoss, { power: 90, recoil: 0.2 });
+  Object.assign(G.MOVES.glimmstrom, { eff2: { who: 'foe', stat: 'acc', n: -1, chance: 20 } });
+  Object.assign(G.MOVES.giftschlamm, { status: { id: 'gift', chance: 20 } });
+  Object.assign(G.MOVES.schwanenruf, { eff2: { who: 'foe', stat: 'atk', n: -1, chance: 30 } });
+  Object.assign(G.MOVES.phoenixflamme, { status: { id: 'brand', chance: 30 } });
+  Object.assign(G.MOVES.kronenlicht, { drain: 0.3 });
+  Object.assign(G.MOVES.seelenbrand, { status: { id: 'brand', chance: 10 }, d: 'Blaues Seelenfeuer, das tief brennt. 10 %: Verbrennung.' });
+  Object.assign(G.MOVES.schattenbiss, { status: { id: 'gift', chance: 20 }, d: 'Giftiger Biss mit schattigen Zähnen. 20 %: vergiftet.' });
+  Object.assign(G.MOVES.moorflut, { status: { id: 'klamm', chance: 10 }, d: 'Eine Flut aus schwarzem Moorwasser. 10 %: Gegner wird klamm.' });
+
   G.STAT_NAMES = { atk: 'Angriffskraft', def: 'Verteidigung', acc: 'Genauigkeit' };
 
   // ---------- Geister (19) ----------
@@ -347,6 +472,22 @@ window.G = window.G || {};
     kronenhirsch: { name: 'Kronenhirsch', g: 'm', type: 'Pflanze', types: ['Pflanze', 'Psycho'], base: { hp: 100, atk: 104, def: 100, spd: 96 }, catch: 0.05, xp: 260, rare: true,
       learn: [[1, 'rempler'], [8, 'blattwirbel'], [10, 'hainruf'], [16, 'rankensog'], [20, 'wurzelhieb'], [24, 'waldsegen'], [32, 'kronenlicht']],
       desc: 'Sein Geweih ist eine ganze Baumkrone voller Geisterlichter. Man sagt, er sei der Hüter aller Wälder, die es je gab – und aller, die noch wachsen werden.' },
+    // ===== v17: drei weitere seltene Sondergeister (Höhle, Schilfrand, Kapelle) =====
+    glimmerwurm: { name: 'Glimmerwurm', g: 'm', type: 'Stein', types: ['Stein', 'Elektro'], base: { hp: 66, atk: 68, def: 60, spd: 46 }, catch: 0.2, xp: 110, rare: true,
+      evo: { to: 'drusenlindwurm', lvl: 20 },
+      desc: 'Ein Höhlenwurm mit Ringen aus Glimmerkristall, die im Dunkeln leise summen. Er frisst sich durch den Fels und lässt leuchtende Adern zurück.' },
+    drusenlindwurm: { name: 'Drusenlindwurm', g: 'm', type: 'Stein', types: ['Stein', 'Elektro'], base: { hp: 96, atk: 100, def: 88, spd: 64 }, catch: 0.08, xp: 220, rare: true,
+      desc: 'Ein Lindwurm, dessen Rücken eine aufgebrochene Druse voller Kristalle ist. Wenn er grollt, blitzt es in allen Gängen der Klippen.' },
+    schilfotter: { name: 'Schilfotter', g: 'm', type: 'Wasser', types: ['Wasser', 'Kampf'], base: { hp: 54, atk: 70, def: 44, spd: 72 }, catch: 0.2, xp: 110, rare: true,
+      evo: { to: 'wogenotter', lvl: 21 },
+      desc: 'Ein Otter mit Fell wie nasses Schilf und einer silbernen Brust. Er spielt mit Kieseln – und wirft sie erstaunlich genau.' },
+    wogenotter: { name: 'Wogenotter', g: 'm', type: 'Wasser', types: ['Wasser', 'Kampf'], base: { hp: 78, atk: 102, def: 64, spd: 102 }, catch: 0.08, xp: 220, rare: true,
+      desc: 'Ein mächtiger Otter mit einer Mähne aus Gischt. Wo er taucht, drehen sich Strudel, und das Schilf verneigt sich vor ihm.' },
+    glockenrabe: { name: 'Glockenrabe', g: 'm', type: 'Gift', types: ['Gift', 'Psycho'], base: { hp: 58, atk: 56, def: 60, spd: 66 }, catch: 0.2, xp: 110, rare: true,
+      evo: { to: 'seelenrabe', lvl: 22 },
+      desc: 'Ein Rabe, der in der versunkenen Glocke der Kapelle nistet. Wenn er ruft, klingt es wie ein ferner Glockenschlag.' },
+    seelenrabe: { name: 'Seelenrabe', g: 'm', type: 'Gift', types: ['Gift', 'Psycho'], base: { hp: 84, atk: 82, def: 86, spd: 92 }, catch: 0.08, xp: 220, rare: true,
+      desc: 'Ein riesiger Rabe mit Schwingen aus Nacht und einer Glocke aus Licht an der Brust. Man sagt, er geleite verlorene Seelen über das Moor.' },
     // ===== Team Quantum & Legende =====
     nachtmahr: { name: 'Nachtmahr', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 54, atk: 50, def: 50, spd: 54 }, catch: 0, xp: 150, boss: true,
       learn: [[1, 'hauch'], [8, 'augenstarren'], [8, 'rauchgriff'], [8, 'nebelwand'], [10, 'irrnebel']],
@@ -359,6 +500,126 @@ window.G = window.G || {};
       learn: [[1, 'rempler'], [8, 'irrnebel'], [8, 'ahnenstoss'], [8, 'nebelwand'], [10, 'schleiersturz'], [16, 'ahnenruf']],
       desc: 'So alt wie der Nebel selbst, mit einem Geweih aus Dunst. Er hält die Verlorenen fest, damit sie nicht allein weitergehen müssen.' }
   };
+  // Lernlisten: gemeinsamer Pool + Signatur-Attacken. Typ-Attacken frühestens ab Level 8.
+  const LEARN17 = {
+    flackerling: [[1, 'schwanzhieb'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [13, 'blendlicht']],
+    glutwurm: [[1, 'schwanzhieb'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [13, 'blendlicht'], [16, 'seelenbrand'], [19, 'kampfschrei']],
+    seelendrache: [[1, 'schwanzhieb'], [1, 'fauchen'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [16, 'seelenbrand'], [19, 'kampfschrei'], [22, 'schleiersturz'], [26, 'drachenglut']],
+    pfuetzling: [[1, 'platscher'], [1, 'aufplustern'], [6, 'pickser'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [13, 'starren']],
+    nebelente: [[1, 'platscher'], [1, 'aufplustern'], [6, 'pickser'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [13, 'starren'], [16, 'moorflut'], [19, 'geistesblitz']],
+    mondschwan: [[1, 'platscher'], [1, 'aufplustern'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [16, 'moorflut'], [19, 'geistesblitz'], [22, 'schleiersturz'], [26, 'schwanenruf']],
+    blattling: [[1, 'flatterstoss'], [1, 'starren'], [6, 'knabbern'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee']],
+    hainfee: [[1, 'flatterstoss'], [1, 'starren'], [6, 'knabbern'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee'], [16, 'blaetterklinge'], [19, 'waldsegen']],
+    feenlinde: [[1, 'flatterstoss'], [1, 'starren'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee'], [16, 'blaetterklinge'], [19, 'waldsegen'], [22, 'wurzelhieb'], [26, 'feensturm']],
+    kleeling: [[1, 'vierblatt'], [3, 'starren'], [5, 'morgentau'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog']],
+    moorranke: [[1, 'vierblatt'], [3, 'umschlingen'], [5, 'morgentau'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog'], [16, 'giftzahn'], [19, 'wurzelhieb']],
+    moorlurch: [[1, 'platscher'], [1, 'starren'], [5, 'glockenruf'], [8, 'wasserstrahl'], [10, 'sumpfsog'], [12, 'moorkaelte'], [14, 'schwanzhieb']],
+    moorunke: [[1, 'platscher'], [1, 'starren'], [5, 'glockenruf'], [8, 'wasserstrahl'], [10, 'sumpfsog'], [12, 'moorkaelte'], [16, 'moorflut'], [19, 'moornebel']],
+    kieselgeist: [[1, 'rammbock'], [1, 'haerten'], [6, 'einrollen'], [8, 'kieselkugel'], [10, 'steinwurf'], [12, 'grenzwacht']],
+    menhirgeist: [[1, 'rammbock'], [1, 'haerten'], [6, 'einrollen'], [8, 'kieselkugel'], [10, 'steinwurf'], [12, 'grenzwacht'], [16, 'menhirschlag'], [19, 'torfwelle']],
+    schattenmotte: [[1, 'flatterstoss'], [4, 'augenflecken'], [8, 'schattenstaub'], [9, 'geistesblitz'], [10, 'schuppenstaub'], [11, 'schattenbiss']],
+    grabfalter: [[1, 'flatterstoss'], [1, 'augenflecken'], [8, 'schattenstaub'], [9, 'geistesblitz'], [10, 'schuppenstaub'], [11, 'schattenbiss'], [15, 'schattenschwinge'], [18, 'grabesruf']],
+    nebelkauz: [[1, 'pickser'], [1, 'starren'], [6, 'aufplustern'], [8, 'nebelstoss'], [10, 'nachtgesang'], [11, 'nachtschwinge'], [12, 'nebelschleier']],
+    schleierkauz: [[1, 'pickser'], [1, 'starren'], [6, 'aufplustern'], [8, 'nebelstoss'], [10, 'nachtgesang'], [11, 'nachtschwinge'], [12, 'nebelschleier'], [16, 'schleiersturz'], [19, 'nebelwand']],
+    laternchen: [[1, 'flatterstoss'], [3, 'morgentau'], [7, 'pickser'], [8, 'funkenflug'], [10, 'blendlicht'], [11, 'irrlichttanz'], [13, 'irrweg']],
+    totenleuchte: [[1, 'flatterstoss'], [3, 'morgentau'], [7, 'pickser'], [8, 'funkenflug'], [10, 'blendlicht'], [11, 'irrlichttanz'], [13, 'irrweg'], [18, 'blitzschlag'], [20, 'erinnerung']],
+    torfwicht: [[1, 'krallenhieb'], [1, 'haerten'], [6, 'knabbern'], [8, 'schlammwurf'], [10, 'maulwurfsgrab'], [12, 'klammgriff'], [17, 'torfwelle']],
+    hauchling: [[1, 'hufstampfer'], [1, 'heuler'], [6, 'morgentau'], [8, 'wehmut'], [9, 'seufzer'], [12, 'geistesblitz'], [15, 'erinnerung'], [18, 'schattenbiss']],
+    raufdachs: [[1, 'krallenhieb'], [1, 'heuler'], [6, 'biss'], [8, 'dachsfaust'], [10, 'schlammwurf'], [11, 'wutgeheul'], [12, 'prankenhieb']],
+    grimmdachs: [[1, 'krallenhieb'], [1, 'heuler'], [6, 'biss'], [8, 'dachsfaust'], [10, 'schlammwurf'], [11, 'wutgeheul'], [12, 'prankenhieb'], [15, 'grimmstoss'], [18, 'torfwelle']],
+    schwammling: [[1, 'rammbock'], [1, 'haerten'], [6, 'knabbern'], [8, 'schattenstaub'], [10, 'sporenschlaf'], [11, 'pilzsog'], [12, 'erdklumpen'], [13, 'aschestaub']],
+    moderhut: [[1, 'rammbock'], [1, 'haerten'], [6, 'knabbern'], [8, 'schattenstaub'], [10, 'sporenschlaf'], [11, 'pilzsog'], [13, 'aschestaub'], [15, 'giftschlamm'], [18, 'torfwelle']],
+    tauhase: [[1, 'tausprung'], [1, 'starren'], [5, 'hakenschlag'], [8, 'nebelstoss'], [11, 'morgentau'], [14, 'seufzer']],
+    funkmaus: [[1, 'knabbern'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'funkenflug'], [10, 'schnurrfunken'], [12, 'zappelfunk'], [15, 'funkenschlag']],
+    moosigel: [[1, 'stachelstoss'], [1, 'haerten'], [6, 'einrollen'], [8, 'blattwirbel'], [10, 'moosstacheln'], [12, 'rankensog'], [14, 'erdklumpen']],
+    farnigel: [[1, 'stachelstoss'], [1, 'einrollen'], [8, 'blattwirbel'], [10, 'moosstacheln'], [12, 'rankensog'], [14, 'erdklumpen'], [16, 'blaetterklinge'], [19, 'erdstoss']],
+    gischtkrebs: [[1, 'krallenhieb'], [1, 'haerten'], [6, 'rammbock'], [8, 'wasserstrahl'], [10, 'scherenzwick'], [12, 'gischtschild'], [15, 'panzerstoss'], [18, 'wellenschlag']],
+    glimmfuchs: [[1, 'fuchsfinte'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'glutstoss'], [10, 'glutschweif'], [13, 'kampfschrei'], [15, 'glutzunge'], [18, 'seelenbrand']],
+    glutfaehe: [[1, 'fuchsfinte'], [1, 'fauchen'], [8, 'glutstoss'], [10, 'glutschweif'], [13, 'kampfschrei'], [15, 'glutzunge'], [18, 'seelenbrand'], [21, 'schleiersturz']],
+    tropfsteinmolch: [[1, 'schwanzhieb'], [1, 'haerten'], [5, 'einrollen'], [8, 'steinwurf'], [10, 'tropfstein'], [13, 'grenzwacht'], [16, 'felsruf']],
+    kristallmolch: [[1, 'schwanzhieb'], [1, 'einrollen'], [8, 'steinwurf'], [10, 'tropfstein'], [13, 'grenzwacht'], [16, 'felsruf'], [18, 'kristallglanz'], [21, 'traumblick']],
+    flatterhauch: [[1, 'flatterstoss'], [1, 'starren'], [5, 'nachtsauger'], [8, 'echoruf'], [11, 'nebelschleier'], [14, 'rammbock']],
+    blitzreiher: [[1, 'pickser'], [1, 'starren'], [6, 'stachelstoss'], [8, 'funkenflug'], [9, 'wasserstrahl'], [11, 'speerblitz'], [14, 'funkenschlag'], [17, 'blitzschlag']],
+    sumpfnatter: [[1, 'umschlingen'], [1, 'starren'], [6, 'biss'], [8, 'schattenstaub'], [9, 'nattergift'], [12, 'sumpfsog'], [15, 'giftschlamm']],
+    grubenkaefer: [[1, 'rammbock'], [1, 'haerten'], [6, 'stachelstoss'], [8, 'schlammwurf'], [10, 'wuehlstoss'], [13, 'panzerstoss'], [16, 'erdstoss']],
+    keilerling: [[1, 'rammbock'], [1, 'heuler'], [6, 'hufstampfer'], [8, 'prankenhieb'], [10, 'keileransturm'], [12, 'schlammwurf'], [15, 'suhlen']],
+    moorkeiler: [[1, 'rammbock'], [1, 'heuler'], [8, 'prankenhieb'], [10, 'keileransturm'], [12, 'schlammwurf'], [15, 'suhlen'], [17, 'grimmstoss'], [20, 'erdstoss']],
+    mondluchs: [[1, 'krallenhieb'], [1, 'fauchen'], [6, 'fuchsfinte'], [8, 'geistesblitz'], [10, 'mondsprung'], [13, 'irrnebel'], [16, 'schleiersturz']],
+    sternenluchs: [[1, 'krallenhieb'], [1, 'fauchen'], [8, 'geistesblitz'], [10, 'mondsprung'], [13, 'irrnebel'], [16, 'schleiersturz'], [20, 'sternenfall'], [24, 'funkenschlag']],
+    tiefenkalb: [[1, 'platscher'], [1, 'aufplustern'], [6, 'rammbock'], [8, 'wasserstrahl'], [10, 'walgesang'], [13, 'geistesblitz'], [16, 'moorflut']],
+    nebelwal: [[1, 'platscher'], [1, 'aufplustern'], [8, 'wasserstrahl'], [10, 'walgesang'], [13, 'geistesblitz'], [16, 'moorflut'], [20, 'tiefenflut'], [24, 'erinnerung']],
+    funkenkueken: [[1, 'pickser'], [1, 'aufplustern'], [6, 'flatterstoss'], [8, 'glutstoss'], [10, 'funkenregen'], [13, 'glutschein'], [16, 'seelenbrand']],
+    aschephoenix: [[1, 'pickser'], [1, 'aufplustern'], [8, 'glutstoss'], [10, 'funkenregen'], [13, 'glutschein'], [16, 'seelenbrand'], [20, 'phoenixflamme'], [24, 'wiedergeburt']],
+    farnkitz: [[1, 'hufstampfer'], [1, 'starren'], [5, 'morgentau'], [8, 'blattwirbel'], [10, 'hainruf'], [12, 'blattschirm'], [13, 'feenstaub'], [16, 'blaetterklinge']],
+    hainhirsch: [[1, 'hufstampfer'], [8, 'blattwirbel'], [10, 'hainruf'], [13, 'feenstaub'], [16, 'blaetterklinge'], [20, 'wurzelhieb'], [24, 'waldsegen']],
+    kronenhirsch: [[1, 'hufstampfer'], [8, 'blattwirbel'], [10, 'hainruf'], [16, 'blaetterklinge'], [20, 'wurzelhieb'], [24, 'waldsegen'], [32, 'kronenlicht']],
+    glimmerwurm: [[1, 'rammbock'], [1, 'haerten'], [6, 'schwanzhieb'], [8, 'steinwurf'], [10, 'kristallbohrer'], [13, 'funkenschlag'], [16, 'felsruf'], [18, 'glimmstrom']],
+    drusenlindwurm: [[1, 'rammbock'], [1, 'haerten'], [8, 'steinwurf'], [10, 'kristallbohrer'], [13, 'funkenschlag'], [16, 'felsruf'], [20, 'drusenblitz'], [24, 'geodenbruch']],
+    schilfotter: [[1, 'platscher'], [1, 'fauchen'], [6, 'knabbern'], [8, 'wasserstrahl'], [10, 'wirbeltauchen'], [13, 'otterpfoten'], [16, 'prankenhieb'], [19, 'moorflut']],
+    wogenotter: [[1, 'platscher'], [1, 'fauchen'], [8, 'wasserstrahl'], [10, 'wirbeltauchen'], [13, 'otterpfoten'], [16, 'prankenhieb'], [21, 'strudelwirbel'], [25, 'grimmstoss']],
+    glockenrabe: [[1, 'pickser'], [1, 'starren'], [6, 'flatterstoss'], [8, 'schattenstaub'], [10, 'pechfeder'], [12, 'geistesblitz'], [15, 'totenlaeuten'], [18, 'giftschlamm']],
+    seelenrabe: [[1, 'pickser'], [1, 'starren'], [8, 'schattenstaub'], [10, 'pechfeder'], [12, 'geistesblitz'], [15, 'totenlaeuten'], [22, 'seelenkrah'], [26, 'nebelwand']]
+  };
+  for (const sp in LEARN17) if (G.SPECIES[sp]) G.SPECIES[sp].learn = LEARN17[sp];
+  // kurze Beschreibung je Attacke (eigener Text oder aus der Mechanik erzeugt)
+  G.moveDesc = id => {
+    const M = G.MOVES[id]; if (!M) return '';
+    if (M.d) return M.d;
+    const p = [], S = G.STATUS, SN = { atk: 'Angriffskraft', def: 'Verteidigung', acc: 'Genauigkeit' };
+    if (M.fallback) return 'Letzter Ausweg ohne AP – mit Rückstoss.';
+    if (M.heal) p.push(`Heilt ${Math.round(M.heal * 100)} % der eigenen LP.`);
+    if (M.protect) p.push('Wehrt diese Runde jeden Angriff ab.');
+    if (!M.power && M.effect) p.push(M.effect.who === 'self' ? `Eigene ${SN[M.effect.stat]} steigt${M.effect.n > 1 ? ' stark' : ''}.` : `Senkt die ${SN[M.effect.stat]} des Gegners.`);
+    if (!M.power && M.status) p.push(`${S[M.status.id].name}: ${M.status.id === 'verirrt' ? 'Gegner irrt umher.' : M.status.id === 'klamm' ? 'Gegner wird klamm.' : ''}`.trim());
+    if (M.power) {
+      p.push(M.power >= 80 ? 'Sehr starker Angriff.' : M.power >= 60 ? 'Kräftiger Angriff.' : 'Leichter Angriff.');
+      if (M.drain) p.push(`Heilt ${Math.round(M.drain * 100)} % des Schadens.`);
+      if (M.recoil) p.push(`${Math.round(M.recoil * 100)} % Rückstoss.`);
+      if (M.status) p.push(`${M.status.chance} %: ${S[M.status.id].name}.`);
+    }
+    return p.join(' ');
+  };
+
+  // ---------- v17: Kampfrollen (nur Tendenzen, keine Extreme; Anzeige in Chronik und Team-Übersicht) ----------
+  // Tank: viel LP/Verteidigung, langsam · Sweeper: hoher Angriff + schnell, dünn · Speedster: sehr schnell · Bruiser: LP + Angriff, eher langsam
+  // Support: robust, schwächerer Angriff, heilt/stärkt sich · Status: setzt Zustände und senkt Werte
+  G.ROLES = {
+    Tank: { name: 'Tank', icon: '🛡', desc: 'viel LP und Verteidigung, dafür langsam' },
+    Sweeper: { name: 'Sweeper', icon: '⚔', desc: 'hoher Angriff und schnell, aber dünnhäutig' },
+    Speedster: { name: 'Speedster', icon: '➶', desc: 'sehr schnell, schlägt meist zuerst zu' },
+    Bruiser: { name: 'Bruiser', icon: '✊', desc: 'viel LP und Angriff, eher gemächlich' },
+    Support: { name: 'Support', icon: '✚', desc: 'robust, heilt und stärkt sich, schwächerer Angriff' },
+    Status: { name: 'Status', icon: '☾', desc: 'schwächt den Gegner mit Zuständen und Wertsenkungen' }
+  };
+  const ROLE_OF = {
+    flackerling: 'Sweeper', pfuetzling: 'Support', blattling: 'Tank', kleeling: 'Support', moorlurch: 'Status', kieselgeist: 'Tank', schattenmotte: 'Status',
+    nebelkauz: 'Speedster', laternchen: 'Support', torfwicht: 'Bruiser', hauchling: 'Support', raufdachs: 'Bruiser', schwammling: 'Status', tauhase: 'Speedster',
+    funkmaus: 'Speedster', moosigel: 'Tank', gischtkrebs: 'Tank', glimmfuchs: 'Sweeper', tropfsteinmolch: 'Bruiser', flatterhauch: 'Speedster', blitzreiher: 'Sweeper',
+    sumpfnatter: 'Status', grubenkaefer: 'Tank', keilerling: 'Bruiser', mondluchs: 'Speedster', tiefenkalb: 'Tank', funkenkueken: 'Sweeper', farnkitz: 'Support',
+    glimmerwurm: 'Bruiser', schilfotter: 'Sweeper', glockenrabe: 'Status'
+  };
+  // Werte an die Rollen angepasst (Summe je Entwicklungsstufe ähnlich, jeder Wert 70–135 % des Stufenmittels)
+  const BASE17 = {
+    pfuetzling: [50, 42, 46, 42], nebelente: [74, 58, 68, 56], mondschwan: [98, 78, 90, 68],
+    blattling: [54, 40, 50, 36], hainfee: [72, 62, 74, 54], feenlinde: [100, 80, 92, 60],
+    kleeling: [48, 40, 48, 44], moosigel: [50, 40, 56, 34], moorranke: [66, 58, 64, 58], moorlurch: [54, 44, 50, 34], moorunke: [78, 60, 68, 46],
+    kieselgeist: [48, 46, 58, 34], menhirgeist: [66, 62, 82, 46], nebelkauz: [44, 44, 38, 56], schleierkauz: [58, 62, 52, 80],
+    laternchen: [46, 38, 48, 44], totenleuchte: [66, 54, 70, 58], torfwicht: [58, 58, 48, 38], hauchling: [54, 40, 48, 50],
+    raufdachs: [54, 60, 44, 46], moderhut: [74, 68, 66, 48], tropfsteinmolch: [52, 50, 48, 34], kristallmolch: [72, 72, 70, 54],
+    blitzreiher: [54, 66, 46, 68], grubenkaefer: [62, 56, 70, 44], moorkeiler: [76, 86, 64, 54], nebelwal: [106, 82, 94, 62],
+    farnkitz: [62, 52, 62, 62], hainhirsch: [88, 72, 88, 80], kronenhirsch: [106, 96, 104, 94]
+  };
+  for (const sp in BASE17) { const [hp, atk, def, spd] = BASE17[sp]; G.SPECIES[sp].base = { hp, atk, def, spd }; }
+  // Rolle gilt für die ganze Entwicklungslinie
+  for (const sp in ROLE_OF) { let c = sp; while (c) { G.SPECIES[c].role = ROLE_OF[sp]; c = G.SPECIES[c].evo && G.SPECIES[c].evo.to; } }
+  // Attacken-Info für Menüs: Typ, Stärke, Genauigkeit, AP und eine Zeile Beschreibung
+  G.moveInfo = (id, pp) => {
+    const M = G.MOVES[id]; if (!M) return null;
+    const hits = M.hits ? `${M.power}×${M.hits[0]}–${M.hits[1]}` : M.power ? String(M.power) : '—';
+    return { name: M.name, type: M.type, color: G.TYPE_COLORS[M.type], power: hits, acc: M.sure ? 'sicher' : M.acc + ' %', ap: pp == null ? `${M.pp}` : `${pp}/${M.pp}`,
+      prio: M.prio || (M.protect ? 3 : 0), desc: G.moveDesc(id) };
+  };
+
   G.SPECIES_ORDER = ['flackerling', 'glutwurm', 'seelendrache', 'pfuetzling', 'nebelente', 'mondschwan', 'blattling', 'hainfee', 'feenlinde',
     'kleeling', 'moorranke', 'moorlurch', 'moorunke', 'kieselgeist', 'menhirgeist',
     'schattenmotte', 'grabfalter', 'nebelkauz', 'schleierkauz', 'laternchen', 'totenleuchte',
@@ -366,11 +627,13 @@ window.G = window.G || {};
     'tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
     'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler',
     'mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch',
+    'glimmerwurm', 'drusenlindwurm', 'schilfotter', 'wogenotter', 'glockenrabe', 'seelenrabe',
     'nebelahn', 'nachtmahr', 'fyrlumen'];
   // v15: neue Tier- und Naturgeister (15) und seltene Sondergeister (4 Linien)
   G.NEW15 = ['tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
     'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler'];
-  G.RARE = ['mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch'];
+  G.RARE = ['mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch',
+    'glimmerwurm', 'drusenlindwurm', 'schilfotter', 'wogenotter', 'glockenrabe', 'seelenrabe'];
   // Stufenweise: noch nicht freigeschaltete Geister erscheinen nicht in der Chronik
   G.SPECIES_ORDER = G.SPECIES_ORDER.filter(sp => (G.FEAT.rare || !G.RARE.includes(sp)) && (G.FEAT.cave || sp !== 'nachtmahr') && (G.FEAT.legend || sp !== 'fyrlumen'));
   // Starter-Dreieck: Feuer schlägt Pflanze, Pflanze schlägt Wasser, Wasser schlägt Feuer
@@ -414,12 +677,19 @@ window.G = window.G || {};
   };
   // v15 ohne Klippenhöhle (kommt in v16): Höhlenbewohner vorerst an Küstenfelsen und Grabsteinen – der Molch an der Brandung, die Fledermaus bei der Kapelle
   if (!G.FEAT.cave) { G.WILD_AREAS.kuestengras.table.push(['tropfsteinmolch', 12]); G.WILD_AREAS.torfstich.table.push(['kieselgeist', 16]); G.WILD_AREAS.kapelle.table.push(['flatterhauch', 16]); delete G.WILD_AREAS.hoehle; G.ZONE_ORDER = G.ZONE_ORDER.filter(z => z !== 'hoehle'); }
-  // Sondergeister: sehr selten (1,5 %) und nur unter besonderen Bedingungen (in world.js geprüft)
+  // Sondergeister (v17): je Gebiet ein seltener Geist. Jeder Wildkampf im Gebiet zählt mit (G.state.rareCount[zone]);
+  // ab RAMP Kämpfen steigt die Chance schrittweise bis CAP, sonst nur ein Hauch (BASE). Die besondere Stelle (cond) muss erfüllt sein.
+  // Nach dem Erscheinen startet der Zähler des Gebiets wieder bei 0. Ab RAMP schimmert das Gras an den passenden Stellen.
+  G.RARE_RULE = { BASE: 0.002, RAMP: 15, START: 0.01, STEP: 0.008, CAP: 0.05 };
+  G.rareChance = n => { const R = G.RARE_RULE; return n < R.RAMP ? R.BASE : Math.min(R.CAP, R.START + (n - R.RAMP) * R.STEP); };
   G.RARE_SPAWNS = [
-    { sp: 'mondluchs', zone: 'nebelgras', chance: 0.015, lvl: [6, 8], cond: 'fog', hint: 'nur bei dichtem Nebel' },
-    { sp: 'tiefenkalb', zone: 'kuestengras', chance: 0.015, lvl: [7, 9], cond: 'shore', hint: 'im Küstengras direkt am Meer' },
-    { sp: 'funkenkueken', zone: 'torfstich', chance: 0.015, lvl: [11, 13], cond: 'lantern', hint: 'neben einer entzündeten Moorlaterne' },
-    { sp: 'farnkitz', zone: 'moorherz', chance: 0.02, lvl: [13, 15], cond: 'hidden', hint: 'in der verborgenen Ecke des Moorherzens' }
+    { sp: 'mondluchs', zone: 'nebelgras', lvl: [6, 8], cond: 'fog', hint: 'mitten im dichtesten Nebelgras' },
+    { sp: 'tiefenkalb', zone: 'kuestengras', lvl: [7, 9], cond: 'shore', hint: 'im Küstengras direkt am Meer' },
+    { sp: 'glimmerwurm', zone: 'hoehle', lvl: [8, 10], cond: 'crystal', hint: 'bei den glimmenden Tropfsteinen der Höhle' },
+    { sp: 'schilfotter', zone: 'schilfrand', lvl: [10, 12], cond: 'reeds', hint: 'tief im Schilf, wo ringsum nur Schilf ist' },
+    { sp: 'funkenkueken', zone: 'torfstich', lvl: [11, 13], cond: 'lantern', hint: 'neben einer entzündeten Moorlaterne' },
+    { sp: 'glockenrabe', zone: 'kapelle', lvl: [13, 15], cond: 'bell', hint: 'nahe der versunkenen Glocke' },
+    { sp: 'farnkitz', zone: 'moorherz', lvl: [13, 15], cond: 'hidden', hint: 'in der verborgenen Ecke des Moorherzens' }
   ];
 
   // ---------- Gegenstände ----------

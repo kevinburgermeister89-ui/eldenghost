@@ -181,6 +181,28 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v17: Attacken-Rework, Attacken-Info, Kampfrollen, Sondergeister
+- **Attacken:** gemeinsamer Pool (Rempler, Kratzer, Rammbock, Härten … teilen sich viele Linien) plus 1–2 Signatur-Attacken je Linie
+  (z. B. Kristallbohrer, Otterpfoten, Pechfeder, Totenläuten, Mondklee). Stärke und Genauigkeit variieren deutlich (sicher treffend,
+  Erstschlag, 2–5 Treffer, Rückstoss, Saugen, Heilen, Abwehr, Nebeneffekte auf Werte). Zustands-Attacken sind ~15 % der lernbaren
+  Attacken; nur Status-Geister haben mehrere. Vor Lv 8 nur typenlose Attacken, die erste eigene Typ-Attacke kommt mit Lv 8–9.
+  Jede Attacke hat eine eigene Animation (≤ 3 s).
+- **Kampf-Mechanik:** Priorität (Abwehr > Erstschlag > Initiative), Abwehr blockt einen Treffer (Wiederholung 50 % Fehlschlag),
+  Mehrfach-Treffer mit eigenem Volltreffer-Wurf, Schlaf, Gift/Brand/Klamm-Schaden am Rundenende. Gegner-KI wertet all das aus.
+- **Attacken-Info:** Im Kampf-Menü zeigt ein Feld Typ, Stärke, Genauigkeit, AP, Erstschlag, Wirksamkeit gegen den Gegner und eine
+  Zeile Beschreibung. Touch: erster Tipp wählt aus (Info), zweiter Tipp setzt ein. Dieselbe Info in der Team-Übersicht.
+- **Kampfrollen:** Tank, Sweeper, Speedster, Bruiser, Support, Status – Werte moderat angepasst (jede Stufe ähnliche Summe,
+  jeder Wert 70–135 % des Stufenmittels). Rolle als Abzeichen in Übersicht und Geisterchronik (mit Erklärung).
+- **Sondergeister je Gebiet:** Nebelgras – Mondluchs (dichtester Nebel), Küstenweg – Tiefenkalb (am Meer), Klippenhöhle –
+  **Glimmerwurm** (neben leuchtenden Tropfsteinen), Schilfrand – **Schilfotter** (mitten im Schilf), Torfstich – Funkenküken
+  (bei entzündeter Laterne), Versunkene Kapelle – **Glockenrabe** (bei der Glocke), Moorherz – Farnkitz (verborgene Ecke).
+  Jeder Wildkampf im Gebiet zählt (`G.state.rareCount`): unter 15 Kämpfen 0,2 %, ab 15 steigt die Chance um 0,8 % je Kampf bis
+  max. 5 % (ab ~20). Ab 15 schimmern die passenden Stellen, beim Erreichen erscheint ein Hinweis. Nach dem Erscheinen: Zähler 0.
+- **Neue Sonder-Entwicklungen:** Glimmerwurm → Drusenlindwurm (Lv 20), Schilfotter → Wogenotter (Lv 21), Glockenrabe → Seelenrabe
+  (Lv 22). Seltene Entwicklungen: goldene Strahlen, Spiralfunken in Typfarbe, Farbexplosion, Schockwellen, die neue Gestalt wächst kurz.
+- Spielstand v6: Attacken aller Geister werden einmalig für ihr Level neu abgeleitet (AP voll). Cache `eldenghost-v17`.
+- Tests: `tests/test_v17.py` (+ `tests/v17_checks.js`), Screenshots in `/workspace/shots_v17`.
+
 ## v16: Grösseres Dorf, Klippenhöhle, Team Quantum, Fyrlumen, Katzenhaus
 - **Grösseres Dorf & Dorfleben:** das Dorf ist nach Osten gewachsen (Anger mit Teich, Obstwiese, Blumenbeeten). Greta, Lotte und Piet
   gehen in ihrem Bereich umher (nie auf Türen/Übergänge, nie in den Weg der Spielfigur); Begleitgeister folgen ihnen

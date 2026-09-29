@@ -337,6 +337,65 @@
     augenstarren: { ms: 1200, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); glowAt(x0 - 4, y0 - 10, 3, 6, '#c080ff', 0.5); glowAt(x0 + 4, y0 - 10, 3, 6, '#c080ff', 0.5); await W(300); await An(500, p => { const a = p * 12; P_({ x: x1 + Math.cos(a) * 20 * (1 - p), y: y1 + Math.sin(a) * 12 * (1 - p), k: 'spark', s: 2, life: 0.3, c: '#d8a8ff' }); }); ringAt(x1, y1, 24, -30, '#c080ff', 0.4); await W(150); } },
     rauchgriff: { ms: 1100, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); await An(600, p => { for (let i = 0; i < 2; i++) P_({ x: x0 + (x1 - x0) * p + rnd(-8, 8), y: y0 + (y1 - y0) * p + rnd(-8, 8), k: 'glow', r: rnd(4, 8), dr: 3, life: 0.5, c: i ? '#2a1a3a' : '#5a2a6a' }); }); for (let i = 0; i < 3; i++) streak(x1 - 8 + i * 8, y1 - 6, 1.2, 26, '#8a3aa8', { w: 2.2, life: 0.4 }); sparks(x1, y1, 8, '#b060ff', 60); await W(300); } },
     alptraum: { ms: 2000, fn: async (f, t) => { const [x1, y1] = center(t); G.B.dim = 0.7; await An(900, p => { for (let i = 0; i < 2; i++) { const a = rnd(0, 6.28), r = 50 * (1 - p); P_({ x: x1 + Math.cos(a) * r, y: y1 + Math.sin(a) * r * 0.6, k: 'shade', r: 8, dr: -4, life: 0.4, c: Math.random() < 0.5 ? '#6a2a8a' : '#a02a4a', a: 0.6 }); } }); glowAt(x1 - 8, y1 - 14, 3, 0, '#ff4a6a', 0.6); glowAt(x1 + 8, y1 - 14, 3, 0, '#ff4a6a', 0.6); await W(300); G.B.shake = 6; G.B.flash = { c: '#b02050', a: 0.45 }; await W(400); } },
+    // --- v17: eigene Choreografie für die neuen Attacken (gemeinsamer Pool + Signaturen), je ≤ 3 s ---
+    pickser: { ms: 600, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(160, p => { a.dx = p * 26 * d; }); a.dx = 0; const [x, y] = center(t); streak(x - 3 * d, y, -0.4 * d, 12, '#fff0c0', { w: 2.5, life: 0.18 }); sparks(x, y, 5, '#ffe8a0', 50); await W(120); } },
+    schwanzhieb: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); await An(420, p => { const a = Lp(3.6, 0.2, p); streak(x + Math.cos(a) * 20, y + Math.sin(a) * 12, a + 1.57, 12, '#e8e0f4', { w: 3, life: 0.12 }); }); ringAt(x + 10, y, 3, 80, '#ffffff', 0.25); await W(150); } },
+    flatterstoss: { ms: 900, fn: async (f, t) => { await fly(f, t, 520, (p, x, y, st) => { if (st % 2) P_({ x: x + rnd(-6, 6), y: y + rnd(-4, 4), vy: rnd(10, 30), k: 'feather', s: 2.5, a: rnd(0, 3), life: 0.5, c: '#f0ecf8' }); }, 26, 3); } },
+    krallenhieb: { ms: 1000, fn: async (f, t) => { const [x, y] = center(t); for (let i = 0; i < 3; i++) { const o = (i - 1) * 9; for (let k = 0; k < 3; k++) streak(x + o - 5 + k * 5, y - 2 + (i % 2) * 6, i % 2 ? -1.0 : 1.0, 20, '#fff4e0', { w: 1.6, life: 0.2 }); await W(170); } } },
+    rammbock: { ms: 1000, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(260, p => { a.dx = -p * 12 * d; a.dy = p * 2; }); await An(200, p => { a.dx = Lp(-12, 64, p) * d; a.dy = 2 * (1 - p); }); G.B.shake = 6; const [x, y] = center(t); ringAt(x, y, 6, 150, '#ffffff', 0.3); sparks(x, y, 10, '#ffffff', 90); await An(200, p => { a.dx = 64 * (1 - p) * d; }); a.dx = 0; } },
+    knabbern: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); for (let i = 0; i < 3; i++) { const ox = rnd(-10, 10), oy = rnd(-8, 8); P_({ x: x + ox - 2, y: y + oy, k: 'tooth', s: 3, up: 0, life: 0.12, c: '#ffffff' }); P_({ x: x + ox + 2, y: y + oy + 3, k: 'tooth', s: 3, up: 1, life: 0.12, c: '#ffffff' }); await W(200); } } },
+    hufstampfer: { ms: 1000, fn: async (f, t) => { const a = selfA(f), [x, y] = center(t); await An(300, p => { a.dy = -Math.sin(p * Math.PI) * 14; }); a.dy = 0; for (let i = 0; i < 2; i++) { ringAt(x - 8 + i * 16, y + 22, 3, 60, '#e8dcc0', 0.35, { flat: 1 }); G.B.shake = 3; await W(180); } sparks(x, y + 18, 8, '#c8b89a', 60); } },
+    platscher: { ms: 900, fn: async (f, t) => { const a = selfA(f), [x, y] = center(t); await An(300, p => { a.dy = -Math.sin(p * Math.PI) * 18; }); a.dy = 0; for (let i = 0; i < 12; i++) P_({ x: x + rnd(-16, 16), y: y + 14, vx: rnd(-50, 50), vy: rnd(-110, -60), g: 320, k: 'drop', s: 2, life: 0.5, c: i % 2 ? '#8ac8ff' : '#d8f0ff' }); await W(300); } },
+    stachelstoss: { ms: 700, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t), a = Math.atan2(y1 - y0, x1 - x0); await An(300, p => { streak(Lp(x0, x1, p), Lp(y0, y1, p), a, 18, '#f4e8c8', { w: 1.8, life: 0.1 }); }); glowAt(x1, y1, 6, 20, '#ffffff', 0.2); await W(100); } },
+    einrollen: { ms: 1000, fn: async (f, t) => { const a = selfA(f), [x, y] = center(f); await An(500, p => { a.dy = p * 6; }); for (let i = 0; i < 10; i++) { const q = i / 10 * 6.28; P_({ x: x + Math.cos(q) * 22, y: y + 6 + Math.sin(q) * 16, k: 'spark', s: 2, life: 0.5, c: '#e8dcc0' }); } ringAt(x, y + 6, 26, -10, '#fff4d8', 0.5); await W(300); a.dy = 0; } },
+    aufplustern: { ms: 900, fn: async (f, t) => { const a = selfA(f), [x, y] = center(f); await An(500, p => { a.dy = -Math.sin(p * Math.PI) * 5; if (Math.random() < 0.6) P_({ x: x + rnd(-20, 20), y: y + rnd(-10, 14), vy: -20, k: 'feather', s: 2, a: rnd(0, 3), life: 0.5, c: '#f8f4ff' }); }); a.dy = 0; ringAt(x, y, 10, 40, '#e8f0ff', 0.35); } },
+    fauchen: { ms: 900, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); for (let i = 0; i < 3; i++) { const q = Math.atan2(y1 - y0, x1 - x0) + (i - 1) * 0.3; streak(x0 + Math.cos(q) * 20, y0 + Math.sin(q) * 20, q, 16, '#ffb0a0', { w: 2, life: 0.3 }); } await W(250); G.B.shake = 2; for (let i = 0; i < 2; i++) { ringAt(x1, y1, 26, -40, '#ff9a8a', 0.4); await W(150); } } },
+    funkenschlag: { ms: 900, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x, y] = center(t); await An(260, p => { a.dx = Math.sin(p * Math.PI) * 30 * d; }); a.dx = 0; for (let i = 0; i < 4; i++) streak(x + rnd(-8, 8), y + rnd(-8, 8), rnd(0, 6.28), 14, '#fff49a', { w: 2, life: 0.2 }); G.B.flash = { c: '#fff8b0', a: 0.3 }; sparks(x, y, 14, '#ffe060', 100); await W(200); } },
+    steinwurf: { ms: 900, fn: async (f, t) => { const [x0, y0] = center(f); P_({ x: x0, y: y0 + 16, vy: -80, g: 300, life: 0.25, c: '#a89878', s: 5, k: 'chunk' }); await W(200); await fly(f, t, 380, (p, x, y) => P_({ x, y, life: 0.08, c: '#a89878', s: 5, k: 'chunk' }), 40); } },
+    wellenschlag: { ms: 1200, fn: async (f, t) => { const [x1, y1] = center(t); await An(800, p => { const h = Math.sin(p * Math.PI) * 34, xw = Lp(x1 - 50, x1 + 20, p); for (let i = 0; i < 3; i++) P_({ x: xw + rnd(-8, 8), y: y1 + 24 - h * rnd(0.5, 1), vy: -10, g: 100, k: 'drop', s: 3, life: 0.3, c: i ? '#4a90d0' : '#c8ecff' }); }); G.B.shake = 4; } },
+    glutstoss: { ms: 800, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x0, y0] = center(f); await An(420, p => { a.dx = Math.sin(p * Math.PI) * 40 * d; P_({ x: x0 + a.dx, y: y0 + rnd(-6, 6), k: 'glow', r: 5, dr: 6, life: 0.3, c: '#ff9040' }); }); a.dx = 0; const [x, y] = center(t); glowAt(x, y, 10, 30, '#ffc060', 0.3); } },
+    blaetterklinge: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); for (const s of [-1, 1]) { await An(200, p => streak(x + s * Lp(-24, 24, p), y + Lp(-14, 14, p), 0.55 * s, 16, '#9ae070', { w: 3, life: 0.1 })); } for (let i = 0; i < 6; i++) P_({ x: x + rnd(-10, 10), y: y + rnd(-10, 10), vy: rnd(10, 40), k: 'leaf', ph: rnd(0, 6), s: 2, life: 0.6, c: '#6ac050' }); await W(200); } },
+    geistesblitz: { ms: 800, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); glowAt(x0, y0 - 16, 4, 20, '#ffb0e0', 0.3); await W(200); await An(160, p => streak(Lp(x0, x1, p), Lp(y0 - 16, y1, p), Math.atan2(y1 - y0 + 16, x1 - x0), 22, '#ffd0f0', { w: 2.5, life: 0.12 })); ringAt(x1, y1, 4, 120, '#ff9ad8', 0.35); await W(150); } },
+    erdstoss: { ms: 1300, fn: async (f, t) => { const [x1, y1] = center(t); G.B.shake = 3; await An(400, p => { if (Math.random() < 0.7) P_({ x: x1 + rnd(-24, 24), y: y1 + 26, vy: -30, k: 'spark', s: 2, life: 0.3, c: '#8a6a44' }); }); for (let i = 0; i < 3; i++) P_({ x: x1 - 16 + i * 16, y: y1 + 28, vy: -220, g: 500, life: 0.6, c: i === 1 ? '#8a6a44' : '#6a5034', s: 8, k: 'chunk' }); G.B.shake = 7; await W(450); } },
+    kampfschrei: { ms: 1000, fn: async (f, t) => { const a = selfA(f), [x, y] = center(f); await An(600, p => { a.dx = Math.sin(p * 60) * 2; if (Math.random() < 0.5) glowAt(x + rnd(-20, 20), y + rnd(-16, 16), 4, 10, '#ff7050', 0.3); }); a.dx = 0; for (let i = 0; i < 3; i++) ringAt(x, y, 6 + i * 6, 90, '#ffb090', 0.4); G.B.shake = 3; await W(200); } },
+    glutzunge: { ms: 1000, fn: async (f, t) => { const [x1, y1] = center(t); await An(700, p => { const a = p * 9, r = 20 * (1 - p * 0.6); for (let i = 0; i < 2; i++) P_({ x: x1 + Math.cos(a + i * 3.14) * r, y: y1 + 18 - p * 30 + Math.sin(a) * 4, vy: -30, k: 'glow', r: rnd(3, 5), dr: -3, life: 0.35, c: i ? '#ff6a30' : '#ffd060' }); }); } },
+    tauchplatscher: { ms: 1300, fn: async (f, t) => { const a = selfA(f), [x, y] = center(t); await An(300, p => { a.dy = p * 26; a.alpha = 1 - p; }); for (let i = 0; i < 8; i++) P_({ x: x + rnd(-14, 14), y: y + 20, vy: rnd(-140, -80), g: 300, k: 'drop', s: 2, life: 0.6, c: '#9ad4ff' }); ringAt(x, y + 22, 4, 60, '#d8f0ff', 0.4, { flat: 1 }); await W(400); await An(300, p => { a.dy = 26 * (1 - p); a.alpha = p; }); a.dy = 0; a.alpha = 1; } },
+    blattschirm: { ms: 1000, fn: async (f, t) => { const [x, y] = center(f); await An(600, p => { const q = p * 7; for (let i = 0; i < 2; i++) P_({ x: x + Math.cos(q + i * 3.14) * 26, y: y + Math.sin(q + i * 3.14) * 18, k: 'leaf', ph: q, s: 2.5, life: 0.4, c: i ? '#7ac858' : '#a8e080' }); }); glowAt(x, y, 20, 10, '#c8f0a0', 0.4); await W(200); } },
+    vierblatt: { ms: 1000, fn: async (f, t) => { const [x1, y1] = center(t); await An(500, p => { for (let i = 0; i < 4; i++) { const q = i * 1.57 + p * 5; P_({ x: x1 + Math.cos(q) * 16 * (1 - p), y: y1 + Math.sin(q) * 16 * (1 - p), k: 'glow', r: 3, dr: 0, life: 0.1, c: '#80e070' }); } }); glowAt(x1, y1, 5, 40, '#fff8a0', 0.3); sparks(x1, y1, 8, '#fff8a0', 70); await W(200); } },
+    glockenruf: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); for (let i = 0; i < 3; i++) { ringAt(x0, y0 - 6, 4, 90, '#e8d890', 0.5); glowAt(x0, y0 - 6, 5, 4, '#fff0a0', 0.3); await W(180); } await An(500, p => { const q = p * 14; P_({ x: x1 + Math.cos(q) * 22, y: y1 - 18 + Math.sin(q * 2) * 4, k: 'mote', life: 0.4, c: '#fff0a0' }); }); } },
+    kieselkugel: { ms: 1100, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(700, p => { a.dx = Math.sin(p * Math.PI) * 44 * d; a.dy = -Math.abs(Math.sin(p * Math.PI * 3)) * 8; if (Math.random() < 0.5) P_({ x: center(f)[0] + a.dx, y: center(f)[1] + 22, vy: -20, k: 'spark', s: 2, life: 0.3, c: '#b8a88a' }); }); a.dx = a.dy = 0; } },
+    augenflecken: { ms: 1100, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); for (const s of [-1, 1]) { glowAt(x0 + s * 14, y0 - 4, 6, 4, '#ffcc60', 0.6); glowAt(x0 + s * 14, y0 - 4, 2, 0, '#302040', 0.6); } await W(400); await An(400, p => { for (const s of [-1, 1]) P_({ x: x1 + s * 10 * (1 - p), y: y1 - 4, k: 'glow', r: 4, dr: 0, life: 0.08, c: '#ffcc60' }); }); } },
+    schuppenstaub: { ms: 1200, fn: async (f, t) => { const [x1, y1] = center(t); await An(900, p => { for (let i = 0; i < 2; i++) P_({ x: x1 + rnd(-28, 28), y: y1 - 30, vx: rnd(-8, 8), vy: rnd(20, 40), k: 'spark', s: 1.5, life: 0.8, c: ['#e8c0ff', '#c0e8ff', '#fff0c0'][G.rnd(0, 2)] }); }); } },
+    nachtgesang: { ms: 1500, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); G.B.dim = 0.4; await An(1000, p => { if (Math.random() < 0.4) { const q = rnd(0, 1); P_({ x: Lp(x0, x1, q), y: Lp(y0, y1, q) - 20 + Math.sin(q * 12 + p * 6) * 8, vy: -8, k: 'mote', life: 0.6, c: '#b8c0ff' }); } }); glowAt(x1, y1 - 24, 4, 3, '#e8ecff', 0.5); } },
+    nachtschwinge: { ms: 800, fn: async (f, t) => { const a = selfA(f), [x1, y1] = center(t); await An(180, p => { a.alpha = 1 - p; }); await An(260, p => { P_({ x: Lp(x1 - 60, x1, p), y: Lp(y1 - 40, y1, p), k: 'shade', r: 10, dr: -8, life: 0.25, c: '#3a3a6a', a: 0.7 }); }); streak(x1, y1, 0.7, 30, '#c8c8ff', { w: 2, life: 0.2 }); await An(160, p => { a.alpha = p; }); a.alpha = 1; } },
+    irrlichttanz: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); for (let i = 0; i < 3; i++) (async () => { await An(700, p => { const x = Lp(x0, x1, p) + Math.sin(p * 10 + i * 2) * 14, y = Lp(y0, y1, p) + Math.cos(p * 8 + i) * 12; glowAt(x, y, 4, 0, i === 1 ? '#a0ffe8' : '#fff0a0', 0.12); }); })(); await W(820); } },
+    maulwurfsgrab: { ms: 1300, fn: async (f, t) => { const a = selfA(f), [x0, y0] = center(f), [x1, y1] = center(t); await An(300, p => { a.dy = p * 22; a.alpha = 1 - p; if (Math.random() < 0.6) P_({ x: x0 + rnd(-12, 12), y: y0 + 22, vy: -60, g: 200, k: 'chunk', s: 2.5, life: 0.4, c: '#7a5a3a' }); }); await W(200); for (let i = 0; i < 8; i++) P_({ x: x1 + rnd(-10, 10), y: y1 + 20, vy: rnd(-150, -80), vx: rnd(-40, 40), g: 400, k: 'chunk', s: 3, life: 0.6, c: '#6a4a2e' }); G.B.shake = 4; await W(250); await An(250, p => { a.dy = 22 * (1 - p); a.alpha = p; }); a.dy = 0; a.alpha = 1; } },
+    morgentau: { ms: 1300, fn: async (f, t) => { const [x, y] = center(f); await An(900, p => { if (Math.random() < 0.6) P_({ x: x + rnd(-22, 22), y: y - 40, vy: 50, k: 'drop', s: 2, life: 0.6, c: '#d8f4ff', floor: y + rnd(-8, 12) }); }); glowAt(x, y, 14, 16, '#e8fff0', 0.4); await W(200); } },
+    dachsfaust: { ms: 600, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(150, p => { a.dx = p * 40 * d; }); const [x, y] = center(t); for (let i = 0; i < 3; i++) streak(x - 14 * d, y - 6 + i * 6, 0, 16, '#ffe0c0', { w: 2, life: 0.15 }); ringAt(x, y, 3, 140, '#ffd0a0', 0.25); await An(150, p => { a.dx = 40 * (1 - p) * d; }); a.dx = 0; } },
+    sporenschlaf: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); await An(400, p => P_({ x: x0 + rnd(-10, 10), y: y0 - 10, vy: -30, k: 'fog', r: 5, dr: 6, life: 0.5, c: '#d0a8e8', a: 0.5 })); await fly(f, t, 500, (p, x, y) => P_({ x: x + rnd(-6, 6), y: y + rnd(-6, 6), k: 'fog', r: 7, dr: 8, life: 0.6, c: '#b890d8', a: 0.45 }), 20); for (let i = 0; i < 3; i++) P_({ x: x1 + 12 + i * 5, y: y1 - 20 - i * 6, vy: -16, k: 'mote', life: 0.6, c: '#ffffff' }); } },
+    pilzsog: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); await An(800, p => { for (let i = 0; i < 3; i++) { const q = (p + i / 3) % 1; P_({ x: Lp(x1, x0, q) + Math.sin(q * 9 + i) * 6, y: Lp(y1, y0, q) + Math.cos(q * 7) * 4, k: 'spark', s: 1.5, life: 0.12, c: i ? '#c890ff' : '#90ffc0' }); } }); glowAt(x0, y0, 12, 10, '#b0ffd0', 0.3); } },
+    tausprung: { ms: 700, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(360, p => { a.dx = Math.sin(p * Math.PI) * 48 * d; a.dy = -Math.sin(p * Math.PI) * 22; if (Math.random() < 0.6) P_({ x: center(f)[0] + a.dx, y: center(f)[1] + a.dy + 16, k: 'mote', life: 0.4, c: '#d8f0ff' }); }); a.dx = a.dy = 0; } },
+    zappelfunk: { ms: 1200, fn: async (f, t) => { const [x1, y1] = center(t); for (let i = 0; i < 6; i++) { const x = x1 + rnd(-18, 18), y = y1 + rnd(-14, 14); streak(x, y, rnd(0, 6.28), 10, i % 2 ? '#fff080' : '#80e0ff', { w: 1.5, life: 0.15 }); sparks(x, y, 3, '#fff4a0', 50); await W(130); } } },
+    gischtschild: { ms: 1000, fn: async (f, t) => { const [x, y] = center(f), d = f === 'ally' ? 1 : -1; await An(600, p => { for (let i = 0; i < 2; i++) P_({ x: x + 24 * d + rnd(-3, 3), y: y + 24 - p * 50 + rnd(-4, 4), vx: rnd(-10, 10), vy: -20, k: 'drop', s: 2, life: 0.4, c: i ? '#c8ecff' : '#6ab0e8' }); }); ringAt(x, y, 24, 6, '#d8f4ff', 0.5); await W(200); } },
+    fuchsfinte: { ms: 1000, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(200, p => { a.alpha = 1 - p * 0.8; a.dx = -p * 10 * d; }); await W(150); await An(220, p => { a.dx = Lp(-10, 50, p) * d; a.alpha = 0.2 + p * 0.8; }); const [x, y] = center(t); streak(x, y, 2.4, 26, '#ffe0b0', { w: 2.2, life: 0.2 }); await An(200, p => { a.dx = 50 * (1 - p) * d; }); a.dx = 0; a.alpha = 1; } },
+    traumblick: { ms: 1400, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); glowAt(x0, y0 - 8, 8, 10, '#d8b8ff', 0.6); await W(300); await An(700, p => { const q = p * 16, r = 26 * (1 - p); P_({ x: x1 + Math.cos(q) * r, y: y1 + Math.sin(q) * r * 0.6, k: 'glow', r: 3, dr: 0, life: 0.2, c: '#c8a8ff' }); }); G.B.dim = 0.35; } },
+    nachtsauger: { ms: 1100, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); await An(700, p => { if (Math.random() < 0.8) { const q = rnd(0, 1); P_({ x: Lp(x1, x0, (q + p) % 1), y: Lp(y1, y0, (q + p) % 1), k: 'glow', r: 2.5, dr: 0, life: 0.1, c: '#ff8aa0' }); } }); glowAt(x0, y0, 10, 8, '#ffb0c0', 0.3); } },
+    umschlingen: { ms: 1200, fn: async (f, t) => { const [x1, y1] = center(t); await An(800, p => { const q = p * 12; P_({ x: x1 + Math.cos(q) * 22, y: y1 + 20 - p * 40, k: 'spark', s: 2.5, life: 0.5, c: '#7a9a50' }); }); G.B.shake = 2; } },
+    giftzahn: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); await An(300, p => { const g = 16 * (1 - p); P_({ x: x - 3, y: y - g, k: 'tooth', s: 5, up: 0, life: 0.05, c: '#e8d0ff' }); P_({ x: x + 3, y: y - g, k: 'tooth', s: 5, up: 0, life: 0.05, c: '#e8d0ff' }); }); for (let i = 0; i < 6; i++) P_({ x: x + rnd(-6, 6), y, vy: rnd(20, 50), k: 'drop', s: 2, life: 0.5, c: '#a050d0' }); await W(250); } },
+    panzerstoss: { ms: 1200, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x0, y0] = center(f); glowAt(x0, y0, 20, 0, '#d8c8a8', 0.3); await An(300, p => { a.dx = -p * 8 * d; }); await An(220, p => { a.dx = Lp(-8, 60, p) * d; }); G.B.shake = 7; const [x, y] = center(t); for (let i = 0; i < 6; i++) P_({ x, y, vx: rnd(-90, 90), vy: rnd(-100, -20), g: 300, life: 0.5, c: '#b8a888', s: 3, k: 'chunk' }); await An(220, p => { a.dx = 60 * (1 - p) * d; }); a.dx = 0; } },
+    suhlen: { ms: 1300, fn: async (f, t) => { const a = selfA(f), [x, y] = center(f); await An(900, p => { a.dx = Math.sin(p * 18) * 5; if (Math.random() < 0.6) P_({ x: x + rnd(-20, 20), y: y + 22, vy: rnd(-60, -20), g: 200, k: 'drop', s: 2.5, life: 0.4, c: '#6a5438' }); }); a.dx = 0; glowAt(x, y, 12, 12, '#f0e0c0', 0.3); } },
+    moornebel: { ms: 1300, fn: async (f, t) => { const [x1, y1] = center(t); await An(900, p => { const x = Lp(x1 - 60, x1 + 40, p); for (let i = 0; i < 2; i++) P_({ x, y: y1 + rnd(-14, 18), vx: 30, k: 'fog', r: rnd(8, 12), dr: 6, life: 0.8, c: i ? '#6a8a4a' : '#8a5aa0', a: 0.5 }); }); } },
+    wutgeheul: { ms: 1100, fn: async (f, t) => { const a = selfA(f), [x, y] = center(f); await An(700, p => { a.dy = -Math.sin(p * Math.PI) * 6; if (Math.random() < 0.4) streak(x + rnd(-16, 16), y - 20, -1.57, 10, '#ff6a50', { w: 2, life: 0.25, vy: -60 }); }); a.dy = 0; ringAt(x, y, 8, 120, '#ff8a6a', 0.35); G.B.flash = { c: '#ff6040', a: 0.2 }; await W(200); } },
+    mondklee: { ms: 1300, fn: async (f, t) => { const [x1, y1] = center(t); for (let i = 0; i < 8; i++) { const q = i / 8 * 6.28; P_({ x: x1 + Math.cos(q) * 26, y: y1 + 22 + Math.sin(q) * 7, vy: -12, k: 'leaf', ph: q, s: 2.5, life: 0.8, c: i % 2 ? '#70c060' : '#c8e8ff' }); await W(60); } glowAt(x1, y1 + 20, 20, 6, '#e0f0ff', 0.5); await W(300); } },
+    kristallbohrer: { ms: 1200, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t), a = Math.atan2(y1 - y0, x1 - x0); await An(700, p => { const x = Lp(x0, x1, p), y = Lp(y0, y1, p), q = p * 40; streak(x, y, a, 16, '#d8f0ff', { w: 3, life: 0.08 }); P_({ x: x + Math.cos(q) * 6, y: y + Math.sin(q) * 6, k: 'spark', s: 2, life: 0.2, c: q % 2 > 1 ? '#a8e0ff' : '#fff4a0' }); }); G.B.shake = 4; sparks(x1, y1, 12, '#c8f0ff', 110); } },
+    drusenblitz: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); for (let i = 0; i < 5; i++) { const q = i / 5 * 6.28; P_({ x: x0 + Math.cos(q) * 18, y: y0 + Math.sin(q) * 14, k: 'chunk', s: 3, life: 0.5, c: '#b8a0ff' }); } await W(300); G.B.dim = 0.4; let bx = x0, by = y0; for (let i = 1; i <= 8; i++) { const nx = Lp(x0, x1, i / 8) + (i < 8 ? rnd(-8, 8) : 0), ny = Lp(y0, y1, i / 8) + (i < 8 ? rnd(-8, 8) : 0); streak((bx + nx) / 2, (by + ny) / 2, Math.atan2(ny - by, nx - bx), Math.hypot(nx - bx, ny - by), '#e8d8ff', { w: 2.5, life: 0.3, grow: false }); bx = nx; by = ny; } G.B.flash = { c: '#d0c0ff', a: 0.4 }; await W(300); } },
+    geodenbruch: { ms: 1800, fn: async (f, t) => { const [x1, y1] = center(t); G.B.dim = 0.5; P_({ x: x1, y: y1 - 80, vy: 100, g: 600, floor: y1, life: 0.9, c: '#8a78a8', s: 16, k: 'chunk' }); await W(620); G.B.shake = 9; G.B.flash = { c: '#e8e0ff', a: 0.5 }; for (let i = 0; i < 16; i++) { const q = rnd(0, 6.28), s = rnd(60, 160); P_({ x: x1, y: y1, vx: Math.cos(q) * s, vy: Math.sin(q) * s - 40, g: 240, life: 0.7, c: ['#c8a8ff', '#a8e0ff', '#fff4c0'][i % 3], s: rnd(2, 4), k: 'chunk' }); } ringAt(x1, y1, 6, 160, '#e8d8ff', 0.4); await W(500); } },
+    wirbeltauchen: { ms: 800, fn: async (f, t) => { const a = selfA(f), [x1, y1] = center(t); await An(150, p => { a.dy = p * 20; a.alpha = 1 - p; }); await W(100); for (let i = 0; i < 10; i++) { const q = i / 10 * 6.28; P_({ x: x1 + Math.cos(q) * 12, y: y1 + 20, vx: Math.cos(q) * 40, vy: -120, g: 300, k: 'drop', s: 2, life: 0.4, c: '#8ad0ff' }); } ringAt(x1, y1 + 20, 4, 60, '#d8f4ff', 0.3, { flat: 1 }); await An(200, p => { a.dy = 20 * (1 - p); a.alpha = p; }); a.dy = 0; a.alpha = 1; } },
+    otterpfoten: { ms: 1000, fn: async (f, t) => { const [x, y] = center(t); for (let i = 0; i < 4; i++) { const ox = (i % 2 ? 8 : -8) + rnd(-3, 3), oy = rnd(-8, 8); glowAt(x + ox, y + oy, 4, 20, '#ffe0c0', 0.15); streak(x + ox, y + oy, i % 2 ? 2.4 : 0.7, 10, '#fff0e0', { w: 2, life: 0.15 }); await W(150); } } },
+    strudelwirbel: { ms: 1600, fn: async (f, t) => { const [x1, y1] = center(t); G.B.dim = 0.3; await An(1100, p => { for (let i = 0; i < 3; i++) { const q = p * 16 + i * 2.1, r = 34 * (1 - p * 0.7); P_({ x: x1 + Math.cos(q) * r, y: y1 + 10 + Math.sin(q) * r * 0.45 - p * 16, k: 'drop', s: 2.5, life: 0.2, c: i === 1 ? '#e8f8ff' : '#3a7ac0' }); } }); G.B.shake = 5; ringAt(x1, y1, 8, 110, '#c8ecff', 0.35); } },
+    pechfeder: { ms: 1100, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); for (let i = 0; i < 5; i++) (async () => { const oy = rnd(-12, 12); await An(420, p => P_({ x: Lp(x0, x1, p), y: Lp(y0 + oy, y1 + oy * 0.4, p), k: 'feather', s: 3, a: Math.atan2(y1 - y0, x1 - x0), life: 0.06, c: '#2a1a3a' })); P_({ x: x1 + rnd(-6, 6), y: y1 + oy * 0.4, k: 'fog', r: 5, dr: 6, life: 0.5, c: '#9a50c0', a: 0.5 }); })(), await W(100); await W(500); } },
+    totenlaeuten: { ms: 1400, fn: async (f, t) => { const [x1, y1] = center(t); P_({ x: x1, y: y1 - 44, k: 'glow', r: 8, dr: 0, life: 0.9, c: '#e8d890' }); for (let i = 0; i < 3; i++) { ringAt(x1, y1 - 40, 4, 100, '#d8c880', 0.6); G.B.shake = 2; await W(260); } G.B.dim = 0.3; } },
+    seelenkrah: { ms: 1700, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); G.B.dim = 0.5; for (let i = 0; i < 4; i++) { ringAt(x0, y0 - 10, 5, 130, '#c8a0ff', 0.45); await W(120); } await An(600, p => { for (let i = 0; i < 2; i++) P_({ x: x1 + rnd(-20, 20), y: y1 + rnd(-16, 16), vx: (x0 - x1) * 0.8, vy: (y0 - y1) * 0.8, k: 'glow', r: 3, dr: 0, life: 0.5, c: i ? '#e8d0ff' : '#9a60e0' }); }); glowAt(x0, y0, 14, 10, '#d8c0ff', 0.4); } },
     // --- Neutral ---
     hauch: { ms: 700, fn: async (f, t) => { await fly(f, t, 520, (p, x, y) => P_({ x, y, k: 'fog', r: 5 + p * 8, dr: 10, life: 0.5, c: '#e8e4f4', a: 0.4 })); } },
     rempler: { ms: 600, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(300, p => { a.dx = Math.sin(p * Math.PI) * 34 * d; }); a.dx = 0; const [x, y] = center(t); ringAt(x, y, 4, 120, '#ffffff', 0.25); } },
@@ -586,8 +645,12 @@
         if (!usable.length) { await UI().say(`${G.nm(al)} hat keine Kraft mehr für Attacken!`); id = 'letzterhauch'; }
         else {
           const opts = al.moves.map(id => { const M = G.MOVES[id], h = effHint(id, B.enemy); return { label: M.name, sub: `${M.type} · AP ${al.pp[id] || 0}/${M.pp}${h ? ` <b class="eh ${h.cls}">${h.t}</b>` : ''}`, color: G.TYPE_COLORS[M.type], disabled: !(al.pp[id] > 0) }; });
-          const mv = await UI().choose(opts, { cols: 2, area: 'bottom', cancel: true });
+          // v17: Info-Leiste zur gewählten Attacke (Typ, Stärke, Genauigkeit, AP, eine Zeile Beschreibung)
+          const info = i => { const el = document.getElementById('mvinfo'); if (el) el.innerHTML = G.moveInfoHtml(al.moves[i], al.pp[al.moves[i]] || 0, B.enemy); };
+          const st0 = Math.max(0, al.moves.indexOf(B.lastMove));
+          const mv = await UI().choose(opts, { cols: 2, area: 'moves', cancel: true, inspect: true, start: st0, title: '<div id="mvinfo" class="mvinfo"></div>', onHighlight: info });
           if (mv < 0) continue;
+          B.lastMove = al.moves[mv];
           id = al.moves[mv];
         }
         r = await round(id);
@@ -647,20 +710,28 @@
       }
     }
     const w = en.moves.filter(has).map(id => {
-      const M = G.MOVES[id];
-      if (M.heal) return [id, en.hp < G.stats(en).hp * 0.5 ? 40 : 0.01];
+      const M = G.MOVES[id], mx = G.stats(en).hp;
+      if (M.heal) return [id, en.hp < mx * 0.5 ? 40 : 0.01];
+      if (M.protect) return [id, B.lastProtect && B.lastProtect.enemy ? 0.01 : en.hp < mx * 0.35 ? 18 : 5];
       if (M.status && !M.power) return [id, al.status || G.STATUS[M.status.id].immune.some(t => G.hasType(al.sp, t)) ? 0.01 : 22];
-      if (!M.power) return [id, 16];
-      return [id, M.power * G.eff(M.type, al.sp) * (G.hasType(en.sp, M.type) ? 1.5 : 1)];
+      if (!M.power) { const e = M.effect, st = B.st[e.who === 'self' ? 'enemy' : 'ally'][e.stat]; return [id, (e.n > 0 && st >= 2) || (e.n < 0 && st <= -2) ? 0.5 : 14]; }
+      const hits = M.hits ? (M.hits[0] + M.hits[1]) / 2 : 1;
+      return [id, M.power * hits * (M.acc / 100) * G.eff(M.type, al.sp) * (G.hasType(en.sp, M.type) ? 1.5 : 1) * (M.recoil ? 0.85 : 1) * (M.prio && al.hp < G.stats(al).hp * 0.25 ? 1.6 : 1)];
     });
     return w.length ? G.pickWeighted(w) : 'letzterhauch';
   }
 
+  // v17: Priorität (Abwehr +3, Erstschlag +1), sonst Initiative
+  const prioOf = id => { const M = G.MOVES[id]; return M ? (M.protect ? 3 : (M.prio || 0)) : 0; };
+  G.Battle.prioOf = prioOf;
   async function round(id) {
     const al = G.state.team[G.B.allyIdx], en = G.B.enemy;
     const a = G.stats(al).spd, e = G.stats(en).spd;
     const eid = await enemyChoice();
-    const seq = (a > e || (a === e && Math.random() < 0.5)) ? ['ally', 'enemy'] : ['enemy', 'ally'];
+    const pa = prioOf(id), pe = prioOf(eid);
+    const allyFirst = pa !== pe ? pa > pe : (a > e || (a === e && Math.random() < 0.5));
+    const seq = allyFirst ? ['ally', 'enemy'] : ['enemy', 'ally'];
+    G.Battle.lastOrder = { seq, ids: { ally: id, enemy: eid } };
     for (const side of seq) {
       await useMove(side, side === 'ally' ? id : eid);
       const r = await checkFaint(); if (r) return r;
@@ -672,14 +743,18 @@
     const r = await checkFaint(); if (r) return r;
     return await endOfRound();
   }
+  const DOT_FX = { klamm: 'Moor', brand: 'Feuer', gift: 'Gift' };
   async function endOfRound() {
+    const B = G.B;
+    // Abwehr gilt nur für die laufende Runde; wer sie gerade benutzt hat, kann sie nicht zuverlässig wiederholen
+    B.lastProtect = { ally: B.protect && B.protect.ally ? 1 : 0, enemy: B.protect && B.protect.enemy ? 1 : 0 }; B.protect = null;
     for (const side of ['ally', 'enemy']) {
-      const m = sideMon(side);
-      if (m && m.hp > 0 && m.status && m.status.id === 'klamm') {
-        const d = Math.max(1, Math.floor(G.stats(m).hp * G.STATUS.klamm.dot));
+      const m = sideMon(side), S = m && m.status && G.STATUS[m.status.id];
+      if (m && m.hp > 0 && S && S.dot) {
+        const d = Math.max(1, Math.floor(G.stats(m).hp * S.dot));
         m.hp = Math.max(0, m.hp - d); UI().updateHud();
-        const [x, y] = center(side); burst(x, y, 'Moor', 10);
-        await UI().say(fmt(G.STATUS.klamm.msgTick, side));
+        const [x, y] = center(side); burst(x, y, DOT_FX[m.status.id] || 'Moor', 10);
+        await UI().say(fmt(S.msgTick, side));
         const r = await checkFaint(); if (r) return r;
       }
     }
@@ -695,10 +770,26 @@
     UI().updateHud(); Snd().sfx('status');
     await UI().say(fmt(S.msgOn, side));
   }
+  // Werte-Stufe ändern (Status-Attacke oder Zusatzeffekt)
+  async function stageChange(tgt, e, quiet) {
+    const st = G.B.st[tgt], n = e.n;
+    if ((n > 0 && st[e.stat] >= 3) || (n < 0 && st[e.stat] <= -3)) { if (!quiet) await UI().say('Es passiert nichts weiter.'); return; }
+    st[e.stat] = Math.max(-3, Math.min(3, st[e.stat] + n));
+    const [x, y] = center(tgt); ringAt(x, y, n > 0 ? 4 : 24, n > 0 ? 70 : -40, n > 0 ? '#c8f0ff' : '#ffb0b0', 0.4); Snd().sfx('status');
+    await UI().say(`Die ${G.STAT_NAMES[e.stat]} von ${G.nm(sideMon(tgt))} ${n > 0 ? (n > 1 ? 'steigt stark' : 'steigt') : 'sinkt'}!`);
+  }
+  const HEAL_TXT = { erinnerung: 'erinnert sich an bessere Tage und schöpft Kraft.', waldsegen: 'wird vom Wald gesegnet.', morgentau: 'sammelt Morgentau und erholt sich.',
+    suhlen: 'suhlt sich im Schlamm und erholt sich.', wiedergeburt: 'steigt aus der eigenen Asche neu auf.' };
 
   async function useMove(side, id) {
     const B = G.B, atk = sideMon(side), def = sideMon(other(side)), M = G.MOVES[id];
     const aA = anim(side), dA = anim(other(side)), dir = side === 'ally' ? 1 : -1;
+    // Schlaf: kein Zug, bis der Geist aufwacht
+    if (atk.status && atk.status.id === 'schlaf') {
+      atk.status.turns--;
+      if (atk.status.turns < 0) { atk.status = null; UI().updateHud(); await UI().say(fmt(G.STATUS.schlaf.msgOff, side)); }
+      else { const [x, y] = center(side); P_({ x: x + 10, y: y - 20, vy: -20, k: 'mote', life: 0.8, c: '#c8d0ff' }); await UI().say(fmt(G.STATUS.schlaf.msgTick, side)); return; }
+    }
     // Verirrt: Zug kann im Nebel verfliegen
     if (atk.status && atk.status.id === 'verirrt') {
       atk.status.turns--;
@@ -707,41 +798,56 @@
     }
     await UI().say(`${cap(label(side))} setzt ${M.name} ein!`);
     if (!M.fallback && atk.pp[id] > 0) atk.pp[id]--;
+    // Abwehr (Einrollen, Blattschirm, Gischtschild): wehrt in dieser Runde alles ab; direkt wiederholt nur mit 50 %
+    if (M.protect) {
+      if (B.lastProtect && B.lastProtect[side] && Math.random() < 0.5) { await UI().say('Aber es misslingt!'); return; }
+      if (MOVE_FX[id]) await MOVE_FX[id].fn(side, other(side));
+      B.protect = Object.assign(B.protect || {}, { [side]: 1 }); Snd().sfx('status');
+      await UI().say(`${cap(label(side))} schützt sich!`); return;
+    }
     await G.animate(220, p => { aA.dx = Math.sin(p * Math.PI) * 14 * dir; aA.dy = -Math.sin(p * Math.PI) * 4; });
+    const selfOnly = M.heal || (!M.power && !M.status && M.effect && M.effect.who === 'self');
+    if (!selfOnly && B.protect && B.protect[other(side)]) { const [x, y] = center(other(side)); ringAt(x, y, 30, -20, '#e8f6ff', 0.4); await UI().say(`${cap(label(other(side)))} wehrt die Attacke ab!`); return; }
     const acc = M.acc * accMult(B.st[side].acc);
-    if (!G.debugHit && Math.random() * 100 >= acc) { await UI().say('Daneben! Die Attacke verfliegt im Nebel.'); return; }
+    if (!M.sure && !selfOnly && !G.debugHit && Math.random() * 100 >= acc) { await UI().say('Daneben! Die Attacke verfliegt im Nebel.'); return; }
     if (M.heal) {
       const mx = G.stats(atk).hp;
       if (atk.hp >= mx) { await UI().say('Aber die LP sind bereits voll.'); return; }
       atk.hp = Math.min(mx, atk.hp + Math.floor(mx * M.heal)); UI().updateHud();
       if (MOVE_FX[id]) await MOVE_FX[id].fn(side, other(side));
       const [x, y] = center(side); burst(x, y, 'Seele', 18); Snd().sfx('heal');
-      await UI().say(`${cap(label(side))} erinnert sich an bessere Tage und schöpft Kraft.`); return;
+      await UI().say(`${cap(label(side))} ${HEAL_TXT[id] || 'schöpft neue Kraft.'}`); return;
     }
     if (!M.power) {
       if (M.status) { if (MOVE_FX[id]) await MOVE_FX[id].fn(side, other(side)); else await travel(M.type, side, other(side)); const [x, y] = center(other(side)); burst(x, y, M.type, 14); Snd().sfx('hit_' + M.type); return tryStatus(other(side), M.status.id, true); }
-      const tgt = M.effect.who === 'self' ? side : other(side), st = B.st[tgt], n = M.effect.n;
+      const tgt = M.effect.who === 'self' ? side : other(side);
       if (MOVE_FX[id]) await MOVE_FX[id].fn(side, other(side));
-      const [x, y] = center(tgt); burst(x, y, M.type, 14); Snd().sfx('status');
-      if ((n > 0 && st[M.effect.stat] >= 3) || (n < 0 && st[M.effect.stat] <= -3)) { await UI().say('Es passiert nichts weiter.'); return; }
-      st[M.effect.stat] = Math.max(-3, Math.min(3, st[M.effect.stat] + n));
-      await UI().say(`Die ${G.STAT_NAMES[M.effect.stat]} von ${G.nm(sideMon(tgt))} ${n > 0 ? (n > 1 ? 'steigt stark' : 'steigt') : 'sinkt'}!`);
-      return;
+      const [x, y] = center(tgt); burst(x, y, M.type, 14);
+      return stageChange(tgt, M.effect);
     }
     const as = G.stats(atk), ds = G.stats(def);
     const A = as.atk * stageMult(B.st[side].atk), Dd = ds.def * stageMult(B.st[other(side)].def);
     const stab = G.hasType(atk.sp, M.type) ? 1.5 : 1, eff = G.eff(M.type, def.sp);
-    const crit = !G.debugNoCrit && Math.random() < 1 / 16;
-    let dmg = Math.floor(((2 * atk.lvl / 5 + 2) * M.power * A / Dd) / 50 + 2);
-    dmg = eff === 0 ? 0 : Math.max(1, Math.floor(dmg * stab * eff * (crit ? 1.5 : 1) * (0.85 + Math.random() * 0.15)));
-    await attackFx(M.type, side, other(side), crit, eff, id);
-    def.hp = Math.max(0, def.hp - dmg); UI().updateHud();
-    await G.animate(420, p => { dA.flash = Math.floor(p * 8) % 2 === 0 ? 1 : 0; dA.dx = Math.sin(p * 40) * 3 * (1 - p); });
-    dA.flash = 0; dA.dx = 0;
-    if (crit && dmg) await UI().say('Ein Volltreffer!');
-    if (M.drain) { atk.hp = Math.min(as.hp, atk.hp + Math.max(1, Math.floor(dmg * M.drain))); UI().updateHud(); await UI().say(`${cap(label(side))} saugt Kraft aus dem Moor.`); }
-    if (M.recoil) { atk.hp = Math.max(0, atk.hp - Math.max(1, Math.floor(dmg * M.recoil))); UI().updateHud(); await UI().say(`${cap(label(side))} wird vom Rückstoss getroffen.`); }
+    const nHits = M.hits ? G.rnd(M.hits[0], M.hits[1]) : 1, critP = M.crit || 1 / 16;
+    let total = 0, anyCrit = false, done = 0;
+    for (let h = 0; h < nHits && def.hp > 0; h++) {
+      const crit = !G.debugNoCrit && Math.random() < critP; anyCrit = anyCrit || crit;
+      let dmg = Math.floor(((2 * atk.lvl / 5 + 2) * M.power * A / Dd) / 50 + 2);
+      dmg = eff === 0 ? 0 : Math.max(1, Math.floor(dmg * stab * eff * (crit ? 1.5 : 1) * (0.85 + Math.random() * 0.15)));
+      if (h === 0) await attackFx(M.type, side, other(side), crit, eff, id);
+      else { const [x, y] = center(other(side)); burst(x, y, M.type, 12); Snd().sfx('hit_' + M.type, null, 0.7); if (crit) { B.flash = { c: '#ffffff', a: 0.4 }; B.shake = 5; } }
+      def.hp = Math.max(0, def.hp - dmg); total += dmg; done++; UI().updateHud();
+      await G.animate(h === nHits - 1 ? 420 : 240, p => { dA.flash = Math.floor(p * 8) % 2 === 0 ? 1 : 0; dA.dx = Math.sin(p * 40) * 3 * (1 - p); });
+      dA.flash = 0; dA.dx = 0;
+      if (eff === 0) break;
+    }
+    G.Battle.lastHit = { id, hits: done, dmg: total, crit: anyCrit };
+    if (M.hits && eff !== 0) await UI().say(`${done} Treffer!`);
+    if (anyCrit && total) await UI().say(M.hits ? 'Mit Volltreffer!' : 'Ein Volltreffer!');
+    if (M.drain && total) { atk.hp = Math.min(as.hp, atk.hp + Math.max(1, Math.floor(total * M.drain))); UI().updateHud(); await UI().say(`${cap(label(side))} saugt Kraft ab.`); }
+    if (M.recoil && total) { atk.hp = Math.max(0, atk.hp - Math.max(1, Math.floor(total * M.recoil))); UI().updateHud(); await UI().say(`${cap(label(side))} wird vom Rückstoss getroffen.`); }
     if (M.status && def.hp > 0 && Math.random() * 100 < (G.debugStatus ? 100 : M.status.chance)) await tryStatus(other(side), M.status.id, false);
+    if (M.eff2 && total && Math.random() * 100 < (G.debugStatus ? 100 : M.eff2.chance)) { const tgt = M.eff2.who === 'self' ? side : other(side); if (sideMon(tgt).hp > 0 && atk.hp > 0) await stageChange(tgt, M.eff2, true); }
   }
 
   // v15: zweite Phase (zwei Lebensbalken): Wut-Animation, volle Heilung, stärker (+18 % Angriff/Tempo), neue Attacke
@@ -945,7 +1051,7 @@
     const e = G.SPECIES[m.sp].evo, from = m.sp, oldName = G.nm(m), prev = G.mode;
     G.lock++; G.mode = 'evo'; Snd().music('none');
     const rare = !!G.SPECIES[from].rare;   // v15: seltene Geister – eigene, prächtigere Entwicklungs-Animation
-    const E = G.Evo.st = { from, to: e.to, show: 0, flash: 0, parts: [], white: 0, rare, ring: 0 };
+    const E = G.Evo.st = { from, to: e.to, show: 0, flash: 0, parts: [], white: 0, rare, ring: 0, pop: 0, col: rare ? G.TYPE_COLORS[G.SPECIES[e.to].type] : null };
     if (rare) { Snd().sfx('enc_rare'); await UI().say(`Ein uraltes Licht umhüllt ${oldName} – Sternenstaub, Gold und Nebel …`); }
     await UI().say(`Oh? ${oldName} leuchtet auf …`);
     UI().setText(`${oldName} verändert sich … (B: abbrechen)`);
@@ -958,6 +1064,7 @@
       const f = 2 + p * p * 22; E.show = Math.sin(G.time * f) > 0 ? 1 : 0;
       if (Math.random() < 0.5) { const a = Math.random() * 6.28; E.parts.push({ x: 128 + Math.cos(a) * 70, y: 110 + Math.sin(a) * 60, vx: -Math.cos(a) * 40, vy: -Math.sin(a) * 40, life: 1.4 }); }
       if (rare && Math.random() < 0.7) E.parts.push({ x: 128 + (Math.random() - 0.5) * 120, y: 190, vx: 0, vy: -60 - Math.random() * 50, life: 1.4, gold: 1 });
+      if (rare) for (let k = 0; k < 2; k++) { const a = G.time * 5 + k * Math.PI, r = 84 - p * 60; E.parts.push({ x: 128 + Math.cos(a) * r, y: 100 + Math.sin(a) * r * 0.7, vx: -Math.sin(a) * 30, vy: Math.cos(a) * 20, life: 0.8, tc: 1 }); }
     });
     UI().handler = null;
     if (cancel) {
@@ -969,7 +1076,10 @@
       G.state.seen[e.to] = 1; G.state.caught[e.to] = 1;
       E.show = 1; E.white = 0;
       await G.animate(500, p => E.flash = 1 - p);
-      if (rare) { Snd().sfx('shimmer'); await G.animate(900, p => E.ring = p); E.ring = 0; }
+      if (rare) {   // v17: Farbexplosion in der Typfarbe, die neue Gestalt wächst kurz über sich hinaus
+        for (let i = 0; i < 64; i++) { const a = i / 64 * 6.28, v = 70 + Math.random() * 90; E.parts.push({ x: 128, y: 100, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1.4, tc: 1 }); }
+        Snd().sfx('shimmer'); await G.animate(1100, p => { E.ring = p; E.pop = Math.sin(Math.min(1, p * 1.6) * Math.PI); }); E.ring = 0; E.pop = 0;
+      }
       Snd().sfx('levelup');
       await UI().say(`Glückwunsch! ${oldName} ist zu ${G.nm(m)} geworden!`);
       await learnAt(m);
@@ -988,13 +1098,14 @@
       for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28 + t * 0.5; ctx.save(); ctx.translate(128, 100); ctx.rotate(a); const g = ctx.createLinearGradient(0, 0, 140, 0); g.addColorStop(0, `rgba(255,230,150,${0.22 + 0.1 * Math.sin(t * 4 + i)})`); g.addColorStop(1, 'rgba(255,230,150,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(140, -9); ctx.lineTo(140, 9); ctx.closePath(); ctx.fill(); ctx.restore(); }
       if (E.ring > 0) for (let k = 0; k < 3; k++) { const r = (E.ring * 160) - k * 22; if (r <= 0) continue; ctx.strokeStyle = `rgba(${k % 2 ? '200,160,255' : '255,236,170'},${(1 - E.ring) * 0.8})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(128, 100, r, 0, 6.28); ctx.stroke(); }
     }
-    for (let i = E.parts.length - 1; i >= 0; i--) { const p = E.parts[i]; p.life -= dt; if (p.life <= 0) { E.parts.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; ctx.fillStyle = p.gold ? `rgba(255,220,140,${p.life / 1.4})` : `rgba(180,240,255,${p.life / 1.4})`; ctx.fillRect(p.x | 0, p.y | 0, 2, 2); }
+    for (let i = E.parts.length - 1; i >= 0; i--) { const p = E.parts[i]; p.life -= dt; if (p.life <= 0) { E.parts.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; ctx.fillStyle = p.tc && E.col ? E.col + Math.round(Math.min(1, p.life) * 255).toString(16).padStart(2, '0') : p.gold ? `rgba(255,220,140,${p.life / 1.4})` : `rgba(180,240,255,${p.life / 1.4})`; ctx.fillRect(p.x | 0, p.y | 0, 2, 2); }
     const g2 = ctx.createRadialGradient(128, 100, 0, 128, 100, 60); g2.addColorStop(0, 'rgba(160,230,255,0.35)'); g2.addColorStop(1, 'rgba(160,230,255,0)');
     ctx.fillStyle = g2; ctx.fillRect(60, 30, 136, 140);
     ctx.globalCompositeOperation = 'source-over';
     const sp = E.show ? E.to : E.from, spr = G.SPR.mon[sp];
     const img = E.white > 0.5 ? spr.white : spr.at(96), y = 100 + Math.round(Math.sin(t * 2) * 3);
-    ctx.drawImage(img, 128 - 48, y - 56, 96, 96);
+    const sc = 96 * (1 + 0.18 * (E.pop || 0));
+    ctx.drawImage(img, 128 - sc / 2, y + 40 - sc, sc, sc);
     if (E.flash) { ctx.fillStyle = `rgba(240,236,255,${E.flash})`; ctx.fillRect(0, 0, 256, 240); }
     ctx.drawImage(G.vignette, 0, 0);
   };

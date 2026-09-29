@@ -1808,6 +1808,7 @@
   async function onStep() {
     const S = G.state, m = G.map, key = P.x + ',' + P.y;
     P.steps++;
+    if (G.World.rareNotice) { const A = G.WILD_AREAS[G.World.rareNotice]; G.World.rareNotice = null; if (A && G.UI.toast) G.UI.toast(`Im Gebiet ${A.name} schimmert es an manchen Stellen …`, 3200, true); }
     G.Snd.sfx('step', surface(m, at(m, P.x, P.y)));
     G.Snd.music(G.World.areaMusic());
     // Feld-Klamm: alle 8 Schritte −1 LP, nie unter 1
@@ -1838,13 +1839,44 @@
     fog: (m, x, y) => { let n = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === '"') n++; return n >= 22; },
     shore: (m, x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === '~') return true; return false; },
     lantern: (m, x, y) => { for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (at(m, x + dx, y + dy) === 'e' && G.flag(`lit_${m.id}_${x + dx}_${y + dy}`)) return true; return false; },
-    hidden: (m, x, y) => m.id === 'tiefesmoor' && x >= 2 && x <= 3 && y >= 21 && y <= 22
+    hidden: (m, x, y) => m.id === 'tiefesmoor' && x >= 2 && x <= 3 && y >= 21 && y <= 22,
+    // v17: Glimmerwurm neben einem leuchtenden Tropfstein, Schilfotter mitten im Schilf, Glockenrabe bei der versunkenen Glocke
+    crystal: (m, x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) === 'Y') return true; return false; },
+    reeds: (m, x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) !== 'q') return false; return true; },
+    bell: (m, x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === 'B') return true; return false; }
+  };
+  // Gebiet einer Kachel (wie in onStep)
+  function tileZone(m, x, y) {
+    if (m.kind !== 'outdoor' && m.id !== 'hoehle') return null;
+    let z = ZONE_OF[at(m, x, y)]; if (!z) return null;
+    if (z === 'nebelgras' && m.id === 'kueste') z = 'kuestengras';
+    z = zoneAt(m, x, y, z);
+    const A = G.WILD_AREAS[z]; if (!A || (A.map && A.map !== m.id)) return null;
+    return z;
+  }
+  G.World.tileZone = tileZone;
+  const rareCounts = () => (G.state.rareCount = G.state.rareCount || {});
+  G.World.rareCount = zone => rareCounts()[zone] || 0;
+  // Schimmer-Hinweis: ab RAMP Kämpfen im Gebiet funkeln die passenden Stellen
+  G.World.rareHintTiles = (m = G.map, x0 = 0, y0 = 0, x1 = m.w - 1, y1 = m.h - 1) => {
+    const out = []; if (!G.FEAT.rare || !G.state) return out;
+    const live = (G.RARE_SPAWNS || []).filter(r => G.World.rareCount(r.zone) >= G.RARE_RULE.RAMP);
+    if (!live.length) return out;
+    for (let y = Math.max(0, y0); y <= Math.min(m.h - 1, y1); y++) for (let x = Math.max(0, x0); x <= Math.min(m.w - 1, x1); x++) {
+      const z = tileZone(m, x, y); if (!z) continue;
+      const r = live.find(r => r.zone === z); if (r && RARE_COND[r.cond](m, x, y)) out.push([x, y, r.sp]);
+    }
+    return out;
   };
   G.World.rareCond = RARE_COND;
   G.World.rareFor = (zone, m = G.map, x = P.x, y = P.y) => (G.RARE_SPAWNS || []).find(r => r.zone === zone && RARE_COND[r.cond](m, x, y));
   G.World.encounter = (zone) => {
     const A = G.WILD_AREAS[zone || 'nebelgras'];
-    const rs = G.FEAT.rare && zone && G.World.rareFor(zone), rare = !!rs && Math.random() < (G.debugRareRate || rs.chance);
+    // v17: Zähler je Gebiet – jeder Wildkampf zählt; ab ~15 Kämpfen steigt die Chance bis 5 %, nach dem Erscheinen wieder 0
+    const RC = G.FEAT.rare && zone ? rareCounts() : null, n = RC ? RC[zone] || 0 : 0;
+    const rs = RC && G.World.rareFor(zone), rare = !!rs && Math.random() < (G.debugRareRate || G.rareChance(n));
+    if (RC) RC[zone] = rare ? 0 : n + 1;
+    if (RC && !rare && n + 1 === G.RARE_RULE.RAMP) G.World.rareNotice = zone;
     if (rare) { P.grace = ENCOUNTER_GRACE; const l = G.rnd(rs.lvl[0], rs.lvl[1]); G.state.rareSeen = (G.state.rareSeen || 0) + 1; return G.Battle.start({ team: [G.makeMon(rs.sp, l)], rare: true }); }
     const sp = G.pickWeighted(A.table);
     const lead = Math.max(...G.state.team.map(m => m.lvl));
@@ -2297,6 +2329,7 @@
     // v16: Figur nicht von Laternenschein ausbleichen lassen – Sprite halbtransparent über das additive Licht legen (Haar bleibt schwarz)
     if (pf && !opt.hidePlayer) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.6; drawChar(ctx, pf.img, Math.round(P.px) - cx, Math.round(P.py) - cy - pf.lift); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; }
     renderStoryGlow(ctx, m, cx, cy, t);
+    renderRareHint(ctx, m, cx, cy, t);
     if (G.World.healFx != null && !opt.hidePlayer) renderHealFx(ctx, Math.round(P.px) - cx + 8, Math.round(P.py) - cy, G.World.healFx, t);
     for (const f of m.flies) {
       f.x += Math.sin(t * 0.7 + f.ph) * 6 * dt; f.y += Math.cos(t * 0.9 + f.ph * 1.3) * 5 * dt;
@@ -2532,6 +2565,22 @@
     ctx.globalCompositeOperation = 'lighter';
   }
   // Heilung in der Kirche: Mondlichtsäule über der Spielfigur, heller Ring am Boden
+  // v17: Schimmer an den Stellen, wo ein Sondergeist bald erscheinen könnte (nach ~15 Kämpfen im Gebiet)
+  function renderRareHint(ctx, m, cx, cy, t) {
+    const tiles = G.World.rareHintTiles(m, Math.floor(cx / T) - 1, Math.floor(cy / T) - 1, Math.ceil((cx + VW) / T) + 1, Math.ceil((cy + VH) / T) + 1);
+    if (!tiles.length) return;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [x, y, sp] of tiles) {
+      const h = hash(x, y, 7), ph = t * 1.6 + h * 6.28, k = Math.pow(0.5 + 0.5 * Math.sin(ph), 4);
+      if (k < 0.04) continue;
+      const col = G.TYPE_COLORS[G.SPECIES[sp].type] || '#ffffff';
+      const px = x * T - cx + 3 + (h * 97 % 10), py = y * T - cy + 4 + (h * 53 % 8) - k * 2;
+      const gr = ctx.createRadialGradient(px, py, 0, px, py, 6); gr.addColorStop(0, col + '99'); gr.addColorStop(1, col + '00');
+      ctx.globalAlpha = k; ctx.fillStyle = gr; ctx.fillRect(px - 6, py - 6, 12, 12);
+      ctx.fillStyle = '#fffbe8'; ctx.fillRect(Math.round(px), Math.round(py) - 2, 1, 5); ctx.fillRect(Math.round(px) - 2, Math.round(py), 5, 1);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
   function renderHealFx(ctx, x, y, p, t) {
     const a = Math.sin(Math.PI * Math.min(1, p)) , w = 10 + 6 * a;
     ctx.globalCompositeOperation = 'lighter';
