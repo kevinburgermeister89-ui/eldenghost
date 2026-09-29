@@ -22,7 +22,7 @@
   // ---------- Speichern ----------
   const newItems = () => { const o = {}; for (const k in G.ITEMS) o[k] = 0; return o; };
   // Neues Spiel: Aufwachen im Elternhaus, ohne Geist und ohne Seelenfänger (die gibt Ilse nach der Wahl am Laternenstein)
-  const newState = () => ({ v: G.SAVE_VERSION, map: 'home', player: { x: 7, y: 2, dir: 'down' }, team: [], box: [], items: newItems(), flags: { q1: 0, story: 0 }, seen: {}, caught: {}, respawn: null, playtime: 0 });
+  const newState = () => ({ v: G.SAVE_VERSION, map: 'home', player: { x: 7, y: 2, dir: 'down' }, team: [], box: [], items: newItems(), flags: { q1: 0, story: 0, tour: 0 }, seen: {}, caught: {}, respawn: null, playtime: 0 });
   // v1 -> v2: Karten, AP, Status, neue Gegenstände, Quest-Flags
   G.migrate = s => {
     const n = Object.assign(newState(), s);
@@ -159,6 +159,7 @@
     await UI.choose([], { area: 'full', cancel: true, title: `<h2>Geisterchronik</h2><div class="hint">Gefangen: ${n} / ${G.SPECIES_ORDER.length}</div>${html}${chartHtml()}` });
   };
   let menuSel = 0;
+  const FX_LABEL = { auto: 'Auto', hoch: 'Hoch', niedrig: 'Niedrig' };
   G.Menu.open = async () => {
     if (G.lock > 0) return;
     G.lock++; Snd.sfx('open');
@@ -166,15 +167,16 @@
     while (true) {
       const c = await UI.choose([
         { label: 'Team' }, { label: 'Tasche' }, { label: 'Chronik' }, { label: 'Speichern' },
-        { label: 'Ton: ' + (Snd.on ? 'An' : 'Aus') }, { label: 'Schliessen' }
+        { label: 'Ton: ' + (Snd.on ? 'An' : 'Aus') }, { label: 'Effekte: ' + FX_LABEL[G.fxMode] + (G.fxMode === 'auto' && G.lowFx ? ' (niedrig)' : '') }, { label: 'Schliessen' }
       ], { area: 'menu', cancel: true, start: menuSel, title: `<div class="goal"><b>Ziel</b>${G.Story.goal()}</div>` });
-      if (c < 0 || c === 5) break;
+      if (c < 0 || c === 6) break;
       menuSel = c;
       if (c === 0) await G.Menu.team();
       else if (c === 1) await G.Menu.bag();
       else if (c === 2) await G.Menu.chronik();
       else if (c === 3) { UI.toast(G.save() ? 'Spiel gespeichert.' : 'Speichern nicht möglich.'); }
       else if (c === 4) { Snd.init(); Snd.toggle(); UI.syncSound(); }
+      else if (c === 5) { const nx = { auto: 'hoch', hoch: 'niedrig', niedrig: 'auto' }[G.fxMode]; G.setFx(nx); UI.toast('Effekte: ' + FX_LABEL[nx]); }
     }
     G.lock--;
   };
@@ -230,6 +232,7 @@
   }
   G.onPress = b => {
     if (G.mode !== 'world') return;
+    if (b === 'B' && G.World.skipTour()) return;   // Dorfführung überspringen
     if (['up', 'down', 'left', 'right'].includes(b)) {
       G.World.pressDir(b); // sofort drehen bzw. sofort losgehen
       return;
@@ -252,6 +255,20 @@
     }
   }
 
+  // ---------- Bildzeit-Wächter ----------
+  // Misst Bildabstand und Zeichenzeit (gleitender Mittelwert). Im Modus «Auto» wird auf niedrige Effekte geschaltet,
+  // wenn die Bildzeit 3 s lang über 22 ms liegt (unter ~45 fps) – z. B. auf schwächeren Handys.
+  let lastNow = 0;
+  G.perfTick = perfTick;
+  function perfTick(now, rms) {
+    const P = G.perf, gap = lastNow ? now - lastNow : 16.7; lastNow = now;
+    if (document.hidden || gap > 250) return;                       // Hintergrund/Pause nicht werten
+    P.ema += (gap - P.ema) * 0.05; P.render += (rms - P.render) * 0.05; P.frames = (P.frames || 0) + 1;
+    if (G.fxMode === 'auto' && !G.lowFx && !(navigator.webdriver && !G.perfTest) && (G.mode === 'world' || G.mode === 'battle')) {   // Testautomaten (Software-Rendering) nicht werten
+      P.slow = P.ema > 22 ? P.slow + gap : 0;
+      if (P.slow > 3000) { G.lowFx = true; P.low = (P.low || 0) + 1; UI.toast('Effekte reduziert, damit das Spiel flüssig bleibt.'); }
+    }
+  }
   // ---------- Hauptschleife ----------
   let last = performance.now();
   function frame(now) {
@@ -264,10 +281,13 @@
     if (G.mode === 'world') G.World.update(dt);
     ctx.setTransform(G.OUT, 0, 0, G.OUT, 0, 0);
     ctx.imageSmoothingEnabled = false;
+    const r0 = performance.now();
     if (G.mode === 'battle') G.Battle.render(ctx, dt);
     else if (G.mode === 'evo') G.Evo.render(ctx, dt);
     else if (G.mode === 'world') G.World.render(ctx, dt);
     else renderTitle(dt);
+    perfTick(now, performance.now() - r0);
+    if (G.Snd.pump) G.Snd.pump();          // Musikplaner anstossen, falls der Timer gedrosselt wurde
     if (G.fx) {
       const { kind, p } = G.fx;
       if (kind === 'flash') { if (Math.sin(p * Math.PI * 6) > 0) { ctx.fillStyle = 'rgba(232,224,255,0.75)'; ctx.fillRect(0, 0, 256, 240); } }
@@ -295,5 +315,5 @@
       G.state.team.forEach(m => { m.hp = G.stats(m).hp; m.status = null; G.fillPP(m); });
     }
   }
-  G.Store.ready.then(() => { G.Snd.on = G.Store.get('eldenghost.sound') !== '0'; UI.syncSound(); if (/[?&]demo=battle/.test(location.search)) demoFlow(); else titleFlow(); });
+  G.Store.ready.then(() => { G.Snd.on = G.Store.get('eldenghost.sound') !== '0'; { const fx = G.Store.get('eldenghost.fx'); if (fx === 'hoch' || fx === 'niedrig') { G.fxMode = fx; G.lowFx = fx === 'niedrig'; } if (/[?&]lowfx=1/.test(location.search)) G.lowFx = true; } UI.syncSound(); if (/[?&]demo=battle/.test(location.search)) demoFlow(); else titleFlow(); });
 })(window.G);

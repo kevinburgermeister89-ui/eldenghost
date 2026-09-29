@@ -159,20 +159,47 @@
   // dunkler Halo hinter dem Gegner-Geist (hebt die Silhouette vom Hintergrund ab), vorgerendert
   const HALO = (() => { const c = G.mkHi(64, 64, 2), g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, 'rgba(6,4,16,0.34)'); gr.addColorStop(0.6, 'rgba(6,4,16,0.2)'); gr.addColorStop(1, 'rgba(6,4,16,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c; })();
+  const GLOWS = {};
+  function glowSprite(col) {
+    if (GLOWS[col]) return GLOWS[col];
+    const c = G.mkHi(32, 32, 2), g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16), n = parseInt(col.slice(1), 16), rgb = `${n >> 16},${(n >> 8) & 255},${n & 255}`;
+    gr.addColorStop(0, `rgba(${rgb},0.9)`); gr.addColorStop(0.3, `rgba(${rgb},0.45)`); gr.addColorStop(0.65, `rgba(${rgb},0.12)`); gr.addColorStop(1, `rgba(${rgb},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return (GLOWS[col] = c);
+  }
+  G.glowSprite = glowSprite;
   function drawMon(ctx, sp, x, y, a, back, phase, big) {
     if (!a.vis || a.alpha <= 0) return;
     const spr = G.SPR.mon[sp], fly = G.FLY[sp] || 0, t = G.time * 2.6 + phase, boss = big > 1;
     const inhale = Math.sin(t) > 0.35, bob = fly ? Math.round(Math.sin(t * 0.9) * 2.5 * fly) : 0;
     // Pixelgrafik 1:1 (Vorderansicht 64, Boss 84, Rückansicht 80 Pixel, unten angeschnitten)
-    const img = a.flash ? (back ? spr.whiteBack : boss ? spr.whiteBig : spr.white) : back ? (inhale ? spr.back2 : spr.back) : boss ? (inhale ? spr.big2 : spr.big) : (inhale ? spr.img2 : spr.img);
-    const N = img.width, w = N * a.scale, gy = back ? N + 2 : N * 62 / 64;
+    // Blinzeln: alle ~3–4.5 s für 0.14 s (nicht in der Rückansicht)
+    const bl = !back && ((G.time + phase * 1.3) % (3 + (phase % 3) * 0.7)) < 0.14;
+    const img = a.flash ? (back ? spr.whiteBack : boss ? spr.whiteBig : spr.white) : back ? (inhale ? spr.back2 : spr.back) : boss ? (bl ? spr.bigBlink : inhale ? spr.big2 : spr.big) : (bl ? spr.imgBlink : inhale ? spr.img2 : spr.img);
+    const N = img.lw || img.width, w = N * a.scale, gy = back ? N + 2 : N * 62 / 64;
     ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, a.alpha));
     if (!back && !a.flash) { const r = N * 0.62 * a.scale; ctx.drawImage(HALO, Math.round(x + a.dx - r), Math.round(y + a.dy - N * 0.46 * a.scale - r), Math.round(r * 2), Math.round(r * 2)); }
     if (!fly && a.alpha > 0.5 && !back) shadowEllipse(ctx, x + a.dx, y + a.dy - 1, 24 * a.scale * (boss ? 1.3 : 1), 4.5 * a.scale);
     else if (fly && a.alpha > 0.5) shadowEllipse(ctx, x + a.dx, y + a.dy + 2, 14 * a.scale, 3 * a.scale, 0.22);
     ctx.translate(Math.round(x + a.dx), Math.round(y + a.dy + bob * a.scale * 2));
     ctx.drawImage(img, Math.round(-w / 2), Math.round(-gy * a.scale), Math.round(w), Math.round(w));
+    // flackerndes Eigenlicht der Leuchtflächen (Flammen, Laternen, Glimmflecken)
+    const gl = (back ? spr.back : boss ? spr.big : spr.img).glows;
+    if (gl && !a.flash && a.alpha > 0.3 && !G.lowFx) {
+      ctx.globalCompositeOperation = 'lighter'; const sc = w / N;
+      for (let i = 0; i < gl.length; i++) {
+        const [gx, gy2, r, col] = gl[i], f = 0.55 + 0.25 * Math.sin(G.time * 9 + i * 2.1 + phase) + 0.2 * Math.sin(G.time * 23 + i * 5);
+        const R = Math.max(4, r * 1.6) * sc; ctx.globalAlpha = Math.max(0, Math.min(1, a.alpha)) * 0.5 * f;
+        ctx.drawImage(glowSprite(col), Math.round(-w / 2 + gx * sc - R), Math.round(-gy * a.scale + gy2 * sc - R), R * 2, R * 2);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
     ctx.restore();
+    // treibende Seelenfunken und Nebelfetzen rund um den Geist (Idle)
+    if (G.B && !G.lowFx && a.alpha > 0.8 && !a.flash && Math.random() < 0.05) {
+      const col = G.TYPE_COLORS[G.SPECIES[sp].type] || '#c8bede', rr = N * 0.32 * a.scale;
+      if (G.hasType(sp, 'Psycho') && Math.random() < 0.5) P_({ x: x + a.dx + rnd(-rr, rr), y: y + a.dy - rnd(4, 14), vx: rnd(-6, 6), vy: rnd(-8, -3), k: 'fog', r: rnd(4, 7), dr: 6, life: rnd(1.2, 1.8), c: '#dce4f2', a: 0.16 });
+      else P_({ x: x + a.dx + rnd(-rr, rr), y: y + a.dy - rnd(4, N * 0.7 * a.scale), vx: rnd(-4, 4), vy: rnd(-14, -6), k: 'mote', life: rnd(0.9, 1.5), c: col, idle: 1 });
+    }
   }
   // ---------- Kampfeffekte je Typ ----------
   // Partikelarten: spark (Funke, additiv), glow (weiches Leuchten), fog (Nebelballen), shade (Schattenschwade, spiralt ein),
@@ -369,7 +396,7 @@
       if (B.boss) { Snd().music('none'); Snd().sfx('bell'); Snd().jingle('bosswin'); }
       await UI().sayAll(tr.lose);
     }
-    if (result === 'lost') await UI().sayAll(['Alle deine Geister sind erschöpft …', S.respawn ? 'Du taumelst zurück zur letzten Laterne, die du entzündet hast.' : 'Mit letzter Kraft taumelst du zurück nach Hause.']);
+    if (result === 'lost') await UI().sayAll(['Alle deine Geister sind erschöpft …', S.respawn && S.respawn.church && G.CHURCHES && G.CHURCHES[S.respawn.church] ? `Du erwachst in der ${G.CHURCHES[S.respawn.church].name}. ${G.CHURCHES[S.respawn.church].healer.name} hat deine Geister im Mondlicht gepflegt.` : S.respawn ? 'Du taumelst zurück zur letzten Laterne, die du entzündet hast.' : 'Mit letzter Kraft taumelst du zurück nach Hause.']);
     await G.animate(420, p => G.fx = { kind: 'wipe', p });
     UI().hud(false); UI().hideText(); G.B = null; G.mode = 'world';
     for (const m of S.team) if (m.status && !G.STATUS[m.status.id].persist) m.status = null;

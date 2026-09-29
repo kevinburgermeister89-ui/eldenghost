@@ -1,5 +1,5 @@
 // Eldenghost Service Worker – offline-fähig (Cache-first, Versionswechsel räumt alte Caches)
-const VERSION = 'eldenghost-v12';
+const VERSION = 'eldenghost-v13';
 const ASSETS = [
   './', './index.html', './style.css', './manifest.json',
   './js/data.js', './js/platform.js', './js/audio.js', './js/art.js', './js/creatures.js', './js/sprites.js', './js/people.js', './js/tiles.js', './js/ui.js', './js/world.js', './js/battle.js', './js/main.js',

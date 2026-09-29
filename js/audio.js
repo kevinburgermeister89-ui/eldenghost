@@ -4,8 +4,11 @@
 // Motive werden je Phrase variiert (A A' B A''), Akkordfolgen rotieren, seltene «Unbehagen»-Momente
 // (verstimmte Glocke, Flüstern, tiefer Einzelton, Herzschlag) mit Mindestabstand. Wechsel per Überblendung.
 (function (G) {
-  const S = { ctx: null, on: true, cur: null, want: null, tracks: [] };
-  let master, musicBus, duck, sfxBus, verb, verbIn, echo, echoFb, timer = null;
+  const S = { ctx: null, on: true, cur: null, want: null, tracks: [], active: 0, nodes: 0, dropped: 0, errors: 0,
+    wd: { restarts: 0, last: null, silent: 0, resumes: 0, recreated: 0, log: [] } };
+  let master, musicBus, duck, sfxBus, verb, verbIn, echo, echoFb, comp, analyser, abuf, timer = null, wdTimer = null, lastTick = 0, duckUntil = 0, gen = 0;
+  // Stimmen-Obergrenzen (laufende Quellknoten): Musik wird ab MUSIC_CAP ausgedünnt, Geräusche ab SFX_CAP verworfen
+  const MUSIC_CAP = 150, SFX_CAP = 230;
   S.on = G.Store.get('eldenghost.sound') !== '0';
   const MASTER = 0.72;
 
@@ -15,15 +18,22 @@
     for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay); }
     return b;
   }
+  // Robustheit (Android/Chrome): Kontext kann jederzeit «suspended», «interrupted» (iOS) oder «closed» sein.
+  // - jede Nutzereingabe (pointerup/touchend/click/keydown …) und visibilitychange/focus/pageshow ruft S.unlock()
+  // - geschlossener Kontext wird komplett neu aufgebaut, laufendes Stück neu gestartet
+  // - nach jedem Wiederanlaufen werden Planer und Pegel neu ausgerichtet (resync), ein Wachhund prüft auf Stille
   S.init = () => {
-    if (S.ctx) { if (S.ctx.state === 'suspended') S.ctx.resume(); return; }
+    if (S.ctx && S.ctx.state === 'closed') teardown();
+    if (S.ctx) { S.unlock(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
-    try { S.ctx = new AC(); } catch (e) { return; }
-    const c = S.ctx;
+    try { S.ctx = new AC({ latencyHint: 'playback' }); } catch (e) { try { S.ctx = new AC(); } catch (e2) { return; } }
+    const c = S.ctx, myGen = ++gen;
+    instrument(c);
     master = c.createGain(); master.gain.value = S.on ? MASTER : 0;
-    const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.3;
+    comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.3;
     master.connect(comp); comp.connect(c.destination);
+    analyser = c.createAnalyser(); analyser.fftSize = 512; abuf = new Float32Array(analyser.fftSize); comp.connect(analyser);   // Pegelmesser für den Wachhund
     duck = c.createGain(); duck.gain.value = 1; duck.connect(master);
     musicBus = c.createGain(); musicBus.gain.value = 0.62; musicBus.connect(duck);
     sfxBus = c.createGain(); sfxBus.gain.value = 0.55; sfxBus.connect(master);
@@ -32,10 +42,76 @@
     echo = c.createDelay(1.5); echo.delayTime.value = 0.42; echoFb = c.createGain(); echoFb.gain.value = 0.33;
     const echoLp = c.createBiquadFilter(); echoLp.type = 'lowpass'; echoLp.frequency.value = 2400;
     echo.connect(echoLp); echoLp.connect(echoFb); echoFb.connect(echo); echoLp.connect(verbIn); echoLp.connect(musicBus);
-    timer = setInterval(tick, 60);
-    document.addEventListener('visibilitychange', () => { if (!S.ctx) return; if (document.hidden) S.ctx.suspend(); else if (S.on || true) S.ctx.resume(); });
+    c.onstatechange = () => { if (gen !== myGen) return; S.wd.log.push(c.state); if (S.wd.log.length > 20) S.wd.log.shift(); if (c.state === 'running') resync(); };
+    timer = setInterval(tick, 60); lastTick = performance.now();
+    wdTimer = setInterval(watchdog, 1500);
+    listen();
+    if (c.state !== 'running') S.unlock();
     if (S.want) { const w = S.want; S.cur = null; S.music(w); }
   };
+  function teardown() {
+    clearInterval(timer); clearInterval(wdTimer); timer = wdTimer = null;
+    const c = S.ctx; S.ctx = null; gen++;
+    if (c && c.state !== 'closed') try { c.close(); } catch (e) {}
+    S.tracks = []; S.cur = null; S.active = 0; S.nodes = 0; nbuf = null; duckUntil = 0;
+  }
+  // Kontext fortsetzen (wirkt nur, wenn der Browser es gerade erlaubt – daher bei jeder Eingabe erneut)
+  S.unlock = () => {
+    if (!S.ctx) return S.init();
+    const c = S.ctx;
+    if (c.state === 'closed') { S.wd.recreated++; teardown(); return S.init(); }
+    if (c.state !== 'running' && !document.hidden) {
+      S.wd.resumes++;
+      try { const p = c.resume(); if (p && p.then) p.then(() => { if (c.state === 'running') resync(); }, () => {}); } catch (e) {}
+    }
+  };
+  let listening = false;
+  function listen() {
+    if (listening) return; listening = true;
+    const opt = { capture: true, passive: true };
+    // pointerup/touchend/click/keydown sind in Chrome «aktivierende» Eingaben (pointerdown bei Touch nicht!)
+    for (const ev of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown']) window.addEventListener(ev, () => S.unlock(), opt);
+    document.addEventListener('visibilitychange', () => {
+      if (!S.ctx) return;
+      if (document.hidden) { if (S.ctx.state === 'running') try { S.ctx.suspend(); } catch (e) {} }
+      else S.unlock();
+    });
+    window.addEventListener('focus', () => S.unlock());
+    window.addEventListener('pageshow', () => S.unlock());
+  }
+  // nach Pause: Planer nicht nachholen lassen (Zeitpunkte an currentTime ausrichten), Pegel wiederherstellen
+  function resync() {
+    const c = S.ctx; if (!c) return;
+    const now = c.currentTime;
+    for (const tr of S.tracks) if (tr.alive && tr.next < now + 0.02) tr.next = now + 0.06;
+    if (S.on && master.gain.value < MASTER * 0.5) rampTo(master.gain, MASTER, 0.3);
+    if (now > duckUntil && duck.gain.value < 0.9) rampTo(duck.gain, 1, 0.4);
+    lastTick = 0; tick();
+  }
+  function rampTo(par, v, sec) { const now = S.ctx.currentTime; par.cancelScheduledValues(now); par.setValueAtTime(Math.max(0.0001, par.value), now); par.linearRampToValueAtTime(v, now + sec); }
+
+  // ---- Knotenverwaltung: jede Stimme sammelt ihre Knoten; wenn alle Quellen geendet haben, wird alles getrennt ----
+  let col = null;
+  function instrument(c) {
+    for (const k of ['createGain', 'createBiquadFilter', 'createStereoPanner', 'createOscillator', 'createBufferSource']) {
+      const f = c[k]; if (!f) continue;
+      c[k] = function () { const n = f.apply(c, arguments); if (col) col.push(n); return n; };
+    }
+  }
+  const isSrc = n => typeof n.start === 'function' && typeof n.stop === 'function';
+  function voice(fn, cap) {
+    if (S.active >= cap) { S.dropped++; return false; }
+    const prev = col, mine = []; col = mine;
+    try { fn(); } catch (e) { S.errors++; } finally { col = prev; }
+    const src = mine.filter(isSrc);
+    if (!src.length) { mine.forEach(disc); return true; }
+    let left = src.length; S.active += left; S.nodes += mine.length;
+    const myGen = gen;
+    const done = () => { if (myGen !== gen) return; S.active--; if (--left === 0) { S.nodes -= mine.length; setTimeout(() => mine.forEach(disc), 30); } };
+    for (const n of src) n.onended = done;
+    return true;
+  }
+  function disc(n) { try { n.disconnect(); } catch (e) {} }
 
   let nbuf = null;
   function noiseBuf() {
@@ -62,7 +138,7 @@
   }
   function osc(type, f, t, end, dest, detune = 0) {
     const o = S.ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune;
-    o.connect(dest); o.start(t); o.stop(end + 0.05); return o;
+    o.connect(dest); o.start(t); if (isFinite(end)) o.stop(end + 0.05); return o;
   }
 
   // ---------- Instrumente ----------
@@ -153,7 +229,7 @@
   function mkTrack(name) {
     const def = TRACKS[name], c = S.ctx, bus = c.createGain(), now = c.currentTime, fade = def.fastIn ? 0.5 : 2.8;
     bus.gain.setValueAtTime(0.0001, now); bus.gain.exponentialRampToValueAtTime(def.vol, now + fade); bus.connect(musicBus);
-    const tr = { name, def, bus, root: def.root, mode: def.mode, spb: 60 / def.bpm / 2, next: now + 0.12, step: 0, alive: true, motif: null, phrase: 0,
+    const tr = { name, def, bus, born: now, root: def.root, mode: def.mode, spb: 60 / def.bpm / 2, next: now + 0.12, step: 0, alive: true, motif: null, phrase: 0,
       nextUnease: now + def.unease.every[0] * (0.5 + R() * 0.5), prevNote: 7, drone: null };
     if (def.bass === 'drone') startDrone(tr);
     if (def.air) startAir(tr);
@@ -163,23 +239,24 @@
   function startDrone(tr) {
     const c = S.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; g.gain.value = 0;
     g.gain.linearRampToValueAtTime(0.09, c.currentTime + 4); lp.connect(g); g.connect(tr.bus);
-    const f = mtof(tr.root - 24), os = [osc('sawtooth', f, c.currentTime, c.currentTime + 3600, lp, -4), osc('sine', f, c.currentTime, c.currentTime + 3600, lp),
-      osc('triangle', f * (tr.def.tritone ? Math.pow(2, 6 / 12) : 1.5), c.currentTime, c.currentTime + 3600, lp, 5)];
+    // Dauerton ohne festes Ende (früher 1 h -> danach Stille); gestoppt und getrennt wird er in killTrack
+    const f = mtof(tr.root - 24), os = [osc('sawtooth', f, c.currentTime, Infinity, lp, -4), osc('sine', f, c.currentTime, Infinity, lp),
+      osc('triangle', f * (tr.def.tritone ? Math.pow(2, 6 / 12) : 1.5), c.currentTime, Infinity, lp, 5)];
     const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.05; lg.gain.value = 120; lfo.connect(lg); lg.connect(lp.frequency); lfo.start(); os.push(lfo);
-    tr.drone = os;
+    tr.drone = os; tr.droneAux = (tr.droneAux || []).concat([g, lp, lg]);
   }
   function startAir(tr) { // Wind/Nebelrauschen mit langsamer Bewegung
     const c = S.ctx, n = c.createBufferSource(); n.buffer = noiseBuf(); n.loop = true;
     const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 600; bp.Q.value = 0.8;
     const g = c.createGain(); g.gain.value = tr.name === 'moor' ? 0.022 : 0.016; n.connect(bp); bp.connect(g); g.connect(tr.bus); n.start();
     const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.043; lg.gain.value = 330; lfo.connect(lg); lg.connect(bp.frequency); lfo.start();
-    tr.drone = (tr.drone || []).concat([n, lfo]);
+    tr.drone = (tr.drone || []).concat([n, lfo]); tr.droneAux = (tr.droneAux || []).concat([bp, g, lg]);
   }
   function killTrack(tr, sec) {
     if (!tr.alive) return; tr.alive = false;
     const c = S.ctx, now = c.currentTime;
     tr.bus.gain.cancelScheduledValues(now); tr.bus.gain.setValueAtTime(Math.max(0.0001, tr.bus.gain.value), now); tr.bus.gain.exponentialRampToValueAtTime(0.0001, now + sec);
-    setTimeout(() => { (tr.drone || []).forEach(o => { try { o.stop(); } catch (e) {} }); try { tr.bus.disconnect(); } catch (e) {} S.tracks = S.tracks.filter(x => x !== tr); }, sec * 1000 + 4500);
+    setTimeout(() => { (tr.drone || []).forEach(o => { try { o.stop(); } catch (e) {} disc(o); }); (tr.droneAux || []).forEach(disc); disc(tr.bus); S.tracks = S.tracks.filter(x => x !== tr); }, sec * 1000 + 4500);
   }
 
   // Motiv: 8 Achtel mit Pausen; Varianten verändern Ende, Lage und einzelne Töne
@@ -256,15 +333,45 @@
       tr.nextUnease = t + d.unease.every[0] + R() * (d.unease.every[1] - d.unease.every[0]);
     }
   }
+  // Planer mit Vorlauf: Zeitbasis ist immer ctx.currentTime; nach Pausen wird nicht nachgeholt, sondern neu ausgerichtet.
+  // Wird zusätzlich aus der Spielschleife angestossen (S.pump), falls der Intervall-Timer gedrosselt wird.
   function tick() {
     const c = S.ctx; if (!c || c.state !== 'running') return;
+    lastTick = performance.now();
     const now = c.currentTime;
     for (const tr of S.tracks) {
       if (!tr.alive) continue;
       if (tr.next < now - 0.2) tr.next = now + 0.05; // nach Hintergrund-Pause nicht nachholen
-      while (tr.next < now + 0.3) { if (S.on) schedule(tr, tr.next); tr.next += tr.spb; tr.step++; }
+      let guard = 0;
+      while (tr.next < now + 0.4 && guard++ < 16) { if (S.on) voice(() => schedule(tr, tr.next), MUSIC_CAP); tr.next += tr.spb; tr.step++; }
     }
   }
+  S.pump = () => { if (S.ctx && performance.now() - lastTick > 180) tick(); };
+  // Wachhund: soll Musik laufen, hört man aber nichts (Planer steht, Bus/Master/Duck hängen bei 0, Pegel stumm),
+  // wird das Stück neu gestartet bzw. der Pegel wiederhergestellt
+  function watchdog() {
+    const c = S.ctx; if (!c || document.hidden) return;
+    if (c.state === 'closed') { S.wd.recreated++; teardown(); S.init(); return; }
+    if (c.state !== 'running') { S.unlock(); return; }
+    const now = c.currentTime, fix = r => { S.wd.last = r; S.wd.restarts++; };
+    if (S.on && master.gain.value < MASTER * 0.3) { rampTo(master.gain, MASTER, 0.3); fix('master'); }
+    if (now > duckUntil + 0.5 && duck.gain.value < 0.5) { rampTo(duck.gain, 1, 0.4); fix('duck'); }
+    const def = TRACKS[S.want];
+    if (!S.on || !def) { S.wd.silent = 0; return; }
+    const tr = S.tracks.find(x => x.alive && x.name === S.want);
+    let why = null;
+    if (!tr) why = 'notrack';
+    else if (tr.next < now - 1) why = 'stall';
+    else if (now - tr.born > 5 && tr.bus.gain.value < def.vol * 0.25) why = 'gain';
+    else {
+      analyser.getFloatTimeDomainData(abuf); let e = 0; for (let i = 0; i < abuf.length; i++) e += abuf[i] * abuf[i];
+      S.wd.rms = Math.sqrt(e / abuf.length);
+      S.wd.silent = S.wd.rms < 1e-5 && now - tr.born > 6 ? S.wd.silent + 1 : 0;
+      if (S.wd.silent >= 5) why = 'silence';
+    }
+    if (why) { fix(why); S.wd.silent = 0; S.cur = null; S.music(S.want); }
+  }
+  S.watchdog = watchdog;
 
   S.music = name => {
     S.want = name;
@@ -281,6 +388,7 @@
   function duckFor(sec) {
     const c = S.ctx, now = c.currentTime; duck.gain.cancelScheduledValues(now); duck.gain.setValueAtTime(duck.gain.value, now);
     duck.gain.linearRampToValueAtTime(0.2, now + 0.15); duck.gain.setValueAtTime(0.2, now + sec); duck.gain.linearRampToValueAtTime(1, now + sec + 1.2);
+    duckUntil = now + sec + 1.3;
   }
   const J = {
     // Fang: aufsteigende Glocken in Dur, schimmernder Abschluss
@@ -290,18 +398,21 @@
     // Level-up: kurzes, helles Aufwärtsmotiv
     levelup(t) { [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => I.box(sfxBus, t + i * 0.085, mtof(m), 0.07, { dec: 0.8 })); I.bell(sfxBus, t + 0.6, mtof(96), 0.03, { dec: 2 }); return 1.3; },
     // Nebelahn besänftigt: feierlicher, auflösender Akkord
+    // Kirche: Mondlicht-Heilung – Harfenarpeggio aufwärts, Glockenakkord, leiser Chor
+    heal(t) { [62, 66, 69, 74, 78, 81].forEach((m, i) => I.pluck(sfxBus, t + i * 0.1, mtof(m), 0.05, { dec: 1.1, pan: (i - 2.5) * 0.15, wet: 0.5 })); [74, 78, 81, 86].forEach((m, i) => I.bell(sfxBus, t + 0.7 + i * 0.03, mtof(m), 0.04, { dec: 2.6 })); I.choir(sfxBus, t + 0.6, mtof(62), 0.03, 1.2); I.choir(sfxBus, t + 0.6, mtof(69), 0.025, 1.2); return 2.4; },
     bosswin(t) { [[47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61], [47, 54, 59, 63]].forEach((ch, i) => ch.forEach(m => I.organ(sfxBus, t + i * 1.1, mtof(m), 0.03, 1.2))); I.bell(sfxBus, t + 4.4, mtof(59), 0.08, { dec: 6 }); return 5.5; },
   };
-  S.jingle = name => { if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05; duckFor(J[name](t)); };
+  S.jingle = name => { if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05; let sec = 0; voice(() => { sec = J[name](t); }, SFX_CAP + 40); if (sec) duckFor(sec); };
 
   // ---------- Geräusche ----------
   let stepAlt = 0;
   // neue Typen teilen sich die passenden Klangfarben der alten (Feuer = Irrlicht-Knistern, Boden = Schlamm, Psycho = Nebelhall, Gift = zischender Schatten)
   const SFX_ALIAS = { hit_Feuer: 'hit_Irrlicht', hit_Boden: 'hit_Moor', hit_Psycho: 'hit_Nebel', hit_Gift: 'hit_Schatten' };
-  S.sfx = (n, arg, vol = 1) => {
-    const c = S.ctx; if (!c || !S.on) return;
+  S.sfx = (n, arg, vol = 1) => { if (!S.ctx || !S.on) return; if (S.ctx.state !== 'running') S.unlock(); voice(() => sfx(n, arg, vol), SFX_CAP); };
+  function sfx(n, arg, vol) {
+    const c = S.ctx;
     n = SFX_ALIAS[n] || n;
-    const t = c.currentTime + 0.005, D = vol === 1 ? sfxBus : (() => { const g = c.createGain(); g.gain.value = vol; g.connect(sfxBus); setTimeout(() => g.disconnect(), 3000); return g; })();
+    const t = c.currentTime + 0.005, D = vol === 1 ? sfxBus : (() => { const g = c.createGain(); g.gain.value = vol; g.connect(sfxBus); return g; })();
     switch (n) {
       case 'hit_Wasser': I.noise(D, t, 0.28, 0.25, 'bandpass', 1400, { to: 500, q: 1.4 }); for (let i = 0; i < 4; i++) { const o = c.createOscillator(), g = c.createGain(), f0 = 500 + R() * 500, tt = t + 0.08 + i * 0.06; o.type = 'sine'; o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.05); env(g, tt, 0.004, 0.05, 0, 0.06); o.connect(g); g.connect(D); o.start(tt); o.stop(tt + 0.1); } I.bass(D, t, 110, 0.08, 0.02, { rel: 0.1 }); break;
       case 'hit_Elektro': for (let i = 0; i < 9; i++) { const tt = t + i * 0.022 + R() * 0.01; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.setValueAtTime(900 + R() * 1800, tt); env(g, tt, 0.001, 0.025, 0, 0.02); o.connect(g); g.connect(D); o.start(tt); o.stop(tt + 0.05); } I.noise(D, t, 0.18, 0.25, 'highpass', 2500, { to: 6000 }); I.bass(D, t + 0.05, 80, 0.1, 0.03, { rel: 0.15 }); break;

@@ -7,7 +7,7 @@
     h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
     return (h >>> 0) / 4294967296;
   }
-  const SOLID = { outdoor: new Set('T~fgLShDrwxkeuBA'.split('')), interior: new Set('WnotbkcauyzjlFAKQZ'.split('')) };
+  const SOLID = { outdoor: new Set('T~fgLShDrwxkeuBA'.split('')), interior: new Set('WnotbkcauyzjlFAKQZMP'.split('')) };
   const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle' };
   const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240' };
   G.MAPS = {};
@@ -116,7 +116,7 @@
   function room(id, rows, o) {
     const m = newMap(id, 10, 8, 'interior', Object.assign({ theme: 'room', dark: -0.06, fogA: 0, plight: 40, music: 'indoor' }, o));
     rows.forEach((r, y) => r.split('').forEach((c, x) => set(m, x, y, c)));
-    m.warps['4,7'] = { to: 'dorf', x: o.outX, y: o.outY, dir: 'down', exit: true };
+    m.warps['4,7'] = { to: o.outMap || 'dorf', x: o.outX, y: o.outY, dir: 'down', exit: true };
     return m;
   }
   room('home', ['WWnWWWWnWW', 'Wko___abbW', 'W________W', 'W__tt____W', 'W________W', 'W________W', 'W________W', 'WWWWxWWWWW'], { outX: 5, outY: 6, name: 'Dein Haus' });
@@ -207,6 +207,55 @@
   // Glimmende Funde auch im Dorf
   D.pickups = [{ x: 4, y: 26, flag: 'p_dtee', item: 'kraeutertee', n: 1 }, { x: 29, y: 18, flag: 'p_dlat', item: 'laterne', n: 2 }];
 
+  // ================= HEILUNGSKIRCHEN (wiederverwendbare Vorlage) =================
+  // addChurch(Karte, {x, y, id, name, healer}) setzt Gebäude (4×3 Kacheln, Tür bei x+1/y+2), Innenraum mit Mondaltar,
+  // Bänken und Heilerin sowie Tür/Rückweg. Heilen: HP, Bewegungspunkte, Status; setzt den Wiedererwachens-Ort.
+  const CHURCHES = {};
+  function addChurch(m, o) {
+    const h = { x: o.x, y: o.y, id: o.id, art: 'kirche', oy: 36, church: true };
+    m.houses.push(h); rect(m, o.x, o.y, o.x + 3, o.y + 2, 'h'); set(m, o.x + 1, o.y + 2, 'D');
+    if (o.path) o.path.forEach(([x0, y0, x1, y1]) => rect(m, x0, y0, x1, y1, ','));
+    m.doors[(o.x + 1) + ',' + (o.y + 2)] = { to: o.id };
+    const r = room(o.id, ['WWnWWWWnWW', 'Wc__MM__cW', 'W________W', 'W________W', 'WPP____PPW', 'WPP____PPW', 'W________W', 'WWWWxWWWWW'],
+      { outMap: m.id, outX: o.x + 1, outY: o.y + 3, name: o.name, church: true, dark: -0.1, plight: 38 });
+    const hl = o.healer;
+    r.npcs = [{ id: hl.id, spr: hl.spr || hl.id, x: 4, y: 2, dir: 'down', healer: true, talk: () => talkHealer(o.id) }];
+    CHURCHES[o.id] = { map: m.id, id: o.id, name: o.name, healer: hl, spawn: { map: o.id, x: 4, y: 3 } };
+    return r;
+  }
+  G.CHURCHES = CHURCHES;
+  addChurch(D, { x: 27, y: 3, id: 'kirche', name: 'Mondkirche von Eldenghost', healer: { id: 'alwine', name: 'Schwester Alwine' } });
+  set(D, 31, 5, 'L');
+  addChurch(K, { x: 10, y: 3, id: 'kapelle', name: 'Hafenkapelle', healer: { id: 'tamme', name: 'Bruder Tamme' }, path: [[11, 6, 11, 10]] });
+  const churchSpawn = id => Object.assign({ church: id }, CHURCHES[id].spawn);
+  async function talkHealer(id) {
+    const S = G.state, ch = CHURCHES[id], nm = ch.healer.name, fk = 'met_' + ch.healer.id;
+    if (!S.flags[fk]) {
+      S.flags[fk] = 1;
+      await G.UI.sayAll(id === 'kirche'
+        ? [`${nm}: Willkommen in der Mondkirche, Kind. Ich bin Alwine, Schwester vom Mondlicht.`, `${nm}: Das Mondlicht wacht über alle, die unterwegs sind – über Menschen und über Geister.`]
+        : [`${nm}: Ah, ein Gast von der Landseite. Ich bin Tamme und hüte die Kapelle der Seeleute.`, `${nm}: Wer vom Meer heimkommt, zündet hier eine Kerze an. Und wer müde ist, ruht sich aus.`]);
+    }
+    const yes = await G.UI.yesNo(`${nm}: Soll ich deine Geister im Mondlicht heilen?`);
+    G.UI.hideText();
+    if (!yes) return G.UI.say(`${nm}: Dann geh mit Licht. Die Tür dieser Kirche steht dir immer offen.`);
+    await healAt(id);
+    await G.UI.sayAll([`${nm}: So. Deine Geister sind wieder ganz bei Kräften.`, `${nm}: Wenn dich die Kräfte verlassen, bringt dich das Mondlicht hierher zurück.`]);
+    G.UI.hideText();
+  }
+  async function healAt(id) {
+    G.lock++;
+    try {
+      G.Snd.jingle('heal');
+      await G.animate(1700, p => {
+        G.World.healFx = p;
+        if (Math.random() < 0.7) spark(P.px + 2 + Math.random() * 12, P.py + 14 - Math.random() * 6, (Math.random() - 0.5) * 8, -24 - Math.random() * 26, 0.9, 'moon');
+      });
+      G.World.healFx = null;
+      healTeam(); G.state.respawn = churchSpawn(id); G.save(true);
+    } finally { G.World.healFx = null; G.lock--; }
+  }
+
   // ================= NPCs =================
   D.npcs = [
     { id: 'ilse', spr: 'ilse', x: 18, y: 7, dir: 'down', talk: talkIlse },
@@ -258,6 +307,7 @@
     }
     if (st === 1) return G.UI.say('Ilse: Die drei Laternensteine stehen gleich hinter mir. Nimm dir Zeit – und wähl mit dem Herzen.');
     if (st === 2) {
+      if (S.flags.tour === 0) { await offerTour(); return G.UI.say('Ilse: Und jetzt ab ins Nebelgras – schwäch einen Geist und wirf dann einen Seelenfänger.'); }
       if ((S.items.laterne || 0) < 2) return refill();
       return G.UI.say('Ilse: Das Nebelgras beginnt südlich, hinter der Baumreihe. Schwäch den Geist erst, dann wirf einen Seelenfänger.');
     }
@@ -339,13 +389,96 @@
       'Ilse: Jetzt brauchst du noch etwas, um verlorene Geister heimzuholen. Hier, nimm diese fünf Seelenfänger.'
     ]);
     S.flags.ilse = 1; await give('laterne', 5);
+    await G.UI.say('Ilse: Ein Seelenfänger ist eine kleine Laterne aus Mondglas. Ein müder Geist findet darin Ruhe – und folgt dir danach.');
+    setStory(2);
+    await offerTour();
     await G.UI.sayAll([
-      'Ilse: Ein Seelenfänger ist eine kleine Laterne aus Mondglas. Ein müder Geist findet darin Ruhe – und folgt dir danach.',
-      'Ilse: Komm, wir üben das gleich. Im Nebelgras südlich des Dorfes wartet bestimmt einer.',
+      'Ilse: Und jetzt üben wir. Im Nebelgras südlich des Dorfes wartet bestimmt ein wilder Geist.',
       'Ilse: Schwäch ihn zuerst mit einer Attacke. Wenn er müde wird, öffne die «Tasche» und wirf einen Seelenfänger.'
     ]);
-    setStory(2);
   }
+  // ---- Dorfführung mit Ilse (nur neue Spielstände: flags.tour === 0; alte Spielstände kennen den Schlüssel nicht -> übersprungen) ----
+  // Ilse geht voraus (Wegsuche), die Spielfigur folgt ihrer Spur; B oder «Ich kenne mich aus» überspringt.
+  const TOUR = [
+    { to: [29, 6], face: 'up', look: [28, 5], lines: ['Ilse: Das hier ist die Mondkirche. Schwester Alwine wacht dort über alle, die unterwegs sind.',
+      'Ilse: Bei ihr kannst du deine Geister heilen lassen – kostenlos, so oft du willst. Und wenn dich im Kampf die Kräfte verlassen, wachst du dort wieder auf.'] },
+    { to: [28, 15], face: 'up', look: [27, 14], lines: ['Ilse: Branns Schmiede. Er schmiedet Laternenrahmen aus Raseneisen – rau wie ein Stein, aber ein gutes Herz.'] },
+    { to: [4, 10], face: 'up', look: [3, 9], lines: ['Ilse: Die Mühle am Teich. Mathis mahlt dort Korn und weiss mehr über Wasser und Wind, als er zugibt.'] },
+    { to: [15, 15], face: 'down', look: [16, 16], lines: ['Ilse: Und hier beginnt das Nebelgras. Dort streifen wilde Geister umher – der beste Ort, um zu üben und stärker zu werden.'] },
+    { to: [15, 15], face: 'right', look: [31, 23], cam: [29 * T, 22 * T], lines: ['Ilse: Siehst du den Weg dort im Osten, bei den Gräbern? Das ist der Küstenpfad – er führt zum Hafen und zum Leuchtturm.',
+      'Ilse: Aber dafür ist später Zeit.'] }
+  ];
+  const tour = { active: false, stop: -1, skip: false, said: [], visited: 0 };
+  function pathFind(m, from, to, avoid) {
+    const key = (x, y) => x + ',' + y, goal = key(to[0], to[1]), prev = new Map([[key(from[0], from[1]), null]]), q = [from];
+    const free = (x, y) => x >= 0 && y >= 0 && x < m.w && y < m.h && !SOLID[m.kind].has(m.tiles[y][x]) && !m.warps[key(x, y)] && !(avoid && avoid.has(key(x, y)))
+      && !m.npcs.some(n => n.id !== 'ilse' && npcVisible(n) && n.cx === x && n.cy === y);
+    while (q.length) {
+      const [x, y] = q.shift(); if (key(x, y) === goal) break;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, k = key(nx, ny); if (prev.has(k) || !free(nx, ny)) continue; prev.set(k, [x, y]); q.push([nx, ny]); }
+    }
+    if (!prev.has(goal)) return null;
+    const out = []; for (let c = to; c && key(c[0], c[1]) !== key(from[0], from[1]); c = prev.get(key(c[0], c[1]))) out.unshift(c);
+    return out;
+  }
+  const dirTo = (dx, dy) => dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
+  async function npcStep(n, nx, ny) {
+    const dx = nx - n.cx, dy = ny - n.cy; n.cdir = dirTo(dx, dy);
+    await G.animate(STEP * 1000, p => { n.ox = dx * p * T; n.oy = dy * p * T; });
+    n.cx = nx; n.cy = ny; n.ox = n.oy = 0;
+  }
+  function playerStep(nx, ny) {
+    P.dir = dirTo(nx - P.x, ny - P.y); P.auto = true; P.moving = true; P.tx = nx; P.ty = ny; P.t = 0;
+    return new Promise(r => { const t0 = performance.now(); const f = () => (P.moving && performance.now() - t0 < 1500) ? setTimeout(f, 16) : r(); f(); });
+  }
+  async function offerTour() {
+    const S = G.state; if (S.flags.tour !== 0) return;
+    Object.assign(tour, { visited: 0, said: [], skip: false });
+    G.UI.setText('Ilse: Kennst du dich im Dorf schon aus? Sonst zeige ich dir rasch die wichtigsten Orte.', true);
+    const r = await G.UI.choose([{ label: 'Zeig es mir' }, { label: 'Ich kenne mich aus' }], { area: 'battle', cols: 2, cancel: true });
+    G.UI.hideText();
+    if (r === 0) await runTour();
+    else await endTour(true);
+  }
+  async function endTour(skipped) {
+    const S = G.state; S.flags.tour = 2; tour.active = false; tour.stop = -1;
+    if (skipped) await G.UI.sayAll(['Ilse: Schon gut, du kennst dich aus. Nur eins noch: In der Mondkirche oben rechts heilt Schwester Alwine deine Geister – kostenlos.',
+      'Ilse: Das Nebelgras liegt südlich, hinter der Baumreihe.']);
+    G.save(true);
+  }
+  async function runTour() {
+    const il = D.npcs.find(n => n.id === 'ilse');
+    if (G.map !== D || !il) return endTour(true);
+    Object.assign(tour, { active: true, stop: 0, skip: false, said: [], visited: 0 });
+    G.lock++;
+    G.UI.toast('B: Führung überspringen', 2200);
+    try {
+      let trail = pathFind(D, [P.x, P.y], [il.cx, il.cy]) || []; trail.pop();       // Weg der Spielfigur bis hinter Ilse
+      for (let i = 0; i < TOUR.length && !tour.skip; i++) {
+        const st = TOUR[i]; tour.stop = i;
+        const path = pathFind(D, [il.cx, il.cy], st.to, new Set([P.x + ',' + P.y])) || pathFind(D, [il.cx, il.cy], st.to) || [];
+        for (const [nx, ny] of path) {
+          if (tour.skip) break;
+          trail.push([il.cx, il.cy]);
+          const pn = trail.shift();
+          await Promise.all([npcStep(il, nx, ny), pn && !(pn[0] === nx && pn[1] === ny) ? playerStep(pn[0], pn[1]) : null]);
+        }
+        while (trail.length && !tour.skip) { const pn = trail.shift(); if (pn[0] === il.cx && pn[1] === il.cy) break; await playerStep(pn[0], pn[1]); }
+        if (tour.skip) break;
+        il.cdir = st.face; P.dir = dirTo(il.cx - P.x, il.cy - P.y);
+        if (st.cam) { G.World.camFocus = st.cam; await G.wait(900); }
+        tour.said.push(...st.lines); tour.visited++;
+        await G.UI.sayAll(st.lines); G.UI.hideText();
+        if (st.cam) { G.World.camFocus = null; await G.wait(500); }
+      }
+    } finally { G.World.camFocus = null; P.auto = false; G.lock--; }
+    const skipped = tour.skip;
+    if (!skipped) il.cdir = dirTo(P.x - il.cx, P.y - il.cy);
+    await endTour(skipped);
+    if (!skipped) await G.UI.say('Ilse: So, das war die Runde. Ich bleibe hier am Nebelgras und schaue dir zu.');
+  }
+  const tourState = () => ({ active: tour.active, stop: tour.stop, visited: tour.visited, said: tour.said.slice(), skip: tour.skip });
+  const skipTour = () => { if (tour.active) tour.skip = true; return tour.active; };
   // Eltern: begleiten die ganze Geschichte, Abschied nach dem Leuchtturm
   async function farewell() {
     const S = G.state, home = G.MAPS.home;
@@ -436,6 +569,7 @@
   }
   // Kapitänin Wenke von der «Nebelschwalbe»
   async function talkWenke() {
+    G.state.flags.wenke = 1;
     if (await G.UI.yesNo('Wenke: Na, Landratte? Bereit, an Bord zu gehen?')) {
       G.UI.hideText();
       return G.UI.sayAll(['Wenke: Ha! Der Wille ist da. Aber die Ladung noch nicht – Torf, Laternenöl und Heddas Tee für drei Wochen.',
@@ -477,6 +611,7 @@
   // Ereignisse beim Betreten einer Karte
   async function storyEnter() {
     const id = G.map.id, st = story();
+    if (G.map.church && CHURCHES[id]) G.state.respawn = churchSpawn(id);   // letzte besuchte Kirche = Ort des Wiedererwachens
     if (id === 'leuchtturm' && st === 4) {
       G.lock++;
       await G.UI.sayAll(['Im Lampenraum ist es kalt und still. Die grosse Linse ist beschlagen, der Docht trocken.',
@@ -583,7 +718,11 @@
       for (let i = 0; i < 12; i++) d.p(R(i) * 16 | 0, R(i + 40) * 16 | 0, th.g[i % 3]);
       for (let i = 0; i < 3; i++) { const bx = R(i + 80) * 14 | 0, by = 2 + R(i + 90) * 12 | 0; d.r(bx, by, 1, 2, th.blade); d.p(bx, by, th.tip); }
     };
-    const floor = () => { d.r(0, 0, 16, 16, '#4a3428'); for (let i = 0; i < 4; i++) d.r(0, i * 4 + 3, 16, 1, '#3c2a20'); d.p(R(1) * 16 | 0, R(2) * 16 | 0, '#5a4232'); d.r((R(3) * 8 | 0) + (y % 2) * 8, 0, 1, 16, '#3e2c22'); };
+    const floor = () => { if (m.church) { // Steinplatten, roter Läufer zum Altar
+        d.r(0, 0, 16, 16, '#4a4658'); d.r(0, 7, 16, 1, '#3a3648'); d.r(0, 15, 16, 1, '#3a3648'); d.r((y % 2) * 8, 0, 1, 7, '#3a3648'); d.r((y % 2) * 8 + 4, 8, 1, 7, '#3a3648'); d.p(R(1) * 16 | 0, R(2) * 16 | 0, '#5a566a');
+        if ((x === 4 || x === 5) && y >= 2 && y < m.h - 1) { d.r(x === 4 ? 2 : 0, 0, 14, 16, '#6a2e3e'); d.r(x === 4 ? 2 : 14, 0, 1, 16, '#c8a050'); d.r(x === 4 ? 3 : 0, 0, 13, 1, '#7a3a4a'); }
+        return; }
+      d.r(0, 0, 16, 16, '#4a3428'); for (let i = 0; i < 4; i++) d.r(0, i * 4 + 3, 16, 1, '#3c2a20'); d.p(R(1) * 16 | 0, R(2) * 16 | 0, '#5a4232'); d.r((R(3) * 8 | 0) + (y % 2) * 8, 0, 1, 16, '#3e2c22'); };
     if (m.kind === 'interior') {
       switch (c) {
         case 'W': case 'n': case 'l': {
@@ -608,6 +747,17 @@
         case 'y': floor(); d.r(2, 6, 12, 7, '#6a5038'); d.r(3, 7, 10, 3, '#8a7a6a'); d.r(1, 12, 14, 2, '#4a3828'); d.p(5, 6, '#9a9090'); break;
         case 'z': floor(); d.r(0, 6, 16, 3, '#4a3226'); d.r(2, 3, 3, 3, '#b8905a'); d.r(7, 2, 2, 4, '#c8a06a'); d.r(11, 3, 3, 3, '#a8804a'); d.r(0, 9, 16, 6, '#3a2a20'); break;
         case 'A': case 'F': case 'Q': floor(); g.drawImage(propArt(c), 0, 0); break;
+        case 'M': { // Mondaltar: Steinblock mit Silbertuch, Mondsichel und Kerzen (zwei Kacheln breit)
+          floor(); const L = at(m, x - 1, y) !== 'M';
+          d.r(L ? 1 : 0, 4, L ? 15 : 15, 11, '#6a6480'); d.r(L ? 1 : 0, 4, 15, 2, '#8a84a4'); d.r(L ? 1 : 0, 14, 15, 1, '#3a3648');
+          d.r(L ? 3 : 0, 6, L ? 13 : 13, 5, '#dcd8ec'); d.r(L ? 3 : 0, 10, 13, 1, '#b4aecc');
+          if (L) { d.r(3, 0, 2, 4, '#e8e0c8'); d.p(3, 0, '#ffd27a'); d.e(15, 2, 3, 3, '#e8f0ff'); d.e(16, 1, 2, 2, '#6a6480'); } else { d.r(11, 0, 2, 4, '#e8e0c8'); d.p(12, 0, '#ffd27a'); d.e(0, 2, 3, 3, '#e8f0ff'); d.e(1, 1, 2, 2, '#6a6480'); }
+          break;
+        }
+        case 'P': { // Kirchenbank
+          floor(); d.r(0, 3, 16, 3, '#5a3a2a'); d.r(0, 3, 16, 1, '#7a5238'); d.r(0, 8, 16, 3, '#6a4630'); d.r(0, 8, 16, 1, '#8a6040'); d.r(1, 11, 2, 4, '#3a2618'); d.r(13, 11, 2, 4, '#3a2618'); d.r(0, 6, 16, 2, '#3a2618');
+          break;
+        }
         case 'Z': floor(); d.r(0, 9, 16, 7, '#3a2c28'); d.r(0, 9, 16, 1, '#5a4638'); break;
         case 'K': floor(); if (m.id === 'muehle') g.drawImage(SACK(), 0, 0); else g.drawImage(propArt('K'), 0, 0); break;
         case 'j': floor(); d.r(0, 5, 16, 6, '#5a4030'); d.r(0, 5, 16, 1, '#7a5a40'); d.r(2, 3, 5, 2, '#8a8a98'); d.r(10, 2, 1, 3, '#b8905a'); d.r(1, 11, 2, 4, '#3a2a1e'); d.r(13, 11, 2, 4, '#3a2a1e'); break;
@@ -698,6 +848,7 @@
   // ================= Mühle & Schmiede (Comic-Pixelstil über G.Art) =================
   // Gebäude 64×60: 12 px Überstand nach oben (Kamin, Giebel), Grundfläche 4×3 Kacheln, Tür bei Kachel x+1
   const BUILD = {};
+  const hiArt = (c, k) => { c.s = k; c.lw = c.width / k; c.lh = c.height / k; return c; };
   function buildArt(kind) {
     if (BUILD[kind]) return BUILD[kind];
     const S = new G.Art.Shape();
@@ -713,6 +864,37 @@
       S.R(36, 39, 20, 13, '#1c1210', { name: 'forge' }).R(38, 42, 16, 9, '#ff8c3a', { glow: true, clip: 'forge' }).E(46, 49, 6, 2.6, '#ffe2a0', { glow: true, clip: 'forge' });
       S.R(35, 52, 22, 2, '#48444f');
       S.C(8, 36, 8, 40, 1, '#2a2020').R(3, 40, 11, 7, '#6a4a30', { name: 'sign' }).R(5, 42, 7, 2, '#2e2a34', { clip: 'sign', flat: true }).R(7, 44, 3, 2, '#2e2a34', { clip: 'sign', flat: true });
+    } else if (kind === 'kirche') {
+      // Mondkirche 64×84 (36 px über der Grundfläche), feiner gerastert (2×): Schieferdach, Turm mit Mondsichel, Rosette, Spitzbogenfenster
+      S.P([[0, 55], [9, 30], [55, 30], [64, 55]], '#3c3a5c', { name: 'roof' });
+      for (const y of [35, 40, 45, 50]) S.R(0, y, 64, 0.8, '#2c2a48', { clip: 'roof', flat: true, line: false });
+      for (let x = 4; x < 62; x += 5) S.R(x, 30, 0.6, 25, '#34325a', { clip: 'roof', flat: true, line: false, alpha: 0.6 });
+      S.R(3, 53, 58, 30, '#aaa2b8', { name: 'wall' });
+      for (const [y, o] of [[59, 0], [65, 4], [71, 0], [77, 4]]) { S.R(3, y, 58, 0.8, '#8a8298', { clip: 'wall', flat: true, line: false }); for (let x = 5 + o; x < 61; x += 8) S.R(x, y - 6, 0.8, 6, '#8a8298', { clip: 'wall', flat: true, line: false }); }
+      S.R(3, 53, 58, 2.2, '#6e6882', { clip: 'wall', flat: true, line: false });
+      S.R(1, 55, 4, 28, '#8e869e').R(59, 55, 4, 28, '#8e869e');                                       // Strebepfeiler
+      S.R(24, 14, 16, 40, '#b4acc2', { name: 'tower' });
+      for (const y of [22, 30, 38, 46]) S.R(24, y, 16, 0.8, '#948ca6', { clip: 'tower', flat: true, line: false });
+      S.R(36, 14, 4, 40, '#9a92ac', { clip: 'tower', flat: true, line: false, alpha: 0.7 });
+      S.P([[22, 15.5], [32, 4], [42, 15.5]], '#34325a', { name: 'spire' });
+      S.R(32, 4, 4, 12, '#2a2848', { clip: 'spire', flat: true, line: false, alpha: 0.6 });
+      S.E(32, 2.6, 2.2, 2.2, '#eef4ff', { glow: true }).E(33.1, 2, 1.7, 1.7, '#34325a', { flat: true, line: false });  // Mondsichel
+      S.R(29, 18, 6, 8, '#1c1830', { name: 'bell' }).E(32, 18, 3, 2.4, '#1c1830').E(32, 23, 1.8, 1.6, '#d8b060', { clip: 'bell' });
+      S.E(32, 37, 5.4, 5.4, '#3a3050', { name: 'rose' }).E(32, 37, 4.2, 4.2, '#b8a0f0', { glow: true, clip: 'rose' }).E(32, 37, 1.4, 1.4, '#fff0c8', { glow: true, clip: 'rose' });
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4; S.C(32 - Math.cos(a) * 4.2, 37 - Math.sin(a) * 4.2, 32 + Math.cos(a) * 4.2, 37 + Math.sin(a) * 4.2, 0.6, '#3a3050', { clip: 'rose', flat: true, line: false }); }
+      for (const wx of [6, 52]) {                                                                    // Spitzbogenfenster mit warmem Licht
+        S.P([[wx, 70], [wx, 61], [wx + 3, 57], [wx + 6, 61], [wx + 6, 70]], '#241a28', { name: 'w' + wx });
+        S.P([[wx + 1, 69], [wx + 1, 61.5], [wx + 3, 58.6], [wx + 5, 61.5], [wx + 5, 69]], '#ffc868', { glow: true, clip: 'w' + wx });
+        S.R(wx + 2.7, 58, 0.6, 12, '#4a3040', { clip: 'w' + wx, flat: true, line: false }).R(wx, 64, 6, 0.6, '#4a3040', { clip: 'w' + wx, flat: true, line: false });
+      }
+      S.P([[18, 83], [18, 69], [24, 63.5], [30, 69], [30, 83]], '#4a2e22', { name: 'door' });
+      S.R(23.7, 64, 0.6, 19, '#2e1a12', { clip: 'door', flat: true, line: false });
+      for (const y of [70, 77]) S.R(18, y, 12, 1, '#7a6a5a', { clip: 'door', flat: true, line: false });
+      S.E(26.4, 75, 0.9, 0.9, '#e0b060', { flat: true }).E(21.6, 75, 0.9, 0.9, '#e0b060', { flat: true });
+      S.E(24, 60, 1.6, 1.6, '#eef4ff', { glow: true });
+      S.R(16, 82.6, 16, 1.4, '#6a6478');
+      S.E(44, 80, 2.4, 3, '#5a8a6a').E(46.5, 81, 1.8, 2.4, '#4a7a5a').E(44.6, 78, 0.9, 0.9, '#d8c8f0', { flat: true });         // Blumen beim Eingang
+      return (BUILD[kind] = hiArt(G.Art.raster(S, 128, 168, 2, { bold: true }), 2));
     } else if (kind.startsWith('leuchtturm')) {
       // Leuchtturm 64×112 (64 px über der Grundfläche): verjüngter Turm mit gedämpft roten Bändern, Wärterhäuschen rechts
       const lit = kind === 'leuchtturm_lit';
@@ -957,7 +1139,7 @@
     buildWater(m, hg);
     G.Tiles.objects(hg, m);
     for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.tiles[y][x] === 'A') hg.drawImage(propArt('A'), x * T, y * T);
-    for (const h of m.houses) hg.drawImage(h.art ? buildArt(h.art) : G.Tiles.house(h), h.x * T, h.y * T - (h.oy || 12));
+    for (const h of m.houses) { const a = h.art ? buildArt(h.art) : G.Tiles.house(h); hg.drawImage(a, h.x * T, h.y * T - (h.oy || 12), a.lw || a.width, a.lh || a.height); }
     m.canvas = hi;
     prerenderFx(m);
   }
@@ -1079,6 +1261,7 @@
         if (c === 'n') L.push({ x: x * T + 8, y: y * T + 8, r: 24, warm: 0, fl: x });
         if (c === 'l') L.push({ x: x * T + 8, y: y * T + 7, r: 40, warm: 1, fl: 3, cond: () => q1() >= 7 });
         if (c === 'a') L.push({ x: x * T + 8, y: y * T + 9, r: 16, warm: 0, ghost: 1, fl: 2 });
+        if (c === 'M' && at(m, x - 1, y) !== 'M') L.push({ x: x * T + 16, y: y * T + 4, r: 46, warm: 0, fl: 1 });
         if (c === 'Z' && at(m, x - 1, y) !== 'Z') L.push({ x: x * T + 16, y: y * T - 2, r: 100, warm: 1, fl: 5, cond: () => lampLevel() > 0.15 });
         continue;
       }
@@ -1091,8 +1274,11 @@
     m.houses.forEach(h => {
       if (h.id === 'leuchtturm') { L.push({ x: h.x * T + 24, y: h.y * T - 45, r: 80, warm: 1, fl: 4, cond: () => story() >= 6 }, { x: h.x * T + 50, y: h.y * T + 28, r: 26, warm: 1, fl: 2, cond: () => story() >= 6 }); return; }
       if (h.art === 'schmiede') { L.push({ x: h.x * T + 46, y: h.y * T + 36, r: 78, warm: 1, fl: 7, forge: 1 }, { x: h.x * T + 50, y: h.y * T - 10, r: 22, warm: 1, fl: 3 }); return; }
+      if (h.art === 'kirche') { // warme Spitzbogenfenster, violett-kühle Rosette, Türlicht, Mond auf der Turmspitze
+        L.push({ x: h.x * T + 9, y: h.y * T + 28, r: 30, warm: 1, fl: h.x, win: 1 }, { x: h.x * T + 55, y: h.y * T + 28, r: 30, warm: 1, fl: h.y, win: 1 },
+          { x: h.x * T + 24, y: h.y * T + 40, r: 26, warm: 1, fl: 3 }, { x: h.x * T + 32, y: h.y * T - 3, r: 26, warm: 0, fl: 5 }, { x: h.x * T + 32, y: h.y * T - 33, r: 18, warm: 0, fl: 7 }); return; }
       if (h.art === 'muehle') { L.push({ x: h.x * T + 40, y: h.y * T + 41, r: 38, warm: 1, fl: h.x }, { x: h.x * T + 32, y: h.y * T + 10, r: 18, warm: 1, fl: 2 }); return; }
-      if (!h.hut) L.push({ x: h.x * T + 47, y: h.y * T + 38, r: 40, warm: 1, fl: h.x }, { x: h.x * T + 24, y: h.y * T + 48, r: 16, warm: 1, fl: h.y }); });
+      if (!h.hut) L.push({ x: h.x * T + 47, y: h.y * T + 38, r: 40, warm: 1, fl: h.x, win: 1 }, { x: h.x * T + 24, y: h.y * T + 48, r: 16, warm: 1, fl: h.y }); });
     return (m.lights = L);
   }
   const lightC = G.mkHi(VW, VH), lg = lightC.getContext('2d');
@@ -1116,7 +1302,7 @@
   let cam = null;
   const DXY = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
-  G.World = {};
+  G.World = { addChurch, healAt, healFx: null, tourState, skipTour };
   G.map = D;
   const npcVisible = n => !n.show || n.show();
   function resetNPCs(m) {
@@ -1173,8 +1359,8 @@
       P.t += dt / STEP;
       if (P.t >= 1) {
         const carry = Math.min(P.t - 1, 0.5);
-        P.moving = false; P.x = P.tx; P.y = P.ty; P.t = 0; P.stride++;
-        onStep();                      // setzt bei Kampf/Warp/Dialog synchron G.lock
+        P.moving = false; P.x = P.tx; P.y = P.ty; P.t = 0; P.stride++; G.World.stepFx(P.x, P.y);
+        if (!P.auto) onStep();                      // setzt bei Kampf/Warp/Dialog synchron G.lock
         const next = G.Input.dir() || P.queue; P.queue = null;
         if (next && !isBusy()) { P.dir = next; P.turn = 0; if (tryMove(next)) P.t = carry; }
       }
@@ -1401,9 +1587,127 @@
     const ox = Math.round(cam.x - P.px), oy = Math.round(cam.y - P.py);
     return clamp(Math.round(P.px) + ox, Math.round(P.py) + oy);
   };
+
+  // ================= Licht & Atmosphäre (vorberechnete Licht-Sprites, Parallax-Nebel, Irrlichter, Wind) =================
+  // Lichtkegel/-höfe werden nicht mehr pro Bild als Verlauf erzeugt, sondern aus wenigen vorgerechneten Sprites skaliert.
+  const mkGlow = (rgb, stops) => { const c = G.mk(128, 128), g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    for (const [o, a] of stops) gr.addColorStop(o, `rgba(${rgb},${a})`); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return c; };
+  const SOFT = [[0, 1], [0.25, 0.93], [0.5, 0.66], [0.72, 0.3], [0.88, 0.08], [1, 0]];            // weicher, fast quadratischer Abfall
+  const LSPR = { hole: mkGlow('0,0,0', SOFT), warm: mkGlow('255,168,78', SOFT), cool: mkGlow('150,120,255', SOFT), ghost: mkGlow('120,200,255', SOFT),
+    wisp: mkGlow('140,240,214', [[0, 1], [0.12, 0.8], [0.3, 0.32], [0.6, 0.08], [1, 0]]), core: mkGlow('240,255,250', [[0, 1], [0.25, 0.6], [0.6, 0.1], [1, 0]]) };
+  G.LSPR = LSPR;
+  const spr = (g, img, x, y, rx, ry = rx) => g.drawImage(img, x - rx, y - ry, rx * 2, ry * 2);
+  // kachelbare, weiche Nebeltextur (256×128, 1×; wird geglättet hochskaliert)
+  const FOGTEX = (() => { const c = G.mk(256, 128), g = c.getContext('2d');
+    for (let i = 0; i < 46; i++) { const x = hash(i, 1, 300) * 256, y = hash(i, 2, 301) * 128, r = 18 + hash(i, 3, 302) * 34, a = 0.18 + hash(i, 4, 303) * 0.3;
+      for (const ox of [-256, 0, 256]) for (const oy of [-128, 0, 128]) { const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+        gr.addColorStop(0, `rgba(204,212,236,${a})`); gr.addColorStop(1, 'rgba(204,212,236,0)'); g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); } }
+    return c; })();
+  const FOGLAYERS = { dorf: [0.09, 0.06], kueste: [0.12, 0.07], moor: [0.14, 0.09] };
+  // beide Parallax-Schichten werden in eine kleine 1×-Leinwand gemalt und einmal weich hochskaliert (spart Füllrate auf 4×-Bildschirmen)
+  const FOGC = G.mk(VW, VH), fogg = FOGC.getContext('2d'); let FOGPAT = null;
+  function fogLayers(ctx, cx, cy, t, L) {
+    if (!FOGPAT) FOGPAT = fogg.createPattern(FOGTEX, 'repeat');
+    fogg.clearRect(0, 0, VW, VH); fogg.fillStyle = FOGPAT;
+    for (const [par, speed, alpha, yoff] of [[0.55, 4, L[0], 0], [1.25, 9, L[1], 64]]) {
+      const ox = (((cx * par + t * speed) % 256) + 256) % 256, oy = ((((cy * par) * 0.6 + yoff) % 128) + 128) % 128;
+      fogg.globalAlpha = alpha; fogg.setTransform(1, 0, 0, 1, -ox, -oy); fogg.fillRect(0, 0, VW + 256, VH + 128);
+    }
+    fogg.setTransform(1, 0, 0, 1, 0, 0); fogg.globalAlpha = 1;
+    ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(FOGC, 0, 0, VW, VH); ctx.restore();
+  }
+  // Irrlichter im Moor: wandern um feuchte Stellen, pulsieren, weichen der Laterne scheu aus
+  function wispsFor(m) {
+    if (m.wisps) return m.wisps;
+    const spots = []; for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if ('wqm'.includes(m.tiles[y][x]) && hash(x, y, 310) < 0.08) spots.push([x * T + 8, y * T + 6]);
+    m.wisps = spots.slice(0, 16).map(([x, y], i) => ({ bx: x, by: y, x, y, ph: hash(i, 7, 311) * 20, sp: 0.25 + hash(i, 8, 312) * 0.3, flee: 0 }));
+    return m.wisps;
+  }
+  function updateWisps(m, t, dt) {
+    const W = wispsFor(m), px = P.px + 8, py = P.py + 4;
+    for (const w of W) {
+      const tt = t * w.sp + w.ph; let x = w.bx + Math.sin(tt) * 22 + Math.sin(tt * 2.3) * 6, y = w.by + Math.cos(tt * 0.8) * 14 - 4;
+      const d = Math.hypot(x - px, y - py); w.flee = Math.max(0, Math.min(1, w.flee + (d < 40 ? dt * 2 : -dt)));
+      if (w.flee > 0 && d > 0.1) { x += (x - px) / d * 26 * w.flee; y += (y - py) / d * 18 * w.flee; }
+      w.x = x; w.y = y; w.a = (0.55 + 0.45 * Math.sin(t * 1.3 + w.ph * 3)) * (1 - 0.6 * w.flee);
+    }
+    return W;
+  }
+  // Wind: Grashalme, Schilf und Weidenzweige wiegen sich (5 vorgerenderte Neigungen je Art)
+  const SWAY = {};
+  function swaySprites(kind, theme) {
+    const key = kind + theme; if (SWAY[key]) return SWAY[key];
+    const Pl = G.Tiles.PAL[theme] || G.Tiles.PAL.dorf;
+    return (SWAY[key] = [-2, -1, 0, 1, 2].map(k => { const c = G.mkHi(16, 20), g = c.getContext('2d'), a = k * 0.55;
+      const blade = (x, h, col, w = 0.5) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(x, 19); g.quadraticCurveTo(x + a * 0.4, 19 - h * 0.6, x + a * h / 5, 19 - h); g.stroke(); };
+      if (kind === 'grass') { for (const [x, h, c] of [[3, 8, Pl.tallT], [5, 10, Pl.tallL], [8, 7, Pl.tallT], [11, 9, Pl.tallL], [13, 7, Pl.tallT]]) blade(x, h, c, 0.7); }
+      else if (kind === 'reed') { for (const [x, h] of [[4, 11], [7, 14], [10, 10]]) { blade(x, h, '#4a5e3c', 0.7); g.fillStyle = '#6a4e30'; g.fillRect(x + a * h / 5 - 0.5, 19 - h - 1, 1, 2.5); } }
+      else { for (const [x, h] of [[3, 12], [6, 14], [9, 13], [12, 11]]) { g.strokeStyle = '#3e4c3a'; g.lineWidth = 0.5; g.beginPath(); g.moveTo(x, 4); g.quadraticCurveTo(x + a * 0.6, 4 + h * 0.5, x + a * 1.4, 4 + h); g.stroke(); } }
+      return c; }));
+  }
+  function renderSway(ctx, m, cx, cy, t) {
+    if (m.kind !== 'outdoor' || G.lowFx || G.fxOff.sway) return;
+    const x0 = Math.max(0, Math.floor(cx / T)), y0 = Math.max(0, Math.floor(cy / T)), th = m.theme === 'moor' ? 'moor' : 'dorf';
+    for (let y = y0; y <= Math.min(m.h - 1, y0 + 15); y++) for (let x = x0; x <= Math.min(m.w - 1, x0 + 16); x++) {
+      const c = at(m, x, y), kind = c === '"' ? 'grass' : c === 'q' ? 'reed' : c === 'x' ? 'willow' : null; if (!kind) continue;
+      if (kind !== 'willow' && hash(x, y, 320) > 0.6) continue;
+      if ((x === P.x && y === P.y) || (x === P.tx && y === P.ty)) continue;        // unter der Figur nicht über die Füsse malen
+      const gust = Math.sin(t * 0.45 + x * 0.12) * 0.8, s = Math.sin(t * 1.8 + x * 0.7 + y * 0.35) + gust, f = Math.max(0, Math.min(4, Math.round(s + 2)));
+      const img = swaySprites(kind, th)[f];
+      if (kind === 'willow') ctx.drawImage(img, x * T - cx, y * T - cy - 6); else ctx.drawImage(img, x * T - cx + (hash(x, y, 321) - 0.5) * 4, y * T - cy - 6);
+    }
+  }
+  // Effektstufe: 'auto' (Standard, schaltet bei zu langer Bildzeit selbst auf niedrig), 'hoch', 'niedrig'
+  G.fxMode = 'auto'; G.lowFx = false; G.fxOff = {};
+  G.setFx = mode => { G.fxMode = mode; G.lowFx = mode === 'niedrig'; if (G.Store) G.Store.set('eldenghost.fx', mode); G.perf.low = 0; };
+  G.perf = { ema: 16.7, render: 0, slow: 0, low: 0 };
   // weicher Bodenschatten (Ellipse) unter Figuren; Figuren 20×26, Füsse auf der Kachelunterkante
   function shadow(ctx, x, y, w = 7) { G.shadowEllipse(ctx, x + 8, y + 15, w, 2.6); }
-  const drawChar = (ctx, img, sx, sy) => ctx.drawImage(img, sx + 8 - (img.width >> 1), sy + 16 - img.height + 1);
+  const drawChar = (ctx, img, sx, sy) => ctx.drawImage(img, sx + 8 - (img.lw || img.width) / 2, sy + 16 - (img.lh || img.height) + 1);
+  // ---------- Gehen & Stehen (Figuren) ----------
+  // Gangzyklus: 4 Phasen je Richtung, 2 pro Kachel (Kontakt, Durchschwung), synchron zum Gleiten; leichter Wipp-Effekt.
+  // Im Stand: Atmen (alle ~0.9 s) und Blinzeln (alle 2.6–4.4 s); Drehen zeigt kurz einen Zwischenschritt.
+  const ANIM = G.ANIM = { player: { idle: 0, blinkAt: 3, lastDir: 'down', turnT: 0, frame: null } };
+  function idleFrame(spr, dir, tIdle, seed) {
+    const id = spr.idle && spr.idle[dir]; if (!id) return spr[dir];
+    const bt = (tIdle + seed * 1.7) % (2.6 + (seed % 3) * 0.6);
+    if (tIdle > 0.5 && bt < 0.13) return id[2];                          // Blinzeln
+    return tIdle > 0.4 && Math.floor((tIdle + seed) / 0.9) % 2 ? id[1] : id[0]; // Atmen
+  }
+  function playerFrame(dt) {
+    const A = ANIM.player, spr = G.SPR.player;
+    if (A.lastDir !== P.dir) { if (!P.moving) A.turnT = 0.09; A.lastDir = P.dir; }
+    A.turnT = Math.max(0, A.turnT - dt);
+    if (P.moving) {
+      A.idle = 0; const ph = (P.stride % 2) * 2 + (P.t < 0.5 ? 0 : 1);
+      A.frame = { img: spr.walk[P.dir][ph], ph, lift: Math.round(Math.sin(Math.min(1, P.t) * Math.PI) * 2) / 2 };   // Wippen in ½-Pixel-Schritten
+    } else if (A.turnT > 0) A.frame = { img: spr.walk[P.dir][1], ph: 1, lift: 0.5 };
+    else { A.idle += dt; A.frame = { img: idleFrame(spr, P.dir, A.idle, 0), ph: -1, lift: 0 }; }
+    return A.frame;
+  }
+  function npcFrame(n) {
+    const spr = G.SPR[n.spr]; if (!spr) return null;
+    if ((n.ox || n.oy) && spr.walk) { const d = Math.abs(n.ox) + Math.abs(n.oy), ph = (Math.floor(d / 8) + ((n.cx + n.cy) % 2) * 2) % 4;
+      return { img: spr.walk[n.cdir][ph], lift: Math.round(Math.sin((d % 16) / 16 * Math.PI) * 2) / 2 }; }
+    return { img: idleFrame(spr, n.cdir, G.time + hash(n.x, n.y, 5) * 9, (n.x * 7 + n.y * 3) % 5) || spr.down, lift: 0 };
+  }
+  // Staub/Tritt-Effekt: kleine Wölkchen auf Wegen, Halme im Gras
+  const dust = [];
+  G.World.anim = () => ({ ph: ANIM.player.frame ? ANIM.player.frame.ph : null, lift: ANIM.player.frame ? ANIM.player.frame.lift : 0, idle: ANIM.player.idle, dust: dust.length, dir: P.dir });
+  G.World.stepFx = (x, y) => {
+    if (G.lowFx) return;
+    const c = at(G.map, x, y), px = x * T + 8, py = y * T + 15;
+    if (c === ',' || c === 'D' || c === 'c' || c === 'm') for (let i = 0; i < 4; i++) dust.push({ x: px + (Math.random() - 0.5) * 6, y: py, vx: (Math.random() - 0.5) * 14, vy: -4 - Math.random() * 6, life: 0, max: 0.45 + Math.random() * 0.2, k: 0 });
+    else if (c === '"' || c === 'q' || c === '.') for (let i = 0; i < 2; i++) dust.push({ x: px + (Math.random() - 0.5) * 8, y: py - 2, vx: (Math.random() - 0.5) * 10, vy: -10 - Math.random() * 6, life: 0, max: 0.4, k: 1 });
+  };
+  function renderDust(ctx, cx, cy, dt) {
+    for (let i = dust.length - 1; i >= 0; i--) {
+      const d = dust[i]; d.life += dt; if (d.life > d.max) { dust.splice(i, 1); continue; }
+      d.x += d.vx * dt; d.y += d.vy * dt; d.vy += 20 * dt; const k = 1 - d.life / d.max;
+      if (d.k) { ctx.fillStyle = `rgba(120,170,120,${0.7 * k})`; ctx.fillRect(d.x - cx, d.y - cy, 0.5, 1.5); }
+      else { const r = 1 + d.life * 4; ctx.fillStyle = `rgba(150,140,160,${0.32 * k})`; ctx.beginPath(); ctx.ellipse(d.x - cx, d.y - cy, r, r * 0.6, 0, 0, 6.283); ctx.fill(); }
+    }
+  }
   const smoke = [];
   G.World.render = (ctx, dt, opt = {}) => {
     const m = opt.hidePlayer ? D : G.map; if (opt.hidePlayer && G.map !== D) { /* Titelbild zeigt immer das Dorf */ }
@@ -1419,6 +1723,7 @@
     }
     renderWater(ctx, m, cx, cy, t);
     renderProps(ctx, m, cx, cy, t, dt);
+    renderSway(ctx, m, cx, cy, t);
     // Funde
     for (const p of m.pickups) {
       if (G.flag(p.flag)) continue;
@@ -1427,6 +1732,7 @@
       if (p.kind === 'mint') { ctx.fillStyle = '#7ad07a'; ctx.fillRect(sx + 7, sy + 8, 2, 5); ctx.fillRect(sx + 5, sy + 9, 2, 2); ctx.fillRect(sx + 9, sy + 7, 2, 2); }
       ctx.fillStyle = `rgba(255,248,200,${0.5 + 0.5 * b})`; ctx.fillRect(sx + 7, sy + 4, 2, 2); ctx.fillRect(sx + 8, sy + 2, 1, 6); ctx.fillRect(sx + 5, sy + 5, 6, 1);
     }
+    renderDust(ctx, cx, cy, dt);
     // Figuren
     const ents = [];
     for (const n of m.npcs) {
@@ -1437,7 +1743,7 @@
           const a = 0.75 + 0.2 * Math.sin(t * 1.5);
           const gr = ctx.createRadialGradient(sx + 8, sy + 2, 0, sx + 8, sy + 2, 34); gr.addColorStop(0, 'rgba(200,215,245,0.35)'); gr.addColorStop(1, 'rgba(200,215,245,0)');
           ctx.fillStyle = gr; ctx.fillRect(sx - 30, sy - 32, 76, 70);
-          shadow(ctx, sx, sy + 2, 9); ctx.globalAlpha = a; ctx.drawImage(G.SPR.mon[n.mon].at(32), sx - 8, Math.round(sy - 18 + Math.sin(t * 1.2) * 2), 32, 32); ctx.globalAlpha = 1;
+          shadow(ctx, sx, sy + 2, 9); ctx.globalAlpha = a; ctx.drawImage(G.SPR.mon[n.mon].at(32, (t % 3.7) < 0.14), sx - 8, Math.round(sy - 18 + Math.sin(t * 1.2) * 2), 32, 32); ctx.globalAlpha = 1;
           return;
         }
         if (n.altar) {
@@ -1449,24 +1755,24 @@
             const col = G.TYPE_COLORS[G.SPECIES[n.altar].type], by = Math.round(sy - 30 + Math.sin(t * 1.6 + n.x) * 2);
             const gr = ctx.createRadialGradient(sx + 8, by + 12, 0, sx + 8, by + 12, 20); gr.addColorStop(0, col + '66'); gr.addColorStop(1, col + '00');
             ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(sx - 14, by - 10, 44, 44); ctx.globalCompositeOperation = 'source-over';
-            ctx.drawImage(G.SPR.mon[n.altar].at(32), sx - 4, by, 24, 24);
+            ctx.drawImage(G.SPR.mon[n.altar].at(32, ((t + n.x * 1.3) % 3.4) < 0.14), sx - 4, by, 24, 24);
           }
           return;
         }
-        shadow(ctx, sx, sy); drawChar(ctx, G.SPR[n.spr][n.cdir] || G.SPR[n.spr].down, sx, sy);
+        const nf = npcFrame(n); shadow(ctx, sx, sy); drawChar(ctx, nf ? nf.img : G.SPR[n.spr].down, sx, sy - (nf ? nf.lift : 0));
         if (n.alert) { ctx.fillStyle = '#0a0814'; ctx.fillRect(sx + 3, sy - 23, 10, 13); ctx.fillStyle = '#f4ecff'; ctx.fillRect(sx + 4, sy - 22, 8, 11); ctx.fillStyle = '#c83a4a'; ctx.fillRect(sx + 7, sy - 20, 2, 5); ctx.fillRect(sx + 7, sy - 14, 2, 2); }
       } });
     }
+    const pf = opt.hidePlayer ? null : playerFrame(dt);
     if (!opt.hidePlayer) ents.push({ y: P.py, draw: () => {
-      // 4-Phasen-Gang: Schritt links, Durchschwung, Schritt rechts, Durchschwung (Durchschwung 1 px angehoben)
-      const sx = Math.round(P.px) - cx, sy = Math.round(P.py) - cy;
-      const ph = P.moving ? ((P.stride % 2) * 2 + (P.t < 0.5 ? 0 : 1)) : -1, fr = ph === 0 ? 1 : ph === 2 ? 2 : 0, lift = ph === 1 || ph === 3 ? 1 : 0;
-      shadow(ctx, sx, sy); drawChar(ctx, G.SPR.player[P.dir][fr], sx, sy - lift);
+      // 4-Phasen-Gang: Kontakt links, Durchschwung, Kontakt rechts, Durchschwung (Wippen), im Stand Atmen/Blinzeln
+      const sx = Math.round(P.px) - cx, sy = Math.round(P.py) - cy, f = pf;
+      shadow(ctx, sx, sy, f.lift ? 6.4 : 7); drawChar(ctx, f.img, sx, sy - f.lift);
     } });
     const drawPlayer = !opt.hidePlayer && ents[ents.length - 1].draw;
     ents.sort((a, b) => a.y - b.y).forEach(e => e.draw());
     // Kaminrauch
-    if (m === D && Math.random() < 0.25) m.houses.forEach(h => smoke.push({ x: h.x * T + 49, y: h.y * T + 1, life: 0, vx: (Math.random() - 0.3) * 4 }));
+    if (m === D && Math.random() < 0.25) m.houses.forEach(h => !h.church && smoke.push({ x: h.x * T + 49, y: h.y * T + 1, life: 0, vx: (Math.random() - 0.3) * 4 }));
     for (let i = smoke.length - 1; i >= 0; i--) {
       const s = smoke[i]; s.life += dt; s.y -= 7 * dt; s.x += (s.vx + Math.sin(s.life * 2) * 3) * dt;
       if (s.life > 3.5 || m !== D) { smoke.splice(i, 1); continue; }
@@ -1480,32 +1786,37 @@
       // im Nebel bleibt die Spielfigur lesbar: sie wird über den Schwaden erneut gezeichnet
       if (drawPlayer && (ZONE_OF[at(m, P.x, P.y)] || ZONE_OF[at(m, P.tx, P.ty)])) drawPlayer();
     }
-    // Dunkelheit + Lichter
-    const dusk = G.dusk(), dark = Math.max(0.12, 0.34 + 0.28 * dusk + m.dark);
+    const FL = m.kind === 'outdoor' && !G.lowFx && !G.fxOff.fog ? FOGLAYERS[m.theme === 'moor' ? 'moor' : m === K ? 'kueste' : 'dorf'] : null;
+    // Dunkelheit + Lichter (vorgerechnete, weich auslaufende Licht-Sprites)
+    const dusk = G.dusk(), dark = Math.max(0.12, 0.34 + 0.28 * dusk + m.dark), night = Math.max(0, Math.min(1, (dark - 0.3) / 0.5));
     lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, VW, VH);
     lg.fillStyle = `rgba(12,8,32,${dark})`; lg.fillRect(0, 0, VW, VH);
-    lg.globalCompositeOperation = 'destination-out';
+    lg.globalCompositeOperation = 'destination-out'; lg.imageSmoothingEnabled = true;
     const vis = [];
     for (const L of lightsFor(m)) {
       if (L.cond && !L.cond()) continue;
-      const x = L.x - cx, y = L.y - cy; if (x < -70 || y < -70 || x > VW + 70 || y > VH + 70) continue;
+      const x = L.x - cx, y = L.y - cy; if (x < -90 || y < -90 || x > VW + 90 || y > VH + 90) continue;
       const fl = L.warm ? 1 + 0.05 * Math.sin(t * 9 + L.fl) + 0.03 * Math.sin(t * 23 + L.fl * 2) : 0.8 + 0.2 * Math.sin(t * 1.5 + L.fl);
       vis.push([x, y, L.r * fl, L]);
     }
     if (!opt.hidePlayer) vis.push([plx, ply, m.plight * (1 + 0.04 * Math.sin(t * 11)), { warm: 1 }]);
-    for (const [x, y, r] of vis) {
-      const gr = lg.createRadialGradient(x, y, 0, x, y, r);
-      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.45, 'rgba(0,0,0,0.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      lg.fillStyle = gr; lg.fillRect(x - r, y - r, r * 2, r * 2);
-    }
+    const wisps = m.theme === 'moor' && m.kind === 'outdoor' ? updateWisps(m, t, dt) : null;
+    for (const [x, y, r, L] of vis) { spr(lg, LSPR.hole, x, y, r); if (L.win) spr(lg, LSPR.hole, x, y + 18, 22, 8); }
+    if (wisps) for (const w of wisps) spr(lg, LSPR.hole, w.x - cx, w.y - cy, 20 * w.a);
     ctx.drawImage(lightC, 0, 0);
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true;
     for (const [x, y, r, L] of vis) {
-      const gr = ctx.createRadialGradient(x, y, 0, x, y, r * 0.8), col = L.warm ? '255,160,70' : L.ghost ? '120,200,255' : '150,120,255';
-      gr.addColorStop(0, `rgba(${col},${L.warm ? 0.22 : 0.16})`); gr.addColorStop(1, `rgba(${col},0)`);
-      ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      ctx.globalAlpha = L.warm ? 0.3 : 0.2; spr(ctx, L.warm ? LSPR.warm : L.ghost ? LSPR.ghost : LSPR.cool, x, y, r * 0.8);
+      // Fensterlicht fällt als warmer Schein auf den Boden vor dem Haus (nachts stärker)
+      if (L.win) { ctx.globalAlpha = 0.16 + 0.3 * night; spr(ctx, LSPR.warm, x, y + 18, 22, 8); ctx.globalAlpha = 0.35 + 0.3 * night; spr(ctx, LSPR.warm, x, y, 7, 5); }
     }
+    if (wisps) for (const w of wisps) {
+      const x = w.x - cx, y = w.y - cy; if (x < -30 || y < -30 || x > VW + 30 || y > VH + 30) continue;
+      ctx.globalAlpha = 0.6 * w.a; spr(ctx, LSPR.wisp, x, y, 16); ctx.globalAlpha = w.a; spr(ctx, LSPR.core, x, y, 3.4);
+    }
+    ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
     renderStoryGlow(ctx, m, cx, cy, t);
+    if (G.World.healFx != null && !opt.hidePlayer) renderHealFx(ctx, Math.round(P.px) - cx + 8, Math.round(P.py) - cy, G.World.healFx, t);
     for (const f of m.flies) {
       f.x += Math.sin(t * 0.7 + f.ph) * 6 * dt; f.y += Math.cos(t * 0.9 + f.ph * 1.3) * 5 * dt;
       const x = f.x - cx, y = f.y - cy; if (x < -5 || y < -5 || x > VW + 5 || y > VH + 5) continue;
@@ -1521,20 +1832,22 @@
       const gr = ctx.createRadialGradient(x, y, 0, x, y, f.r); gr.addColorStop(0, `rgba(190,200,228,${a})`); gr.addColorStop(1, 'rgba(190,200,228,0)');
       ctx.fillStyle = gr; ctx.fillRect(x - f.r, y - f.r, f.r * 2, f.r * 2);
     }
+    if (FL) fogLayers(ctx, cx, cy, t, FL);   // ferne (Parallaxe 0.55) und nahe (1.25) Nebelschicht
     ctx.drawImage(vign, 0, 0);
+    if (!opt.hidePlayer) renderMarkers(ctx, m, cx, cy, t);
     // Laternenstein-Vorstellung: der Geist gross im Bild, während man seine Beschreibung liest
     if (G.World.showcase && !opt.hidePlayer) {
       const sp = G.World.showcase, col = G.TYPE_COLORS[G.SPECIES[sp].type], y = 62 + Math.sin(t * 2) * 3;
       ctx.fillStyle = 'rgba(6,4,18,0.45)'; ctx.fillRect(0, 0, VW, VH);
       const gr = ctx.createRadialGradient(128, y, 0, 128, y, 58); gr.addColorStop(0, col + '66'); gr.addColorStop(1, col + '00');
       ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(60, y - 70, 136, 140); ctx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(G.SPR.mon[sp].at(80), 88, Math.round(y - 40), 80, 80);
+      ctx.drawImage(G.SPR.mon[sp].at(80, (t % 3.2) < 0.14), 88, Math.round(y - 40), 80, 80);
     }
     G.map = saved;
   };
   // ---------- Schmiede & Mühle: Esse, Funken, Wasserrad, Klänge ----------
   const sparks = []; let hammerT = 0.6, creakT = 1, splashT = 0.3;
-  const spark = (x, y, vx, vy, life = 0.7) => { const o = { x, y, vx, vy, life, max: life }; if (sparks.length < 90) sparks.push(o); return o; };
+  const spark = (x, y, vx, vy, life = 0.7, kind) => { const o = { x, y, vx, vy, life, max: life, moon: kind === 'moon' }; if (sparks.length < 90) sparks.push(o); return o; };
   const near = (x, y, r) => { const d = Math.hypot(P.x - x, P.y - y); return d < r ? 1 - d / r : 0; };
   function renderProps(ctx, m, cx, cy, t, dt) {
     const glow = (x, y, r, a, col = '255,150,60') => { const gr = ctx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`); ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
@@ -1635,6 +1948,9 @@
         const lx = 21 * T + 24 - cx, ly = 4 * T - 45 - cy, a = t * 0.7;
         for (const s0 of [0, Math.PI]) {
           const ang = a + s0, Ln = 230, w = 0.15, ex = lx + Math.cos(ang) * Ln, ey = ly + Math.sin(ang) * Ln * 0.45;
+          { // weicher Streulichtkegel im Nebel um den Strahl
+            const g2 = ctx.createLinearGradient(lx, ly, ex, ey); g2.addColorStop(0, 'rgba(255,228,170,0.14)'); g2.addColorStop(1, 'rgba(255,228,170,0)');
+            ctx.fillStyle = g2; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + Math.cos(ang - 0.34) * Ln, ly + Math.sin(ang - 0.34) * Ln * 0.45); ctx.lineTo(lx + Math.cos(ang + 0.34) * Ln, ly + Math.sin(ang + 0.34) * Ln * 0.45); ctx.closePath(); ctx.fill(); }
           const gr = ctx.createLinearGradient(lx, ly, ex, ey); gr.addColorStop(0, 'rgba(255,228,160,0.5)'); gr.addColorStop(0.5, 'rgba(255,228,160,0.16)'); gr.addColorStop(1, 'rgba(255,228,160,0)');
           ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(lx, ly);
           ctx.lineTo(lx + Math.cos(ang - w) * Ln, ly + Math.sin(ang - w) * Ln * 0.45); ctx.lineTo(lx + Math.cos(ang + w) * Ln, ly + Math.sin(ang + w) * Ln * 0.45); ctx.closePath(); ctx.fill();
@@ -1650,14 +1966,73 @@
     }
     ctx.globalCompositeOperation = 'lighter';
   }
+  // Heilung in der Kirche: Mondlichtsäule über der Spielfigur, heller Ring am Boden
+  function renderHealFx(ctx, x, y, p, t) {
+    const a = Math.sin(Math.PI * Math.min(1, p)) , w = 10 + 6 * a;
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(x, y - 70, x, y + 16); g.addColorStop(0, 'rgba(200,215,255,0)'); g.addColorStop(0.6, `rgba(200,215,255,${0.35 * a})`); g.addColorStop(1, `rgba(230,238,255,${0.5 * a})`);
+    ctx.fillStyle = g; ctx.fillRect(x - w, y - 70, w * 2, 86);
+    ctx.globalAlpha = 0.6 * a; spr(ctx, LSPR.cool, x, y + 14, 22 + 10 * p, 8 + 3 * p); ctx.globalAlpha = 0.5 * a; spr(ctx, LSPR.cool, x, y + 2, 16);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  // ---- Aufgaben-Markierungen: «!» wer die Geschichte (oder eine Nebenaufgabe) jetzt weiterbringt, «?» für Abgaben ----
+  // vollständig aus den Story-Flags abgeleitet; Ziele sind NPCs (id) oder Orte (Tür, Wegweiser, Tagebuch)
+  const MARKS = {
+    dorf: [
+      { at: () => tour.active && TOUR[tour.stop] ? TOUR[tour.stop].look : null, m: () => tour.active ? '!' : null },   // Führung: nächster Ort
+      { id: 'ilse', m: () => { const st = story(); if (tour.active) return null; if (st === 0 || st === 3 || (st === 2 && G.state.flags.tour === 0)) return '!'; if (q1() === 6) return '?'; if (st >= 4 && q1() === 0 && G.flag('note')) return '!'; } },
+      { id: 'altar0', m: () => story() === 1 ? '!' : null }, { id: 'altar1', m: () => story() === 1 ? '!' : null }, { id: 'altar2', m: () => story() === 1 ? '!' : null },
+      { id: 'wido', m: () => q1() === 1 ? '!' : null },
+      { at: [23, 11], m: () => story() >= 4 && q1() === 0 && !G.flag('note') ? '!' : null },            // Zettel an Jorins Tür (Start der Nebenaufgabe)
+      { at: [17, 29], m: () => q1() === 2 ? '!' : null }                                                  // Wegweiser «Tiefes Moor»
+    ],
+    home: [{ id: 'mutter', m: () => story() === 6 ? '!' : null }, { id: 'vater', m: () => story() === 6 ? '!' : null }],
+    kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 ? '!' : null }, { id: 'wenke', m: () => story() >= 8 && !G.flag('wenke') ? '!' : null }],
+    huette: [{ at: [2, 3], m: () => q1() === 3 ? '!' : null }],
+    tiefesmoor: [{ id: 'kaspar', m: () => q1() === 4 ? '!' : null }, { id: 'nebelahn', m: () => q1() === 5 ? '!' : null }]
+  };
+  // aktuelle Markierungen einer Karte: [{ id|at, kind, x, y }]
+  function markersFor(m) {
+    const out = [];
+    if (!G.state) return out;
+    for (const e of MARKS[m.id] || []) {
+      const k = e.m(); if (!k) continue;
+      if (e.id) { const n = m.npcs.find(o => o.id === e.id); if (!n || !npcVisible(n)) continue; out.push({ id: e.id, kind: k, x: n.cx, y: n.cy, n }); }
+      else { const a = typeof e.at === 'function' ? e.at() : e.at; if (a) out.push({ at: a, kind: k, x: a[0], y: a[1] }); }
+    }
+    return out;
+  }
+  G.World.markers = (id) => markersFor(id ? G.MAPS[id] : G.map).map(o => ({ id: o.id || o.at.join(','), kind: o.kind }));
+  const MARKSPR = {};
+  function markSprite(kind) {
+    if (MARKSPR[kind]) return MARKSPR[kind];
+    // Comic-Sprechblase: dicke Kontur, cremefarbene Fläche, rotes «!» bzw. blaues «?» (2× gerastert)
+    const S = new G.Art.Shape(), col = kind === '?' ? '#3a7ad8' : '#d83a4a';
+    S.E(6, 6, 5.4, 5.6, '#fff4dc', { name: 'b' }).P([[4, 10.5], [6, 14], [8, 10.5]], '#fff4dc', { g: 'b' });
+    if (kind === '!') S.R(5, 2.4, 2, 5, col, { flat: true, line: false }).R(5, 8.4, 2, 1.8, col, { flat: true, line: false });
+    else S.C(4.2, 4, 6, 2.6, 1.3, col, { flat: true, line: false }).C(6, 2.6, 7.8, 4.2, 1.3, col, { flat: true, line: false }).C(7.8, 4.2, 6, 6.4, 1.3, col, { flat: true, line: false }).R(5.4, 6.2, 1.3, 1.6, col, { flat: true, line: false }).R(5.4, 8.6, 1.3, 1.5, col, { flat: true, line: false });
+    return (MARKSPR[kind] = hiArt(G.Art.raster(S, 24, 30, 2, { bold: true }), 2));
+  }
+  function renderMarkers(ctx, m, cx, cy, t) {
+    const list = markersFor(m); if (!list.length) return;
+    for (const o of list) {
+      const n = o.n, sx = o.x * T - cx + (n ? n.ox : 0), top = n ? (n.mon ? -34 : n.altar ? (story() < 2 ? -40 : -18) : -26) : -14, sy = o.y * T - cy + (n ? n.oy : 0) + top;
+      if (sx < -20 || sy < -30 || sx > VW + 4 || sy > VH + 4) continue;
+      const bob = Math.sin(t * 3 + o.x) * 1.6, pulse = 0.75 + 0.25 * Math.sin(t * 4 + o.y);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.45 * pulse; ctx.imageSmoothingEnabled = true;
+      spr(ctx, o.kind === '?' ? LSPR.cool : LSPR.warm, sx + 8, sy + 6 + bob, 13);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.imageSmoothingEnabled = false;
+      const a = markSprite(o.kind); ctx.drawImage(a, Math.round(sx + 2), Math.round(sy - 1 + bob), a.lw, a.lh);
+    }
+  }
   function renderSparks(ctx, cx, cy, dt) {
     if (!sparks.length) return;
     ctx.globalCompositeOperation = 'lighter';
     for (let i = sparks.length - 1; i >= 0; i--) {
       const p = sparks[i]; p.life -= dt; if (p.life <= 0) { sparks.splice(i, 1); continue; }
-      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.water ? 90 : 40) * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.water ? 90 : p.moon ? -10 : 40) * dt;
       const k = p.life / p.max, x = Math.round(p.x - cx), y = Math.round(p.y - cy);
-      ctx.fillStyle = p.water ? `rgba(170,210,255,${0.6 * k})` : `rgba(255,${150 + 90 * k | 0},${60 + 80 * k | 0},${k})`; ctx.fillRect(x, y, 1, 1);
+      ctx.fillStyle = p.moon ? `rgba(215,228,255,${k})` : p.water ? `rgba(170,210,255,${0.6 * k})` : `rgba(255,${150 + 90 * k | 0},${60 + 80 * k | 0},${k})`; ctx.fillRect(x, y, 1, 1);
     }
     ctx.globalCompositeOperation = 'source-over';
   }

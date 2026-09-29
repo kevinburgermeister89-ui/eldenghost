@@ -112,13 +112,17 @@
 
   G.FLY = { laternchen: 1, totenleuchte: 1, schattenmotte: 1, grabfalter: 1, hauchling: 0.5 };
   // ---------- Geister: Comic-Pixelstil aus js/creatures.js (vorne 64, hinten 80, Boss 84 Pixel, beliebige Grössen per at()) ----------
+  // Geister werden erst bei Bedarf gerastert (2× fein, hochaufgelöst): Vorderansicht, Atem, Blinzeln; Rück- und Bossansicht
   G.SPR = { mon: {} };
+  const lazy = (o, k, f) => Object.defineProperty(o, k, { configurable: true, enumerable: true, get() { const v = f(); Object.defineProperty(o, k, { value: v, enumerable: true }); return v; } });
   for (const sp in G.Creatures.DEF) {
-    const R = G.Creatures.render, c = R(sp, 64), bk = R(sp, 80, true), big = R(sp, 84);
-    G.SPR.mon[sp] = { img: c, img2: R(sp, 64, false, true), back: bk, back2: R(sp, 80, true, true), big, big2: R(sp, 84, false, true),
-      white: tint(c, '#f4f0ff'), whiteBack: tint(bk, '#f4f0ff'), whiteBig: tint(big, '#f4f0ff'), dark: tint(c, '#231c38'), icon: c.toDataURL(), darkIcon: null,
-      at: n => R(sp, n) };
-    G.SPR.mon[sp].darkIcon = G.SPR.mon[sp].dark.toDataURL();
+    const R = G.Creatures.render, H = G.Creatures.renderHi, o = { at: (n, blink) => H(sp, n, false, false, blink) };
+    lazy(o, 'img', () => H(sp, 64)); lazy(o, 'img2', () => H(sp, 64, false, true)); lazy(o, 'imgBlink', () => H(sp, 64, false, false, true));
+    lazy(o, 'back', () => H(sp, 80, true)); lazy(o, 'back2', () => H(sp, 80, true, true));
+    lazy(o, 'big', () => H(sp, 84)); lazy(o, 'big2', () => H(sp, 84, false, true)); lazy(o, 'bigBlink', () => H(sp, 84, false, false, true));
+    lazy(o, 'white', () => tint(o.img, '#f4f0ff')); lazy(o, 'whiteBack', () => tint(o.back, '#f4f0ff')); lazy(o, 'whiteBig', () => tint(o.big, '#f4f0ff'));
+    lazy(o, 'dark', () => tint(o.img, '#231c38')); lazy(o, 'icon', () => o.img.toDataURL()); lazy(o, 'darkIcon', () => o.dark.toDataURL());
+    G.SPR.mon[sp] = o;
   }
   // Spieler, Dorfbewohner und Seelenfänger: js/people.js
 })(window.G);

@@ -311,11 +311,45 @@
   };
   // Rendern in beliebiger Grösse (gecacht); back: Rückansicht (gespiegelt, näher, unten angeschnitten)
   const cache = {};
-  function render(sp, N, back, breathe) {
-    const key = sp + N + (back ? 'b' : 'f') + (breathe ? 'x' : ''); if (cache[key]) return cache[key];
-    const S = new A.Shape(); S.back = !!back; DEF[sp](S, !!back);
+  function render(sp, N, back, breathe, blink, bold) {
+    const key = sp + N + (back ? 'b' : 'f') + (breathe ? 'x' : '') + (blink ? 'z' : '') + (bold ? 'o' : ''); if (cache[key]) return cache[key];
+    const S = new A.Shape(); S.back = !!back; S.blink = !!blink; DEF[sp](S, !!back);
     const k = N / 64;
-    return cache[key] = A.raster(S, N, N, k, { mirror: !!back, oy: back ? 7 : 0, breathe: breathe ? 1.035 : 1, ground: 60 });
+    return cache[key] = A.raster(S, N, N, k, { mirror: !!back, oy: back ? 7 : 0, breathe: breathe ? 1.035 : 1, ground: 60, bold, glows: true });
   }
-  G.Creatures = { DEF, render };
+  // Oberflächenstruktur auf feinen Pixeln: Fell (Strichlagen), Federn (Schuppenbögen), Moos (Flecken), Stein (Risse), Haut (Tupfen)
+  const TEX = { flackerling: 'fur', irrfackel: 'fur', raufdachs: 'fur', grimmdachs: 'fur', nebelahn: 'fur', schattenmotte: 'fuzz', grabfalter: 'fuzz',
+    nebelkauz: 'feather', schleierkauz: 'feather', moorlurch: 'dots', moorunke: 'dots', kieselgeist: 'stone', menhirgeist: 'stone', torfwicht: 'moss',
+    schwammling: 'dots', moderhut: 'moss', hauchling: 'wisp', laternchen: null, totenleuchte: null };
+  const hh = (x, y) => { let v = (x * 374761393 + y * 668265263) | 0; v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
+  function texture(c, kind) {
+    if (!kind) return;
+    const g = c.getContext('2d', { willReadFrequently: true }), w = c.width, h = c.height, img = g.getImageData(0, 0, w, h), d = img.data;
+    const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 250;
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = (y * w + x) * 4; if (d[i + 3] < 250) continue;
+      const lum = (d[i] * 3 + d[i + 1] * 5 + d[i + 2] * 2) / 10; if (lum < 48 || lum > 200) continue;       // Kontur und Leuchtflächen bleiben
+      if (!solid(x - 2, y) || !solid(x + 2, y) || !solid(x, y - 2) || !solid(x, y + 2)) continue;           // Rand frei lassen
+      let f = 1, tint = null;
+      switch (kind) {
+        case 'fur': if ((x + y * 2) % 7 === 0 && hh(x >> 2, y >> 1) < 0.55) f = 0.84; else if ((x + y * 2) % 7 === 1 && hh(x >> 2, y >> 1) < 0.55) f = 1.1; break;
+        case 'fuzz': if (hh(x, y) < 0.1) f = 1.14; else if (hh(x + 7, y) < 0.08) f = 0.86; break;
+        case 'feather': { const row = y >> 2, u = ((x + (row % 2) * 3) % 6) - 2.5, v = y % 4; if (v === Math.min(3, Math.round(u * u / 2.2))) f = 0.84; else if (v === 0 && Math.abs(u) < 1) f = 1.08; break; }
+        case 'dots': if (hh(x >> 1, y >> 1) < 0.07) f = 0.8; else if (hh((x >> 1) + 9, y >> 1) < 0.05) f = 1.15; break;
+        case 'stone': if (hh(x >> 1, y) < 0.025 || (hh(x, y >> 1) < 0.02)) f = 0.72; else if (hh(x, y) < 0.06) f = 1.08; if (hh(x >> 2, y >> 2) < 0.12 && !solid(x, y - 6)) tint = [96, 132, 76]; break;
+        case 'moss': if (hh(x >> 1, y >> 1) < 0.12) tint = [92, 128, 70]; else if (hh(x, y) < 0.05) f = 0.82; break;
+        case 'wisp': if (((x - y * 0.5) | 0) % 9 === 0 && hh(x >> 3, y >> 2) < 0.5) f = 1.12; break;
+      }
+      if (tint) { d[i] = d[i] * 0.55 + tint[0] * 0.45; d[i + 1] = d[i + 1] * 0.55 + tint[1] * 0.45; d[i + 2] = d[i + 2] * 0.55 + tint[2] * 0.45; }
+      if (f !== 1) { d[i] = Math.min(255, d[i] * f); d[i + 1] = Math.min(255, d[i + 1] * f); d[i + 2] = Math.min(255, d[i + 2] * f); }
+    }
+    g.putImageData(img, 0, 0);
+  }
+  // hochaufgelöst (2× fein gerastert, kräftige Kontur, Oberflächenstruktur), logische Grösse n
+  function renderHi(sp, n, back, breathe, blink) {
+    const c = render(sp, n * 2, back, breathe, blink, true);
+    if (!c.s) { texture(c, TEX[sp]); c.s = 2; c.lw = n; c.lh = n; if (c.glows) c.glows = c.glows.map(([x, y, r, col]) => [x / 2, y / 2, r / 2, col]); }
+    return c;
+  }
+  G.Creatures = { DEF, render, renderHi };
 })(window.G);

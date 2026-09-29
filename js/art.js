@@ -35,6 +35,8 @@
   // grosses Comic-Auge: dunkle Pupille, farbige Iris unten, zwei Glanzpunkte
   Shape.prototype.eye = function (cx, cy, rx, ry, iris, o = {}) {
     const f = { face: true, flat: true, line: false, cast: false };
+    // Blinzeln: geschlossenes Lid als dunkler, leicht gebogener Strich
+    if (this.blink) { const w = Math.max(0.9, ry * 0.32); this.C(cx - rx * 0.95, cy + ry * 0.05, cx, cy + ry * 0.3, w, o.dark || '#1a1428', f).C(cx, cy + ry * 0.3, cx + rx * 0.95, cy + ry * 0.05, w, o.dark || '#1a1428', f); return this; }
     if (o.white) this.E(cx, cy, rx + o.white, ry + o.white, '#f2eef8', Object.assign({ name: 'sclera' + cx }, f));
     this.E(cx, cy, rx, ry, o.dark || '#1a1428', Object.assign({ name: 'eye' + cx }, f));
     if (iris) this.E(cx, cy + ry * 0.38, rx * 0.78, ry * 0.5, iris, Object.assign({ clip: 'eye' + cx }, f));
@@ -132,7 +134,24 @@
       const c = mix(ramp(P[q].col, P[q].glow).ol, INK, 0.45);
       out[j * 4] = c[0]; out[j * 4 + 1] = c[1]; out[j * 4 + 2] = c[2]; out[j * 4 + 3] = P[q].alpha ? P[q].alpha * 255 : 255;
     }
+    // bold: zweite Konturschicht (bei 2×-Rastern bleibt die Kontur so 1 logischen Pixel kräftig)
+    if (opt.bold) {
+      const ring = [];
+      for (let py = 0; py < Hh; py++) for (let px = 0; px < W; px++) {
+        const j = py * W + px; if (id[j] >= 0 || out[j * 4 + 3]) continue;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = px + dx, y = py + dy; if (x < 0 || y < 0 || x >= W || y >= Hh) continue; const q = y * W + x;
+          if (id[q] < 0 && out[q * 4 + 3] > 200) { ring.push(j, q); break; } }
+      }
+      for (let i = 0; i < ring.length; i += 2) { const j = ring[i], q = ring[i + 1]; out[j * 4] = out[q * 4] * 0.9; out[j * 4 + 1] = out[q * 4 + 1] * 0.9; out[j * 4 + 2] = out[q * 4 + 2] * 0.9; out[j * 4 + 3] = 235; }
+    }
+    // Leuchtflächen je Form merken (Mittelpunkt, Grösse) – für flackerndes Zusatzlicht im Kampf und auf der Karte
+    if (opt.glows) {
+      const acc = {};
+      for (let j = 0; j < n; j++) { const i = id[j]; if (i < 0 || !P[i].glow) continue; const a = acc[i] || (acc[i] = [0, 0, 0]); a[0] += j % W; a[1] += (j / W) | 0; a[2]++; }
+      var glows = Object.entries(acc).filter(([, a]) => a[2] >= 3).map(([i, a]) => [a[0] / a[2], a[1] / a[2], Math.sqrt(a[2]), P[i].col]);
+    }
     const cv = G.mk(W, Hh), g = cv.getContext('2d', { willReadFrequently: true });
+    if (glows) cv.glows = glows;
     g.putImageData(new ImageData(out, W, Hh), 0, 0);
     return cv;
   }
