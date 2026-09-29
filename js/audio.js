@@ -262,63 +262,52 @@
   // lead = Solo-Stimme (solo | harm | piano | cello | none), dens = Notendichte, space = Anteil stiller Phrasen (Luft),
   // harp/piano = Wahrscheinlichkeit eines Tupfers pro Takt, drone = Liegeton, ost/perc = Kampf-Ostinato und Trommeln
   const TRACKS = {
-    // Dorf: warm, ruhig, ein wenig wehmütig – D-dorisch, Streicherfläche, spärliche Solo-Violine, Harfe; selten ein verstimmtes Flageolett
-    ambient: { root: 62, mode: MODE.dorian, bpm: 66, vol: 1.57, prog: [[0, 3, 5, 4], [0, 5, 3, 6], [3, 0, 4, 0]], padBars: 2, padV: 0.026, padCut: 1150,
-      lead: 'solo', leadOct: 1, leadV: 0.034, dens: 0.3, space: 0.45, harp: 0.55, piano: 0.12, lowV: 0.03, unease: { every: [45, 90], kinds: ['detune', 'detune', 'whisper'] } },
-    // Innenräume: sehr leise – A-äolisch, Klavier und tiefe Fläche
-    indoor: { root: 57, mode: MODE.aeolian, bpm: 56, vol: 1.01, prog: [[0, 5, 3, 0], [0, 3, 6, 2]], padBars: 2, padV: 0.02, padCut: 800,
-      lead: 'piano', leadOct: 1, leadV: 0.05, dens: 0.26, space: 0.5, harp: 0, piano: 0, lowV: 0.02, unease: { every: [90, 160], kinds: ['sub'] } },
-    // Nebel: mystisch – E-äolisch, gläserne Flageoletts, Cello-Liegeton, Solo-Viola tief, Nebelrauschen
-    nebel: { root: 64, mode: MODE.aeolian, bpm: 58, vol: 1.13, prog: [[0, 5, 0, 6], [0, 3, 5, 0], [5, 6, 0, 0]], padBars: 2, padV: 0.022, padCut: 900,
-      lead: 'harm', leadOct: 2, leadV: 0.022, dens: 0.22, space: 0.5, harp: 0.2, piano: 0, drone: 0.05, air: 0.013, viola: 0.35, unease: { every: [28, 55], kinds: ['whisper', 'detune', 'whisper', 'sub'] } },
-    // Küste: weit und offen – A-dorisch, lange Violinenbögen über leeren Quinten, Harfe wie Wellen
-    coast: { root: 57, mode: MODE.dorian, bpm: 60, vol: 1.62, prog: [[0, 6, 3, 0], [0, 4, 6, 3], [5, 3, 0, 4]], padBars: 2, padV: 0.024, padCut: 1000, fifths: 1,
-      lead: 'solo', leadOct: 1, leadV: 0.032, dens: 0.24, space: 0.5, harp: 0.6, harpWave: 1, piano: 0, lowV: 0.032, unease: { every: [50, 95], kinds: ['detune', 'whisper'] } },
-    // Tiefes Moor: dunkel und leise – Cis-phrygisch, Cello-Liegeton, Tritonus-Schatten, tiefe Viola, Herzschlag, Flüstern
-    moor: { root: 61, mode: MODE.phrygian, bpm: 50, vol: 0.99, prog: [[0, 1, 0, 6], [0, 5, 1, 0], [0, 3, 4, 1]], padBars: 2, padV: 0.02, padCut: 700,
-      lead: 'solo', leadOct: 0, leadV: 0.028, dens: 0.18, space: 0.6, harp: 0.12, piano: 0, drone: 0.06, tritone: 1, air: 0.018, unease: { every: [22, 45], kinds: ['whisper', 'sub', 'heart', 'detune'] } },
-    // Mondkirche: Choral – F-lydisch, Streicherchor in langen Akkorden, Stimmen «aah», ferne Glocke
-    church: { root: 53, mode: MODE.lydian, bpm: 48, vol: 1.34, prog: [[0, 4, 5, 0], [3, 0, 4, 0]], padBars: 1, padV: 0.024, padCut: 1300, choir: 0.022,
-      lead: 'harm', leadOct: 2, leadV: 0.018, dens: 0.16, space: 0.55, harp: 0.25, piano: 0, lowV: 0.03, bells: 0.15, unease: { every: [80, 140], kinds: ['detune'] } },
-    // Kampf: treibend, aber geschmackvoll – A-äolisch, Spiccato-Achtel, Cello-Puls, Taiko/Rahmentrommel, Violinen-Motiv
-    battle: { root: 57, mode: MODE.aeolian, bpm: 112, vol: 2.8, prog: [[0, 5, 6, 0], [0, 3, 6, 4], [5, 6, 0, 4]], padBars: 2, padV: 0.018, padCut: 1200, fastIn: 1,
-      lead: 'solo', leadOct: 1, leadV: 0.03, dens: 0.36, space: 0.25, harp: 0, piano: 0, lowV: 0, ost: [0, 4, 2, 4, 0, 4, 2, 7], ostV: 0.03, pulse: 0.045, perc: 1, unease: { every: [40, 80], kinds: ['detune'] } },
-    // Beschwörer: noch etwas entschlossener – D-harmonisch-moll, Ostinato mit Wechselnoten, volleres Trommelmuster
-    trainer: { root: 62, mode: MODE.harm, bpm: 120, vol: 2.9, prog: [[0, 5, 3, 4], [0, 3, 4, 0], [5, 1, 4, 4]], padBars: 1, padV: 0.018, padCut: 1400, fastIn: 1,
-      lead: 'solo', leadOct: 1, leadV: 0.032, dens: 0.42, space: 0.2, harp: 0, piano: 0, lowV: 0, ost: [0, 2, 4, 2, 0, 2, 4, 6], ostV: 0.03, pulse: 0.05, perc: 2, unease: { every: [50, 90], kinds: ['detune'] } },
-    // Höhle am Leuchtturmpfad: tropfend und unheimlich – H-phrygisch, tiefe Fläche, gläserne Flageoletts, vereinzelte Harfen-«Tropfen»
-    cave: { root: 59, mode: MODE.phrygian, bpm: 54, vol: 1.5, prog: [[0, 1, 0, 5], [0, 6, 1, 0]], padBars: 2, padV: 0.018, padCut: 650,
-      lead: 'harm', leadOct: 1, leadV: 0.02, dens: 0.2, space: 0.55, harp: 0, drip: 0.5, piano: 0, drone: 0.05, air: 0.01, viola: 0.3, unease: { every: [20, 40], kinds: ['whisper', 'detune', 'sub'] } },
-    // Team Quantum: schlau, bedrohlich, mit etwas Charme – Cis-harmonisch-moll, Pizzicato-Gang, Tango-artige Solo-Violine, Rahmentrommel
-    quantum: { root: 61, mode: MODE.harm, bpm: 100, vol: 2.6, prog: [[0, 3, 4, 0], [5, 3, 4, 4], [0, 6, 5, 4]], padBars: 2, padV: 0.016, padCut: 1100, fastIn: 1,
-      lead: 'solo', leadOct: 1, leadV: 0.032, dens: 0.4, space: 0.2, harp: 0, piano: 0, lowV: 0, ost: [0, -3, 0, 2, 4, 2, 0, -1], ostV: 0.034, ostOct: -1, pizz: 1, perc: 4, unease: { every: [30, 60], kinds: ['detune'] } },
-    // Nebelahn: feierlich und gross – H-moll, tiefe Streicher, Chor, Pauken-Wirbel, Totenglocke, langsames Ostinato
-    boss: { root: 59, mode: MODE.aeolian, bpm: 72, vol: 1.85, prog: [[0, 5, 3, 4], [0, 3, 5, 4], [5, 3, 0, 4]], padBars: 1, padV: 0.024, padCut: 1000, choir: 0.024, fastIn: 1,
-      lead: 'solo', leadOct: 0, leadV: 0.034, dens: 0.28, space: 0.3, harp: 0, piano: 0, lowV: 0.045, ost: [0, 0, 4, 0, 0, 0, 5, 4], ostV: 0.024, ostOct: -1, perc: 3, toll: 1, unease: { every: [30, 60], kinds: ['whisper', 'sub'] } },
+    // Dorf: warm und gemütlich – d-dorisch, Spieluhr, weiche Fläche, Harfen-Bass; selten eine verstimmte Note
+    ambient: { root: 62, mode: MODE.dorian, bpm: 74, vol: 1.25, prog: [[0, 3, 6, 0], [0, 5, 3, 4], [5, 3, 0, 6], [0, 3, 1, 4]], lead: 'box', dens: 0.42, padCut: 1100, bass: 'harp', bells: 0.12, unease: { every: [38, 70], kinds: ['detune', 'detune', 'whisper'] } },
+    // Innenräume: leise, spärliche Spieluhr, Ofenknistern
+    indoor: { root: 57, mode: MODE.aeolian, bpm: 60, vol: 0.42, prog: [[0, 5, 3, 0], [0, 3, 6, 2]], lead: 'box', dens: 0.24, padCut: 700, bass: 'soft', bells: 0.04, crackle: 1, unease: { every: [80, 140], kinds: ['sub'] } },
+    // Nebelgras & Aussenbereiche: mystisch – e-äolisch/phrygisch, Glocken mit viel Hall, Flüstern
+    nebel: { root: 64, mode: MODE.phrygian, bpm: 62, vol: 0.8, prog: [[0, 1, 0, 6], [0, 5, 6, 0], [3, 1, 0, 0]], lead: 'bell', dens: 0.26, padCut: 1400, bass: 'drone', bells: 0.3, air: 1, unease: { every: [22, 42], kinds: ['whisper', 'detune', 'whisper', 'sub'] } },
+    // Tiefes Moor: dunkler – cis-lokrisch, Tritonus-Brummen, gläserne Glocken, Herzschlag, tiefe Einzeltöne
+    moor: { root: 61, mode: MODE.locrian, bpm: 52, vol: 0.78, prog: [[0, 1, 0, 4], [0, 5, 1, 0], [0, 3, 4, 1]], lead: 'bell', dens: 0.2, padCut: 600, bass: 'drone', tritone: 1, bells: 0.18, air: 1, unease: { every: [16, 34], kinds: ['whisper', 'sub', 'heart', 'detune', 'whisper'] } },
+    // Kampf: gespannter, gleicher Stil – a-phrygisch, pulsierender Bass, Zupf-Arpeggien, leise Trommel
+    battle: { root: 57, mode: MODE.phrygian, bpm: 108, vol: 1.05, prog: [[0, 5, 6, 0], [0, 1, 6, 4], [5, 6, 0, 0], [0, 3, 1, 0]], lead: 'bell', dens: 0.34, padCut: 1200, bass: 'pulse', arp: 1, drums: 1, bells: 0, fastIn: 1, unease: { every: [30, 60], kinds: ['detune'] } },
+    // Beschwörer: d-harmonisch-moll, etwas treibender
+    trainer: { root: 62, mode: MODE.harm, bpm: 118, vol: 1.0, prog: [[0, 5, 3, 4], [0, 3, 4, 0], [5, 1, 4, 4]], lead: 'pluck', dens: 0.46, padCut: 1500, bass: 'pulse', arp: 2, drums: 2, bells: 0, fastIn: 1, unease: { every: [40, 80], kinds: ['detune'] } },
+    // Nebelahn: feierlich statt aggressiv – h-moll, Orgel und Chor, Totenglocke, Pauke
+    boss: { root: 59, mode: MODE.aeolian, bpm: 58, vol: 0.55, prog: [[0, 5, 3, 4], [0, 3, 5, 4], [5, 3, 0, 4]], lead: 'choir', dens: 0.2, padCut: 900, bass: 'organ', toll: 1, fastIn: 1, unease: { every: [26, 50], kinds: ['whisper', 'sub'] } },
+    // v16 Klippenhöhle (im v14-Stil): h-phrygisch, tiefes Brummen, hallende Glocken wie Tropfen, Flüstern
+    cave: { root: 59, mode: MODE.phrygian, bpm: 56, vol: 0.75, prog: [[0, 1, 0, 5], [0, 6, 1, 0], [0, 3, 1, 0]], lead: 'bell', dens: 0.22, padCut: 700, bass: 'drone', bells: 0.28, air: 1, unease: { every: [18, 36], kinds: ['whisper', 'sub', 'detune'] } },
+    // v16 Team Quantum (im v14-Stil): cis-harmonisch-moll, Zupf-Arpeggien, pulsierender Bass, leichte Trommel – verschmitzt bedrohlich
+    quantum: { root: 61, mode: MODE.harm, bpm: 104, vol: 1.0, prog: [[0, 3, 4, 0], [5, 3, 4, 4], [0, 6, 5, 4]], lead: 'pluck', dens: 0.4, padCut: 1300, bass: 'pulse', arp: 2, drums: 1, bells: 0, fastIn: 1, unease: { every: [40, 80], kinds: ['detune'] } },
   };
+  // v16: zurück zur v14-Musik – Küste spielt wie in v14 die Dorfmusik, Kirchen die Innenraum-Musik (gleicher Name -> kein Neustart beim Kartenwechsel)
+  const TRACK_ALIAS = { coast: 'ambient', church: 'indoor' };
 
   function mkTrack(name) {
-    const def = TRACKS[name], c = S.ctx, bus = c.createGain(), now = c.currentTime, fade = def.fastIn ? 0.5 : 3.2;
+    const def = TRACKS[name], c = S.ctx, bus = c.createGain(), now = c.currentTime, fade = def.fastIn ? 0.5 : 2.8;
     bus.gain.setValueAtTime(0.0001, now); bus.gain.exponentialRampToValueAtTime(def.vol, now + fade); bus.connect(musicBus);
     const tr = { name, def, bus, born: now, root: def.root, mode: def.mode, spb: 60 / def.bpm / 2, next: now + 0.12, step: 0, alive: true, motif: null, phrase: 0,
-      nextUnease: now + def.unease.every[0] * (0.5 + R() * 0.5), drone: null };
-    if (def.drone) startDrone(tr);
+      nextUnease: now + def.unease.every[0] * (0.5 + R() * 0.5), prevNote: 7, drone: null };
+    if (def.bass === 'drone') startDrone(tr);
     if (def.air) startAir(tr);
+    if (def.crackle) tr.crackle = true;
     return tr;
   }
-  function startDrone(tr) { // Cello-Liegeton (Grundton + Quinte bzw. Tritonus im Moor), atmet über einen langsamen Filter-LFO
-    const c = S.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300; lp.Q.value = 0.4; g.gain.value = 0;
-    g.gain.linearRampToValueAtTime(tr.def.drone, c.currentTime + 6); lp.connect(g); g.connect(tr.bus);
-    const f = mtof(tr.root - 24), os = [osc('sawtooth', f, c.currentTime, Infinity, lp, -5), osc('sawtooth', f, c.currentTime, Infinity, lp, 5)];
-    const g5 = c.createGain(); g5.gain.value = 0.45; g5.connect(lp); os.push(osc('sawtooth', f * (tr.def.tritone ? Math.pow(2, 6 / 12) : 1.5), c.currentTime, Infinity, g5, 3));
-    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.045; lg.gain.value = 110; lfo.connect(lg); lg.connect(lp.frequency); lfo.start(); os.push(lfo);
-    tr.drone = os; tr.droneAux = (tr.droneAux || []).concat([g, lp, lg, g5]);
+  function startDrone(tr) {
+    const c = S.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; g.gain.value = 0;
+    g.gain.linearRampToValueAtTime(0.09, c.currentTime + 4); lp.connect(g); g.connect(tr.bus);
+    // Dauerton ohne festes Ende (früher 1 h -> danach Stille); gestoppt und getrennt wird er in killTrack
+    const f = mtof(tr.root - 24), os = [osc('sawtooth', f, c.currentTime, Infinity, lp, -4), osc('sine', f, c.currentTime, Infinity, lp),
+      osc('triangle', f * (tr.def.tritone ? Math.pow(2, 6 / 12) : 1.5), c.currentTime, Infinity, lp, 5)];
+    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.05; lg.gain.value = 120; lfo.connect(lg); lg.connect(lp.frequency); lfo.start(); os.push(lfo);
+    tr.drone = os; tr.droneAux = (tr.droneAux || []).concat([g, lp, lg]);
   }
-  function startAir(tr) { // leises Nebel-/Windrauschen im Stück (die ortsabhängige Umgebung kommt separat)
+  function startAir(tr) { // Wind/Nebelrauschen mit langsamer Bewegung
     const c = S.ctx, n = c.createBufferSource(); n.buffer = noiseBuf(); n.loop = true;
     const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 600; bp.Q.value = 0.8;
-    const g = c.createGain(); g.gain.value = tr.def.air; n.connect(bp); bp.connect(g); g.connect(tr.bus); n.start();
-    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.043; lg.gain.value = 300; lfo.connect(lg); lg.connect(bp.frequency); lfo.start();
+    const g = c.createGain(); g.gain.value = tr.name === 'moor' ? 0.022 : 0.016; n.connect(bp); bp.connect(g); g.connect(tr.bus); n.start();
+    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.043; lg.gain.value = 330; lfo.connect(lg); lg.connect(bp.frequency); lfo.start();
     tr.drone = (tr.drone || []).concat([n, lfo]); tr.droneAux = (tr.droneAux || []).concat([bp, g, lg]);
   }
   function killTrack(tr, sec) {
@@ -328,81 +317,77 @@
     setTimeout(() => { (tr.drone || []).forEach(o => { try { o.stop(); } catch (e) {} disc(o); }); (tr.droneAux || []).forEach(disc); disc(tr.bus); S.tracks = S.tracks.filter(x => x !== tr); }, sec * 1000 + 4500);
   }
 
-  // Motiv über 2 Takte (16 Achtel): wenige, lange Töne, meist schrittweise – gesanglich statt «bleepig»
+  // Motiv: 8 Achtel mit Pausen; Varianten verändern Ende, Lage und einzelne Töne
   function newMotif(tr) {
-    const d = tr.def, notes = []; let p = pick([2, 4, 4, 7]), i = pick([0, 0, 2, 4]);
-    while (i < 16) {
-      if (R() < d.dens * 2.2 || !notes.length) {
-        p += pick([-2, -1, -1, 1, 1, 2, 0, R() < 0.2 ? 3 : -3]); p = Math.max(0, Math.min(9, p));
-        const len = Math.min(16 - i, pick(d.bpm > 100 ? [1, 2, 2, 3, 4] : [2, 3, 4, 4, 6, 8]));
-        notes.push({ i, p, len }); i += len;
-      } else i += pick([1, 2, 2]);
+    const d = tr.def, notes = []; let p = pick([2, 4, 4, 7, 5]);
+    for (let i = 0; i < 16; i++) {
+      const strong = i % 4 === 0;
+      if (R() < (strong ? d.dens * 1.5 : d.dens * 0.8)) { p += pick([-2, -1, -1, 0, 1, 1, 2, R() < 0.2 ? 3 : -3]); p = Math.max(0, Math.min(11, p)); notes.push({ i, p, len: pick([1, 2, 2, 3, 4]) }); }
     }
+    if (!notes.length) notes.push({ i: 0, p: 4, len: 4 });
     return notes;
   }
   function vary(m, k) {
     return m.map((n, j) => {
       const q = Object.assign({}, n);
       if (k === 1 && j === m.length - 1) q.p = Math.max(0, q.p - pick([1, 2]));
-      if (k === 2) q.p = Math.min(10, q.p + (j % 2 ? 2 : 1));
+      if (k === 2) q.p = Math.min(11, q.p + (j % 2 ? 2 : 0));
       if (k === 3 && R() < 0.3) q.p += pick([-1, 1]);
       return q;
-    }).filter((n, j) => k !== 3 || j === 0 || R() > 0.15);
+    }).filter(() => k !== 3 || R() > 0.15);
   }
 
   function schedule(tr, t) {
     const d = tr.def, st = tr.step, bar = Math.floor(st / 8), beat = st % 8, spb = tr.spb;
     const progI = Math.floor(bar / 4) % d.prog.length, chord = d.prog[progI][bar % 4], barLen = spb * 8;
-    // Phrasen (A A' B A''), viele bleiben still -> Raum
+    // Phrasen: alle 2 Takte ein Motiv-Abschnitt, alle 8 Takte ein neues Motiv (A A' B A'')
     if (st % 16 === 0) {
       const ph = (st / 16) % 4;
       if (!tr.base || ph === 0) { tr.base = newMotif(tr); tr.alt = newMotif(tr); }
       tr.cur = ph === 0 ? tr.base : ph === 1 ? vary(tr.base, 1) : ph === 2 ? vary(tr.alt, 2) : vary(tr.base, 3);
-      tr.rest = R() < d.space;
+      tr.rest = R() < (d.dens < 0.3 ? 0.35 : 0.15); // manche Phrasen bleiben still -> Luft
     }
+    // Fläche & Bass zu Taktbeginn
     if (beat === 0) {
-      // Streicherfläche (weit gesetzt: Grundton tief, Terz/Quinte darüber); Küste: leere Quinten
-      if (bar % d.padBars === 0) {
-        const dur = barLen * d.padBars * 1.08, tones = d.fifths ? [0, 4, 7] : [0, 2, 4];
-        tones.forEach((k, j) => STR.pad(tr.bus, t, deg(tr, chord + k, -1), d.padV * (j ? 0.85 : 1), dur, { cut: d.padCut, pan: (j - 1) * 0.45 }));
-        if (d.lowV) STR.low(tr.bus, t, deg(tr, chord, -2), d.lowV, dur, { pan: -0.1 });
-        if (d.choir) I.choir(tr.bus, t + 0.2, deg(tr, chord + pick([2, 4]), 0), d.choir, dur, { pan: R() * 0.6 - 0.3, att: 2 });
-      }
-      if (d.harp && R() < d.harp) { // Harfe: gebrochener Akkord, bei der Küste wie eine Welle auf und ab
-        const pat = d.harpWave ? [0, 2, 4, 7, 9, 7, 4] : pick([[0, 4, 7, 9], [0, 2, 4, 7], [4, 7, 9]]), sp = d.harpWave ? spb * 0.5 : spb;
-        pat.forEach((k, j) => STR.harp(tr.bus, t + j * sp, deg(tr, chord + k, 0), 0.028 * (1 - j * 0.07), { pan: -0.4 + j * 0.13 }));
-      }
-      if (d.piano && R() < d.piano) STR.piano(tr.bus, t + spb * pick([2, 4, 5]), deg(tr, chord + pick([4, 7, 9]), 1), 0.03, { pan: 0.3 });
-      if (d.viola && R() < d.viola * 0.5) STR.solo(tr.bus, t + spb * 2, deg(tr, chord + pick([0, 2, 4]), 0), 0.02, barLen * 1.2, { cut: 1300, pan: -0.3 });
-      if (d.drip) for (let k = 0; k < 2; k++) if (R() < d.drip) STR.harp(tr.bus, t + spb * R() * 8, deg(tr, pick([7, 9, 11, 14]), 1), 0.014, { dec: 0.7, bright: 3200, pan: R() * 1.6 - 0.8, echo: 0.35 });
-      if (d.bells && R() < d.bells) I.bell(tr.bus, t + spb * pick([2, 3, 5]), deg(tr, pick([7, 9, 11]), 0), 0.022, { pan: R() * 1.4 - 0.7, dec: 5, wet: 0.8 });
-      if (d.toll && bar % 4 === 0) I.bell(tr.bus, t, deg(tr, 0, -2), 0.08, { dec: 6, wet: 0.8, echo: 0.1 });
-      if (d.perc === 3 && bar % 4 === 3) STR.roll(tr.bus, t + spb * 4, deg(tr, 0, -3), 0.06, spb * 4);
+      const padV = d.lead === 'choir' ? 0.022 : 0.03;
+      if (d.bass === 'organ') [0, 2, 4].forEach((k, j) => I.organ(tr.bus, t, deg(tr, chord + k, -1), 0.028, barLen * 1.05, { pan: (j - 1) * 0.3 }));
+      else [0, 2, 4].forEach((k, j) => I.pad(tr.bus, t, deg(tr, chord + k, -1), padV, barLen * 1.1, { cut: d.padCut, pan: (j - 1) * 0.35, wave: tr.name === 'indoor' ? 'triangle' : 'sawtooth' }));
+      if (d.bass === 'harp') { I.pluck(tr.bus, t, deg(tr, chord, -2), 0.12, { dec: 1.4, bright: 900 }); I.pluck(tr.bus, t + spb * 4, deg(tr, chord + 4, -2), 0.07, { dec: 1.1, bright: 800 }); }
+      if (d.bass === 'soft') I.bass(tr.bus, t, deg(tr, chord, -2), 0.08, barLen * 0.9, { rel: 1.4, cut: 300 });
+      if (d.bass === 'organ') I.bass(tr.bus, t, deg(tr, chord, -2), 0.1, barLen, { rel: 1.2, cut: 260 });
+      if (d.toll && bar % 2 === 0) I.bell(tr.bus, t, deg(tr, 0, -2), 0.12, { dec: 5.5, wet: 0.8, echo: 0.1 });
+      if (d.toll && bar % 4 === 3) { I.kick(tr.bus, t + spb * 6, 0.18); I.kick(tr.bus, t + spb * 7, 0.12); }
+      if (d.bells && R() < d.bells) I.bell(tr.bus, t + spb * pick([2, 3, 5]), deg(tr, pick([7, 9, 11, 14]), 0), 0.03, { pan: R() * 1.4 - 0.7, dec: 4 });
+      if (d.lead === 'choir' && bar % 2 === 0) I.choir(tr.bus, t, deg(tr, chord + pick([4, 7]), 0), 0.035, barLen * 1.8, { pan: R() * 0.6 - 0.3 });
     }
-    // Kampf: Spiccato-Ostinato, Cello-Puls, Trommeln
-    if (d.ost) {
-      const acc = beat === 0 || beat === 4 ? 1 : beat % 2 ? 0.6 : 0.8;
-      STR.spic(tr.bus, t, deg(tr, chord + d.ost[beat], d.ostOct || 0), d.ostV * acc, d.pizz ? { pan: beat % 2 ? 0.3 : -0.3, dec: 0.14, cut: 2200, wet: 0.35 } : { pan: beat % 2 ? 0.25 : -0.25 });
+    if (d.bass === 'pulse') I.bass(tr.bus, t, deg(tr, chord, -2), beat % 2 ? 0.05 : 0.08, spb * 0.8, { rel: 0.12, cut: 520 });
+    if (d.arp) {
+      const pat = d.arp === 2 ? [0, 2, 4, 7, 4, 2, 4, 7] : [0, 4, 2, 7, 0, 4, 2, 9];
+      I.pluck(tr.bus, t, deg(tr, chord + pat[beat], 0), 0.03, { dec: 0.3, pan: beat % 2 ? 0.3 : -0.3, wet: 0.2 });
+      if (d.arp === 2 && R() < 0.5) I.pluck(tr.bus, t + spb / 2, deg(tr, chord + pat[(beat + 1) % 8], 0), 0.018, { dec: 0.2, pan: 0.4 });
     }
-    if (d.pulse && beat % 2 === 0) STR.spic(tr.bus, t, deg(tr, chord, -2), d.pulse, { cut: 700, dec: 0.3, wet: 0.15 });
-    if (d.perc === 1) { if (beat === 0 || beat === 5) STR.taiko(tr.bus, t, beat ? 0.08 : 0.12); if (beat === 2 || beat === 6) STR.frame(tr.bus, t, 0.03, -0.2); if (beat % 2) STR.shaker(tr.bus, t, 0.008); }
-    if (d.perc === 2) { if (beat === 0 || beat === 3 || beat === 6) STR.taiko(tr.bus, t, beat ? 0.08 : 0.12); if (beat === 4) STR.frame(tr.bus, t, 0.04, 0.2); STR.shaker(tr.bus, t, beat % 2 ? 0.01 : 0.005); if (beat === 7 && bar % 4 === 3) STR.taiko(tr.bus, t + spb / 2, 0.07); }
-    if (d.perc === 4) { if (beat === 0) STR.taiko(tr.bus, t, 0.1); if (beat === 2 || beat === 6) STR.frame(tr.bus, t, 0.035, beat === 2 ? -0.25 : 0.25); if (beat === 7 && R() < 0.4) STR.frame(tr.bus, t + spb / 2, 0.02, 0); }
-    if (d.perc === 3) { if (beat === 0) STR.taiko(tr.bus, t, 0.14); if (beat === 4 && bar % 2) STR.taiko(tr.bus, t, 0.08); }
-    // Melodie (Solo-Stimme)
+    if (d.drums) {
+      if (beat === 0 || beat === 4 || (d.drums === 2 && beat % 2 === 0)) I.kick(tr.bus, t, beat === 0 ? 0.13 : 0.09);
+      if (beat % 2 === 1) I.noise(tr.bus, t, 0.022, 0.05, 'highpass', 6000);
+      if (beat === 7 && bar % 4 === 3) I.noise(tr.bus, t, 0.05, 0.25, 'bandpass', 1200, { to: 400, q: 1.2 });
+    }
+    // Melodie
     if (!tr.rest) for (const n of tr.cur || []) if (n.i === st % 16) {
-      const f = deg(tr, n.p, d.leadOct || 0), len = n.len * spb;
-      if (d.lead === 'solo') STR.solo(tr.bus, t, f, d.leadV, len * 1.05, { pan: 0.15, att: d.bpm > 100 ? 0.12 : 0.4 });
-      else if (d.lead === 'harm') STR.harm(tr.bus, t, f, d.leadV, len * 1.2, { pan: R() * 0.8 - 0.4 });
-      else if (d.lead === 'piano') STR.piano(tr.bus, t, f, d.leadV, { pan: R() * 0.4 - 0.2, dec: 1.8 + len });
+      const f = deg(tr, n.p, d.lead === 'bell' ? 0 : 0), len = n.len * spb;
+      if (d.lead === 'box') I.box(tr.bus, t, f * 2, 0.05, { dec: 1.2 + len, pan: R() * 0.5 - 0.25 });
+      else if (d.lead === 'bell') I.bell(tr.bus, t, f * (tr.name === 'battle' ? 1 : 2), tr.name === 'battle' ? 0.04 : 0.045, { dec: 2 + len, pan: R() * 0.8 - 0.4 });
+      else if (d.lead === 'pluck') I.pluck(tr.bus, t, f * 2, 0.05, { dec: 0.5, pan: 0.1, echo: 0.2 });
+      else if (d.lead === 'choir') I.organ(tr.bus, t, f, 0.018, len, { pan: 0.2 });
     }
+    // Ofenknistern (Innenräume)
+    if (tr.crackle && R() < 0.35) I.noise(tr.bus, t + R() * spb, 0.02 + R() * 0.03, 0.02, 'highpass', 2500 + R() * 2000);
     // seltenes Unbehagen
     if (t > tr.nextUnease && beat === 0) {
       const k = pick(d.unease.kinds);
-      if (k === 'detune') STR.harm(tr.bus, t + spb * 3, deg(tr, pick([6, 8, 11]), 1) * Math.pow(2, (R() < 0.5 ? 0.4 : -0.5) / 12), 0.018, 3, { pan: R() * 1.4 - 0.7 });
-      else if (k === 'whisper') I.whisper(tr.bus, t + spb * 2, 0.04);
-      else if (k === 'sub') I.sub(tr.bus, t + spb, mtof(tr.root - 30), 0.16);
-      else if (k === 'heart') { I.kick(tr.bus, t, 0.11); I.kick(tr.bus, t + 0.28, 0.07); I.kick(tr.bus, t + 1.2, 0.1); I.kick(tr.bus, t + 1.48, 0.06); }
+      if (k === 'detune') I.bell(tr.bus, t + spb * 3, deg(tr, pick([6, 8, 11]), 0) * 2 * Math.pow(2, (R() < 0.5 ? 0.45 : -0.55) / 12), 0.035, { dec: 4.5, pan: R() * 1.4 - 0.7, echo: 0.4 });
+      else if (k === 'whisper') I.whisper(tr.bus, t + spb * 2, 0.05);
+      else if (k === 'sub') I.sub(tr.bus, t + spb, mtof(tr.root - 30), 0.2);
+      else if (k === 'heart') { I.kick(tr.bus, t, 0.14); I.kick(tr.bus, t + 0.28, 0.09); I.kick(tr.bus, t + 1.2, 0.12); I.kick(tr.bus, t + 1.48, 0.08); }
       tr.nextUnease = t + d.unease.every[0] + R() * (d.unease.every[1] - d.unease.every[0]);
     }
   }
@@ -447,9 +432,10 @@
   S.watchdog = watchdog;
 
   S.music = name => {
+    name = TRACK_ALIAS[name] || name;
     S.want = name;
     if (!S.ctx || S.cur === name) return;
-    const def = TRACKS[name], fast = (def && def.fastIn) || S.cur === 'battle' || S.cur === 'trainer' || S.cur === 'boss';
+    const def = TRACKS[name], fast = (def && def.fastIn) || S.cur === 'battle' || S.cur === 'trainer' || S.cur === 'boss' || S.cur === 'quantum';
     S.tracks.forEach(tr => killTrack(tr, fast ? 0.7 : 2.8));
     S.cur = name;
     if (def) S.tracks.push(mkTrack(name));
@@ -658,6 +644,8 @@
         lp.type = 'lowpass'; lp.frequency.setValueAtTime(400, t); lp.frequency.linearRampToValueAtTime(1600, t + 0.3); lp.frequency.exponentialRampToValueAtTime(300, t + 1.3); lp.Q.value = 3; env(g, t, 0.08, 0.13, 0.5, 0.8);
         o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(out(D, t, 0, 0.5)); [o, o2].forEach(x => { x.start(t); x.stop(t + 1.5); });
         I.noise(D, t, 0.3, 1.2, 'lowpass', 500, { to: 120, att: 0.1 }); I.organ(D, t + 0.1, mtof(34), 0.04, 1.2); I.organ(D, t + 0.1, mtof(35), 0.03, 1.2); break; }
+      // v16 Nachtmahr: langes Zischen (hohes Rauschen) mit zwei Flüsterstimmen
+      case 'hiss': I.noise(D, t, 0.06, 1.4, 'highpass', 3200, { to: 5200, att: 0.35, wet: 0.5 }); I.whisper(D, t + 0.2, 0.05); I.whisper(D, t + 0.6, 0.04); break;
       // v15 Umgebungs-Ereignisse (leise): Windstoss, Krähe, Fischsprung, Sternschnuppe
       case 'gust': I.noise(D, t, 0.07, 1.5, 'bandpass', 380, { to: 1300, q: 0.8, att: 0.55, pan: arg || 0, wet: 0.4 }); break;
       case 'caw': for (let i = 0; i < 2; i++) { const tt = t + i * 0.32, o = c.createOscillator(), bp = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(560, tt); o.frequency.exponentialRampToValueAtTime(380, tt + 0.2);

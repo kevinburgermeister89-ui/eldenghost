@@ -181,15 +181,17 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
-## v15: Neue Geister, Gebiete, Streicher-Musik, Umgebungs-Ereignisse
+## v15: Neue Geister, Gebiete, Umgebungs-Ereignisse
 - **Hafenkapelle entfernt:** Bruder Tamme und die Kapelle an der Nebelküste gibt es nicht mehr; einzige Heilungskirche ist die
   Mondkirche. Alte Spielstände mit Wiedererwachen in der Kapelle erwachen in der Mondkirche (wer in der Kapelle stand, steht vor
   ihrem früheren Platz an der Küste).
 - **Abschied & Dialoge:** Der Abschied von den Eltern ist neu geschrieben (ruhiger, ohne Pathos: Sorge, Stolz, Tee und Vaters
   Kompass, «Wenn es nicht mehr geht, kommst du heim. Das ist keine Schande.»). Einige zu blumige Sätze (Brann, Mathis, Wido,
   Jorin, Onno, Selma, Ilse, Eltern) wurden schlichter.
-- **Musik:** alle Gebiets-Stücke und die Kampfmusik sind Streicher-Stücke (Solo-Violine/Viola, Cello-Liegetöne, Flageoletts,
-  Streicherflächen, Harfe/Klavier als Farbe; Kampf mit Spiccato-Achteln, Cello-Puls und Rahmentrommel).
+- **v15.1 (Hotfix): Musik zurück auf die v14-Stücke.** Dorf/Küste (Spieluhr + Harfen-Bass), Innenräume/Kirche (leise Spieluhr, Ofenknistern),
+  Nebel & Moor (hallende Glocken, Brummen, Flüstern), Kampf/Beschwörer/Nebelahn wie in v14. Die Absicherungen gegen doppelte Musik bleiben
+  (immer nur ein Stück, im Kampf nur Kampfmusik, saubere Überblendung); Umgebungsklänge, Ereignis-Geräusche und der Level-up-Jingle bleiben.
+  Höhle und Team Quantum haben eigene Stücke im v14-Stil (Glocken-Tropfen bzw. Zupf-Arpeggien).
   Offline-Vorschau: `python3 tests/music_preview.py` (WAV nach `/workspace/music_previews`).
 - **Starter nie wild:** keine Stufe der drei Starter-Linien steht in einer Wild-Tabelle (Beschwörer dürfen sie haben).
 - **15 neue Tier- und Naturgeister (#28–#42):** Tauhase, Funkmaus, Moosigel → Farnigel, Gischtkrebs, Glimmfuchs → Glutfähe,
