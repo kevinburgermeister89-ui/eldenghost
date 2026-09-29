@@ -10,7 +10,7 @@
   const Prefs = plugin('Preferences'), Haptics = plugin('Haptics');
 
   // Speicher: synchron über localStorage (Cache), zusätzlich dauerhaft in Capacitor Preferences.
-  const KEYS = [G.SAVE_KEY, 'eldenghost.sound'];
+  const KEYS = [G.SAVE_KEY, 'eldenghost.sound', 'eldenghost.soundReset'];
   G.Store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) {

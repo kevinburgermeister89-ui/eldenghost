@@ -100,6 +100,13 @@
   UI.title = show => $('title').classList.toggle('hidden', !show);
 
   // ---------- Kampf-HUD ----------
+  // EP-Leiste: bis zum Rand füllen (vor dem Level-up), dann ohne Rücklauf zurücksetzen und kurz aufblitzen
+  UI.xpFill = pct => { const i = document.querySelector('#hud-ally .xpbar i'); if (i) i.style.width = pct + '%'; };
+  UI.xpFlash = () => {
+    const bar = document.querySelector('#hud-ally .xpbar'), i = bar && bar.querySelector('i'); if (!i) return UI.updateHud();
+    i.style.transition = 'none'; UI.updateHud(); void i.offsetWidth; i.style.transition = '';
+    bar.classList.remove('flash'); void bar.offsetWidth; bar.classList.add('flash'); setTimeout(() => bar.classList.remove('flash'), 900);
+  };
   UI.hud = (show) => { $('hud-enemy').classList.toggle('hidden', !show); $('hud-ally').classList.toggle('hidden', !show); };
   function setBar(el, frac) {
     frac = Math.max(0, Math.min(1, frac));
@@ -214,7 +221,23 @@
   }
   bindBtn('btn-a', 'A'); bindBtn('btn-b', 'B'); bindBtn('btn-start', 'START'); bindBtn('btn-select', 'SELECT');
   const ss = $('snd-state');
-  const syncSound = () => { ss.textContent = G.Snd.on ? 'Ton ♪' : 'Ton ✕'; };
+  const snd = $('btn-snd');
+  const syncSound = () => { ss.textContent = G.Snd.on ? 'Ton ♪' : 'Ton ✕'; if (snd) { snd.classList.toggle('on', !!G.Snd.on); snd.setAttribute('aria-pressed', G.Snd.on ? 'true' : 'false'); } };
+  // Lautsprecher-Taste: reagiert nur auf ein bewusstes Tippen, das AUF der Taste beginnt und dort endet.
+  // Keine Pointer-Capture, kein preventDefault ausserhalb, kein Einfluss auf das Steuerkreuz (das seinen Finger per Capture behält).
+  if (snd) {
+    let sid = null;
+    snd.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); sid = e.pointerId; snd.classList.add('press'); });
+    snd.addEventListener('pointerup', e => {
+      if (e.pointerId !== sid) return; sid = null; snd.classList.remove('press');
+      const r = snd.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      toggleSound(); G.haptic(8);
+    });
+    const cancel = e => { if (e.pointerId === sid) { sid = null; snd.classList.remove('press'); } };
+    snd.addEventListener('pointercancel', cancel); snd.addEventListener('pointerleave', cancel);
+    snd.addEventListener('click', e => { if (e.detail === 0) toggleSound(); });   // Tastatur/Screenreader (Enter/Leertaste)
+    snd.addEventListener('contextmenu', e => e.preventDefault());
+  }
   function toggleSound() { G.Snd.init(); G.Snd.toggle(); syncSound(); if (UI.toast) UI.toast(G.Snd.on ? 'Ton an' : 'Ton aus', 900); }
   UI.toggleSound = toggleSound;
   UI.syncSound = syncSound; syncSound();

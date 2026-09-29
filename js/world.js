@@ -7,7 +7,8 @@
     h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
     return (h >>> 0) / 4294967296;
   }
-  const SOLID = { outdoor: new Set('T~fgLShDrwxkeuBA'.split('')), interior: new Set('WnotbkcauyzjlFAKQZMP'.split('')) };
+  const SOLID = { outdoor: new Set('T~fgShDrwxkuBA'.split(''))   // Laternen (L, e) sind begehbar
+  , interior: new Set('WnotbkcauyzjlFAKQZMP'.split('')) };
   const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle' };
   const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240' };
   G.MAPS = {};
@@ -294,6 +295,7 @@
   async function refill() { await G.UI.say('Ilse: Deine Seelenfänger sind fast aufgebraucht? Hier, ich habe noch drei übrig.'); await give('laterne', 3); }
   async function talkIlse() {
     const S = G.state, st = story();
+    if (S.flags.gift && S.flags.gift !== 1 && S.team.length) return giftStone();
     // ---- Hauptgeschichte ----
     if (st === 0) {
       await G.UI.sayAll([
@@ -364,10 +366,22 @@
   }
   // Laternensteine: Beschreibung lesen, bestätigen, dann Seelenfänger-Übergabe durch Ilse
   const ALTAR_NOTE = {
-    flackerling: 'Ilse: Ein Flackerling. Feurig und neugierig. Gift verbrennt er mühelos – aber vor Wasser nimmt er sich in Acht.',
-    moorlurch: 'Ilse: Ein Moorlurch. Gemütlich wie ein Teich im Sommer, und zäh. Feuer löscht er mühelos, nur Gift bekommt ihm schlecht.',
-    schwammling: 'Ilse: Ein Schwammling. Leise und geduldig. Sein Gift verdirbt jedes Wasser – doch Feuer fürchtet er.'
+    flackerling: 'Ilse: Ein Flackerling – ein kleiner Glutdrache. Feurig und neugierig. Pflanzen brennt er mühelos nieder, aber vor Wasser nimmt er sich in Acht.',
+    pfuetzling: 'Ilse: Ein Pfützling. Ein Entlein aus Moorwasser und Mondlicht – tapsig, aber zäh. Feuer löscht er mit einem Platsch, nur Pflanzen saugen ihn aus.',
+    blattling: 'Ilse: Ein Blattling, ein Setzling aus dem Feenhain. Leise und geduldig. Seine Wurzeln trinken jedes Wasser – doch Feuer fürchtet er.'
   };
+  // v14-Geschenk für alte Spielstände: ein neuer Laternenstein mit dem Starter der gleichen Rolle (einmalig, freiwillig, nichts geht verloren)
+  async function giftStone() {
+    const S = G.state, sp = S.flags.gift, Sp = G.SPECIES[sp];
+    await G.UI.sayAll(['Ilse: Warte! Heute Nacht ist ein neues Licht zu den Laternensteinen gekommen.',
+      `Ilse: Ein ${Sp.name} (${G.typesOf(sp).join('/')}). ${Sp.desc}`, 'Ilse: Er sucht jemanden, der ihn mitnimmt. Deine Geister bleiben natürlich bei dir.']);
+    const ok = await G.UI.yesNo(`${Sp.name} zusätzlich mitnehmen?`); G.UI.hideText();
+    if (!ok) return G.UI.say('Ilse: Gut. Der Stein leuchtet weiter – sprich mich an, wenn du es dir anders überlegst.');
+    const lv = Math.max(5, Math.min(30, Math.round(Math.max(...S.team.map(m => m.lvl)) - 2)));
+    const m = G.makeMon(sp, lv); if (S.team.length < 6) S.team.push(m); else S.box.push(m);
+    S.seen[sp] = S.caught[sp] = 1; S.flags.gift = 1; G.Snd.sfx('catch');
+    return G.UI.say(`${Sp.name} (Lv ${lv}) schwebt ${S.team.includes(m) ? 'an deine Seite' : 'in deine Geisterkiste'}. Es wird ein bisschen wärmer.`);
+  }
   async function talkAltar(sp) {
     const S = G.state, st = story(), Sp = G.SPECIES[sp];
     if (st >= 2 || S.team.length) return G.UI.say(S.starter === sp ? 'Der Laternenstein ist leer. Nur die kleine Flamme brennt noch – ruhig, als würde sie auf dich warten.'
@@ -1191,7 +1205,6 @@
   }
   const GHOST = G.scale2x(GHOST1);
   // entzündete Laterne als fertige, hochskalierte Grafik
-  const LIT = (() => { const c = G.mk(16, 16); drawLantern(G.pen(c.getContext('2d')), true); return G.scale2x(c); })();
   // Feine Bodendetails auf der verdoppelten Karte: leichte Körnung überall, mondbeschienene Grashalm-Spitzen,
   // Kiesel auf Wegen, Fugen-Glanz auf Dielen
   function fineGround(m, g) {
@@ -1302,7 +1315,7 @@
   let cam = null;
   const DXY = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
-  G.World = { addChurch, healAt, healFx: null, tourState, skipTour };
+  G.World = { addChurch, healAt, healFx: null, tourState, skipTour, giftStone };
   G.map = D;
   const npcVisible = n => !n.show || n.show();
   function resetNPCs(m) {
@@ -1353,7 +1366,34 @@
 
   // Bewegung: Rasterlogik bleibt (x/y = Kachel), Darstellung interpoliert pixelgenau mit Delta-Zeit.
   // Am Schrittende wird sofort der nächste Schritt gestartet (gehaltene Richtung oder gepufferte Eingabe) – ohne Pause.
+  // ---- Positionsabhängige Umgebungsgeräusche: Wasser (Nähe + Richtung), Wind (offene Flächen, Küste), Ofen-/Essenknistern ----
+  // pro Karte einmal vorberechnet: Distanzkarte (BFS, Kacheln) zum nächsten Wasser/Feuer + x-Lage der nächsten Wasserkachel, Offenheit für Wind
+  const AMB_WIND = { kueste: 1, dorf: 0.45, tiefesmoor: 0.6 };
+  function ambField(m) {
+    if (m._amb) return m._amb;
+    const W = m.w, H = m.h, N = W * H, dw = new Uint8Array(N).fill(255), sx = new Int16Array(N), dh = new Uint8Array(N).fill(255), open = new Float32Array(N);
+    const bfs = (d, isSrc, srcX) => { const q = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (isSrc(m.tiles[y][x])) { d[y * W + x] = 0; if (srcX) srcX[y * W + x] = x; q.push(y * W + x); }
+      for (let h = 0; h < q.length; h++) { const i = q[h], x = i % W, y = (i / W) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const j = ny * W + nx; if (d[j] > d[i] + 1 && d[i] < 30) { d[j] = d[i] + 1; if (srcX) srcX[j] = srcX[i]; q.push(j); } } } };
+    if (m.kind === 'outdoor') bfs(dw, c => c === '~' || c === 'w', sx);
+    else bfs(dh, c => c === 'F' || (c === 'o' && m.id !== 'huette'));
+    if (m.kind === 'outdoor') for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let n = 0, o = 0; for (let yy = y - 3; yy <= y + 3; yy++) for (let xx = x - 3; xx <= x + 3; xx++) { if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue; n++; if (!'TfhDx'.includes(m.tiles[yy][xx])) o++; } open[y * W + x] = n ? o / n : 0; }
+    return (m._amb = { dw, sx, dh, open, W });
+  }
+  // Pegel an einer Position (Kacheln, auch Zwischenpositionen): { water 0..1, pan -1..1, wind 0..1, hearth 0..1, surf }
+  function ambAt(m, fx, fy) {
+    const A = ambField(m), x = Math.max(0, Math.min(m.w - 1, Math.round(fx))), y = Math.max(0, Math.min(m.h - 1, Math.round(fy))), i = y * A.W + x;
+    const w = A.dw[i] === 255 ? 0 : Math.pow(Math.max(0, 1 - A.dw[i] / 9), 1.6), hh = A.dh[i] === 255 ? 0 : Math.pow(Math.max(0, 1 - A.dh[i] / 7), 1.3);
+    const pan = A.dw[i] === 255 ? 0 : Math.max(-1, Math.min(1, (A.sx[i] - fx) / 5)) * 0.6;
+    return { water: w, pan, wind: m.kind === 'outdoor' ? (AMB_WIND[m.id] || 0.4) * (0.35 + 0.65 * A.open[i]) : 0, hearth: hh, surf: m.id === 'kueste' };
+  }
+  G.World.ambAt = (id, x, y) => ambAt(G.MAPS[id], x, y);
+  let ambT = 0;
   G.World.update = dt => {
+    ambT -= dt;
+    if (ambT <= 0 && G.Snd.ambience) { ambT = 0.1; const m = G.map;
+      if (G.mode === 'world' && m && G.state) { const k = P.moving ? P.t : 0, fx = P.x + (P.tx - P.x) * k, fy = P.y + (P.ty - P.y) * k; G.Snd.ambience(ambAt(m, fx, fy)); }
+      else G.Snd.ambience(null); }
     const isBusy = () => G.mode !== 'world' || G.lock > 0 || !!G.UI.handler;
     if (P.moving) {
       P.t += dt / STEP;
@@ -1429,7 +1469,8 @@
     const w = m.warps[key];
     if (w) { await G.World.warp(w.to, w.x, w.y, w.dir); return; }
     if (m === K && story() === 7 && P.y >= 13 && P.x >= 10) { await arrivalScene(); return; }
-    const zone = m.kind === 'outdoor' && ZONE_OF[at(m, P.x, P.y)];
+    let zone = m.kind === 'outdoor' && ZONE_OF[at(m, P.x, P.y)];
+    if (zone === 'nebelgras' && m.id === 'kueste') zone = 'kuestengras';
     if (zone) {
       if (P.grace > 0) P.grace--;
       else if (Math.random() < (G.debugEncounterRate || (story() === 2 ? Math.max(0.3, G.WILD_AREAS[zone].rate) : G.WILD_AREAS[zone].rate))) { G.World.encounter(zone); return; }
@@ -1441,7 +1482,9 @@
     const sp = G.pickWeighted(A.table);
     const lead = Math.max(...G.state.team.map(m => m.lvl));
     const cap = zone === 'nebelgras' || !zone ? 1 : 2;
+    // Stein-Geister halten typenlose Attacken besser aus (½×): im Nebelgras und am Küstenweg höchstens 3 Level unter deinem stärksten Geist
     let lvl = Math.max(2, Math.min(lead + cap, G.rnd(A.lvl[0], A.lvl[1])));
+    if (G.hasType(sp, 'Stein') && (zone === 'nebelgras' || zone === 'kuestengras' || !zone)) lvl = Math.max(2, Math.min(lvl, lead - 3));
     if (story() === 2) lvl = Math.min(lvl, 3);   // Fang-Übung: ein kleiner, müder Geist
     P.grace = ENCOUNTER_GRACE;
     const hear = G.map.id === 'tiefesmoor' && P.x >= 14 && P.x <= 18 && P.y >= 13 && P.y <= 16;
@@ -1497,7 +1540,10 @@
     huette: { k: ['Kisten mit Torf und ein Paar alte Stiefel, zu klein für Jorin.'], o: ['Ein Torfofen. Kalt. Neben ihm liegt Zunder, ordentlich aufgeschichtet.'], c: ['Eine Kerze, fast heruntergebrannt.'] }
   };
   G.World.interact = async () => {
-    const [dx, dy] = DXY[P.dir], fx = P.x + dx, fy = P.y + dy, m = G.map, c = at(m, fx, fy), S = G.state, key = fx + ',' + fy;
+    let [dx, dy] = DXY[P.dir], fx = P.x + dx, fy = P.y + dy; const m = G.map, S = G.state;
+    // auf einer Moorlaterne stehend: A zündet diese an (sofern vorne nichts anderes wartet)
+    if (at(m, P.x, P.y) === 'e' && !npcAt(fx, fy) && !m.signs[fx + ',' + fy] && at(m, fx, fy) !== 'e' && at(m, fx, fy) !== 'D') { fx = P.x; fy = P.y; }
+    const c = at(m, fx, fy), key = fx + ',' + fy;
     const npc = npcAt(fx, fy);
     if (npc) {
       if (!npc.mon) npc.cdir = OPP[P.dir];
@@ -1719,7 +1765,6 @@
     // animierte Kacheln
     for (let y = y0; y <= Math.min(m.h - 1, y0 + 15); y++) for (let x = x0; x <= Math.min(m.w - 1, x0 + 16); x++) {
       const c = at(m, x, y), sx = x * T - cx, sy = y * T - cy;
-      if (c === 'e' && G.flag(`lit_${m.id}_${x}_${y}`)) ctx.drawImage(LIT, sx, sy);
     }
     renderWater(ctx, m, cx, cy, t);
     renderProps(ctx, m, cx, cy, t, dt);
@@ -1762,6 +1807,12 @@
         const nf = npcFrame(n); shadow(ctx, sx, sy); drawChar(ctx, nf ? nf.img : G.SPR[n.spr].down, sx, sy - (nf ? nf.lift : 0));
         if (n.alert) { ctx.fillStyle = '#0a0814'; ctx.fillRect(sx + 3, sy - 23, 10, 13); ctx.fillStyle = '#f4ecff'; ctx.fillRect(sx + 4, sy - 22, 8, 11); ctx.fillStyle = '#c83a4a'; ctx.fillRect(sx + 7, sy - 20, 2, 5); ctx.fillRect(sx + 7, sy - 14, 2, 2); }
       } });
+    }
+    // Laternen: begehbar, nach y mit den Figuren sortiert (auf derselben Kachel steht der Pfahl vor der Figur)
+    if (m.kind === 'outdoor') for (let y = y0; y <= Math.min(m.h - 1, y0 + 16); y++) for (let x = Math.max(0, x0 - 1); x <= Math.min(m.w - 1, x0 + 17); x++) {
+      const c = m.tiles[y][x]; if (c !== 'L' && c !== 'e') continue;
+      const lit = c === 'L' || G.flag(`lit_${m.id}_${x}_${y}`), sx = x * T - cx, sy = y * T - cy;
+      ents.push({ y: y * T + 2, lantern: [x, y], draw: () => ctx.drawImage(lanternHi(lit), sx, sy, 16, 16) });
     }
     const pf = opt.hidePlayer ? null : playerFrame(dt);
     if (!opt.hidePlayer) ents.push({ y: P.py, draw: () => {
@@ -1904,6 +1955,7 @@
   }
   // Laternenstein (16×22), Schiff «Nebelschwalbe» (96×58), grosse Lampe mit Stufenlinse (32×30)
   let ALTAR = null; const SHIP = {}, LAMP = {};
+  const LANT = {}; const lanternHi = lit => LANT[+lit] || (LANT[+lit] = G.scale2x(G.Tiles.lantern(lit)));   // wie früher in der Karte: kantengerichtet verdoppelt
   function altarArt() {
     if (ALTAR) return ALTAR;
     const S = new G.Art.Shape();
@@ -1976,33 +2028,29 @@
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
   // ---- Aufgaben-Markierungen: «!» wer die Geschichte (oder eine Nebenaufgabe) jetzt weiterbringt, «?» für Abgaben ----
-  // vollständig aus den Story-Flags abgeleitet; Ziele sind NPCs (id) oder Orte (Tür, Wegweiser, Tagebuch)
+  // vollständig aus den Story-Flags abgeleitet; Ziele sind ausschliesslich Personen (NPC-IDs)
   const MARKS = {
     dorf: [
-      { at: () => tour.active && TOUR[tour.stop] ? TOUR[tour.stop].look : null, m: () => tour.active ? '!' : null },   // Führung: nächster Ort
-      { id: 'ilse', m: () => { const st = story(); if (tour.active) return null; if (st === 0 || st === 3 || (st === 2 && G.state.flags.tour === 0)) return '!'; if (q1() === 6) return '?'; if (st >= 4 && q1() === 0 && G.flag('note')) return '!'; } },
-      { id: 'altar0', m: () => story() === 1 ? '!' : null }, { id: 'altar1', m: () => story() === 1 ? '!' : null }, { id: 'altar2', m: () => story() === 1 ? '!' : null },
+      // nur Personen tragen Markierungen (keine Häuser, Türen, Zettel, Schilder, Steine); während der Führung trägt Ilse das «!»
+      { id: 'ilse', m: () => { const st = story(); if (G.state.flags.gift && G.state.flags.gift !== 1 && G.state.team.length) return '!'; if (tour.active || st === 0 || st === 3 || (st === 2 && G.state.flags.tour === 0)) return '!'; if (q1() === 6) return '?'; if (st >= 4 && q1() === 0 && G.flag('note')) return '!'; } },
       { id: 'wido', m: () => q1() === 1 ? '!' : null },
-      { at: [23, 11], m: () => story() >= 4 && q1() === 0 && !G.flag('note') ? '!' : null },            // Zettel an Jorins Tür (Start der Nebenaufgabe)
-      { at: [17, 29], m: () => q1() === 2 ? '!' : null }                                                  // Wegweiser «Tiefes Moor»
     ],
     home: [{ id: 'mutter', m: () => story() === 6 ? '!' : null }, { id: 'vater', m: () => story() === 6 ? '!' : null }],
     kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 ? '!' : null }, { id: 'wenke', m: () => story() >= 8 && !G.flag('wenke') ? '!' : null }],
-    huette: [{ at: [2, 3], m: () => q1() === 3 ? '!' : null }],
-    tiefesmoor: [{ id: 'kaspar', m: () => q1() === 4 ? '!' : null }, { id: 'nebelahn', m: () => q1() === 5 ? '!' : null }]
+    tiefesmoor: [{ id: 'kaspar', m: () => q1() === 4 ? '!' : null }]
   };
-  // aktuelle Markierungen einer Karte: [{ id|at, kind, x, y }]
+  // aktuelle Markierungen einer Karte: [{ id, kind, x, y }]
   function markersFor(m) {
     const out = [];
     if (!G.state) return out;
     for (const e of MARKS[m.id] || []) {
       const k = e.m(); if (!k) continue;
-      if (e.id) { const n = m.npcs.find(o => o.id === e.id); if (!n || !npcVisible(n)) continue; out.push({ id: e.id, kind: k, x: n.cx, y: n.cy, n }); }
-      else { const a = typeof e.at === 'function' ? e.at() : e.at; if (a) out.push({ at: a, kind: k, x: a[0], y: a[1] }); }
+      const n = m.npcs.find(o => o.id === e.id); if (!n || !npcVisible(n) || !n.spr) continue;   // nur Personen (NPCs mit Figur)
+      out.push({ id: e.id, kind: k, x: n.cx, y: n.cy, n });
     }
     return out;
   }
-  G.World.markers = (id) => markersFor(id ? G.MAPS[id] : G.map).map(o => ({ id: o.id || o.at.join(','), kind: o.kind }));
+  G.World.markers = (id) => markersFor(id ? G.MAPS[id] : G.map).map(o => ({ id: o.id, kind: o.kind }));
   const MARKSPR = {};
   function markSprite(kind) {
     if (MARKSPR[kind]) return MARKSPR[kind];

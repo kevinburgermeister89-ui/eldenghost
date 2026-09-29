@@ -381,6 +381,36 @@
     S.cur = name;
     if (def) S.tracks.push(mkTrack(name));
   };
+  // ---------- Umgebung (positionsabhängig) ----------
+  // drei Dauerschleifen (Wasser mit Wellen-LFO + Stereo-Lage, Wind, Ofenglut) mit weich nachgeführter Lautstärke; Knistern als kurze Einzelklänge.
+  // Fester Knotensatz (wird nie vervielfacht), hängt am Master (respektiert den Ton-Schalter)
+  const AMB_MAX = { water: 0.16, wind: 0.07, hearth: 0.05 };
+  S.amb = null; S.ambLevel = { water: 0, wind: 0, hearth: 0, pan: 0 };
+  function mkAmb() {
+    const c = S.ctx, bus = c.createGain(); bus.gain.value = 1; bus.connect(master);
+    const loop = (type, f, q) => { const n = c.createBufferSource(); n.buffer = noiseBuf(); n.loop = true; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+      const g = c.createGain(); g.gain.value = 0; n.connect(fl); fl.connect(g); n.start(0, R() * 2); return { n, fl, g }; };
+    const wa = loop('lowpass', 700, 0.7), wi = loop('bandpass', 520, 0.9), he = loop('lowpass', 260, 0.8);
+    // Wellen: langsames Anschwellen über ein LFO auf einer zweiten Verstärkung
+    const swell = c.createGain(); swell.gain.value = 0.75; const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.11; lg.gain.value = 0.25; lfo.connect(lg); lg.connect(swell.gain); lfo.start();
+    const pan = c.createStereoPanner ? c.createStereoPanner() : null;
+    wa.g.connect(swell); if (pan) { swell.connect(pan); pan.connect(bus); } else swell.connect(bus);
+    const wl = c.createOscillator(), wg = c.createGain(); wl.frequency.value = 0.05; wg.gain.value = 260; wl.connect(wg); wg.connect(wi.fl.frequency); wl.start();
+    wi.g.connect(bus); he.g.connect(bus);
+    return { bus, wa, wi, he, pan, swell, lfo, wl };
+  }
+  S.ambience = lv => {
+    if (!S.ctx || S.ctx.state === 'closed') return;
+    if (!S.amb) { if (!lv) return; S.amb = mkAmb(); }
+    const A = S.amb, t = S.ctx.currentTime, L = lv || { water: 0, wind: 0, hearth: 0, pan: 0 };
+    S.ambLevel = { water: L.water * AMB_MAX.water, wind: L.wind * AMB_MAX.wind, hearth: L.hearth * AMB_MAX.hearth, pan: L.pan || 0 };
+    A.wa.g.gain.setTargetAtTime(S.ambLevel.water, t, 0.35); A.wi.g.gain.setTargetAtTime(S.ambLevel.wind, t, 0.6); A.he.g.gain.setTargetAtTime(S.ambLevel.hearth, t, 0.35);
+    A.wa.fl.frequency.setTargetAtTime(L.surf ? 1100 : 650, t, 0.5); A.lfo.frequency.setTargetAtTime(L.surf ? 0.11 : 0.23, t, 0.5);
+    if (A.pan) A.pan.pan.setTargetAtTime(S.ambLevel.pan, t, 0.3);
+    // Knistern (Ofen/Esse) und gelegentliches Plätschern: kurze, gedeckelte Einzelklänge
+    if (S.on && L.hearth > 0.15 && R() < 0.5 * L.hearth) voice(() => I.noise(A.bus, t + R() * 0.1, 0.012 + 0.03 * L.hearth * R(), 0.02, 'highpass', 2500 + R() * 2500), SFX_CAP);
+    if (S.on && L.water > 0.3 && !L.surf && R() < 0.06 * L.water) voice(() => I.noise(A.bus, t + R() * 0.1, 0.03 * L.water, 0.1, 'bandpass', 900 + R() * 900, { q: 3, to: 500 }), SFX_CAP);
+  };
   S.tracksAvailable = () => Object.keys(TRACKS);
   S.debugNode = () => master;
 
@@ -396,19 +426,42 @@
     // Sieg: kleine Kadenz, Zupfer + Glockenakkord
     victory(t) { [[57, 60, 64], [53, 57, 60], [55, 59, 62], [57, 61, 64]].forEach((ch, i) => ch.forEach((m, j) => I.pluck(sfxBus, t + i * 0.34 + j * 0.03, mtof(m), 0.06, { dec: 0.9, pan: (j - 1) * 0.3, wet: 0.3 }))); [69, 73, 76, 81].forEach((m, i) => I.bell(sfxBus, t + 1.36 + i * 0.02, mtof(m), 0.05, { dec: 3 })); return 2.8; },
     // Level-up: kurzes, helles Aufwärtsmotiv
-    levelup(t) { [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => I.box(sfxBus, t + i * 0.085, mtof(m), 0.07, { dec: 0.8 })); I.bell(sfxBus, t + 0.6, mtof(96), 0.03, { dec: 2 }); return 1.3; },
+    // Level-up: warmer Streicherakkord (passend zur Streichermusik), aufsteigendes Harfen-Arpeggio, funkelnde Glöckchen
+    levelup(t) {
+      [60, 64, 67, 72].forEach((m, i) => I.pad(sfxBus, t + i * 0.02, mtof(m), 0.035, 1.5, { cut: 2400 }));
+      [72, 76, 79, 84, 88].forEach((m, i) => I.pluck(sfxBus, t + i * 0.07, mtof(m), 0.06, { dec: 0.9, pan: (i - 2) * 0.2, wet: 0.4 }));
+      [65, 69, 72, 77].forEach((m, i) => I.pad(sfxBus, t + 0.75 + i * 0.02, mtof(m), 0.03, 0.9, { cut: 2600 }));
+      [96, 100, 103].forEach((m, i) => I.bell(sfxBus, t + 0.5 + i * 0.09, mtof(m), 0.028, { dec: 1.8, pan: (i - 1) * 0.4 }));
+      I.bass(sfxBus, t, 65.4, 0.08, 1.2, { rel: 0.6, cut: 500 }); return 1.8;
+    },
     // Nebelahn besänftigt: feierlicher, auflösender Akkord
     // Kirche: Mondlicht-Heilung – Harfenarpeggio aufwärts, Glockenakkord, leiser Chor
     heal(t) { [62, 66, 69, 74, 78, 81].forEach((m, i) => I.pluck(sfxBus, t + i * 0.1, mtof(m), 0.05, { dec: 1.1, pan: (i - 2.5) * 0.15, wet: 0.5 })); [74, 78, 81, 86].forEach((m, i) => I.bell(sfxBus, t + 0.7 + i * 0.03, mtof(m), 0.04, { dec: 2.6 })); I.choir(sfxBus, t + 0.6, mtof(62), 0.03, 1.2); I.choir(sfxBus, t + 0.6, mtof(69), 0.025, 1.2); return 2.4; },
     bosswin(t) { [[47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61], [47, 54, 59, 63]].forEach((ch, i) => ch.forEach(m => I.organ(sfxBus, t + i * 1.1, mtof(m), 0.03, 1.2))); I.bell(sfxBus, t + 4.4, mtof(59), 0.08, { dec: 6 }); return 5.5; },
   };
-  S.jingle = name => { if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05; let sec = 0; voice(() => { sec = J[name](t); }, SFX_CAP + 40); if (sec) duckFor(sec); };
+  // Protokoll der zuletzt gespielten Klänge (Tests, Fehlersuche): [{ n, t, played }]
+  S.history = []; const logSnd = (n, played) => { S.history.push({ n, t: performance.now(), played }); if (S.history.length > 60) S.history.shift(); };
+  S.jingle = name => { logSnd('jingle:' + name, !!(S.ctx && S.on)); if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05; let sec = 0; voice(() => { sec = J[name](t); }, SFX_CAP + 40); if (sec) duckFor(sec); };
 
   // ---------- Geräusche ----------
   let stepAlt = 0;
   // neue Typen teilen sich die passenden Klangfarben der alten (Feuer = Irrlicht-Knistern, Boden = Schlamm, Psycho = Nebelhall, Gift = zischender Schatten)
   const SFX_ALIAS = { hit_Feuer: 'hit_Irrlicht', hit_Boden: 'hit_Moor', hit_Psycho: 'hit_Nebel', hit_Gift: 'hit_Schatten' };
-  S.sfx = (n, arg, vol = 1) => { if (!S.ctx || !S.on) return; if (S.ctx.state !== 'running') S.unlock(); voice(() => sfx(n, arg, vol), SFX_CAP); };
+  S.sfx = (n, arg, vol = 1) => { logSnd(n, !!(S.ctx && S.on)); if (!S.ctx || !S.on) return; if (S.ctx.state !== 'running') S.unlock(); voice(() => sfx(n, arg, vol), SFX_CAP); };
+  // Begegnungs-Stinger (~1.1 s, zur Blitz-/Wisch-Überblendung): aufsteigendes Nebelrauschen, geisterhaftes Schimmern, tiefer Puls.
+  // wild = schwebend-unheimlich, trainer = entschlossen mit Trommelschlag, boss = tiefer und bedrohlich (kleine Sekunde, Orgelgrund)
+  function encounterStinger(D, t, kind) {
+    const boss = kind === 'boss', tr = kind === 'trainer';
+    I.noise(D, t, boss ? 0.28 : 0.22, 0.75, 'bandpass', boss ? 180 : 260, { to: boss ? 1800 : 3200, q: 1.4, att: 0.6, wet: 0.5 });
+    const sh = boss ? [45, 46, 52, 57] : tr ? [57, 64, 69, 71] : [69, 72, 76, 83];
+    sh.forEach((m, i) => I.bell(D, t + 0.3 + i * 0.07, mtof(m + (boss ? 12 : 12)), boss ? 0.03 : 0.035, { dec: 1.4, pan: (i - 1.5) * 0.3, wet: 0.6 }));
+    if (boss) { I.organ(D, t + 0.1, mtof(33), 0.05, 1.1); I.organ(D, t + 0.1, mtof(34), 0.03, 1.1); }
+    const pulses = boss ? [0.62, 0.9] : tr ? [0.62] : [0.66];
+    pulses.forEach(dt => I.bass(D, t + dt, boss ? 41 : tr ? 55 : 49, boss ? 0.24 : 0.18, 0.12, { rel: 0.5, cut: 300 }));
+    if (tr) { I.kick(D, t + 0.62, 0.3); I.noise(D, t + 0.62, 0.14, 0.2, 'lowpass', 2600, { to: 500 }); I.box(D, t + 0.62, mtof(81), 0.03, { dec: 0.3 }); }
+    if (!boss && !tr) I.noise(D, t + 0.35, 0.05, 0.5, 'highpass', 6000, { att: 0.2, wet: 0.7 });
+  }
+  S.STINGER_MS = 1100;
   function sfx(n, arg, vol) {
     const c = S.ctx;
     n = SFX_ALIAS[n] || n;
@@ -417,6 +470,9 @@
       case 'hit_Wasser': I.noise(D, t, 0.28, 0.25, 'bandpass', 1400, { to: 500, q: 1.4 }); for (let i = 0; i < 4; i++) { const o = c.createOscillator(), g = c.createGain(), f0 = 500 + R() * 500, tt = t + 0.08 + i * 0.06; o.type = 'sine'; o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.05); env(g, tt, 0.004, 0.05, 0, 0.06); o.connect(g); g.connect(D); o.start(tt); o.stop(tt + 0.1); } I.bass(D, t, 110, 0.08, 0.02, { rel: 0.1 }); break;
       case 'hit_Elektro': for (let i = 0; i < 9; i++) { const tt = t + i * 0.022 + R() * 0.01; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.setValueAtTime(900 + R() * 1800, tt); env(g, tt, 0.001, 0.025, 0, 0.02); o.connect(g); g.connect(D); o.start(tt); o.stop(tt + 0.05); } I.noise(D, t, 0.18, 0.25, 'highpass', 2500, { to: 6000 }); I.bass(D, t + 0.05, 80, 0.1, 0.03, { rel: 0.15 }); break;
       case 'hit_Neutral': I.bass(D, t, 120, 0.2, 0.02, { rel: 0.1, cut: 500 }); I.noise(D, t, 0.14, 0.1, 'lowpass', 1800, { to: 600 }); break; // schlichter, dumpfer Treffer
+      case 'hit_Pflanze': // Blätterrauschen, hölzernes Klopfen, zarter Zupfakkord
+        for (let i = 0; i < 4; i++) I.noise(D, t + i * 0.035, 0.1, 0.12, 'bandpass', 3200 + R() * 1800, { q: 1.6, pan: R() * 0.8 - 0.4 });
+        I.bass(D, t, 180, 0.12, 0.02, { rel: 0.08, cut: 700 }); [69, 76, 81].forEach((m, i) => I.pluck(D, t + 0.04 + i * 0.05, mtof(m), 0.035, { dec: 0.5, wet: 0.35 })); break;
       case 'hit_Kampf': I.bass(D, t, 95, 0.26, 0.03, { rel: 0.16, cut: 400 }); I.noise(D, t, 0.4, 0.09, 'lowpass', 2400, { to: 500 }); I.noise(D, t + 0.01, 0.12, 0.05, 'bandpass', 3200, { q: 2 }); break;
       // Schmiede: Hammer auf Amboss (metallischer Klang mit kurzem Nachhall); Mühle: knarrendes Wasserrad, Plätschern
       case 'hammer': [1180, 1760, 2690, 3420].forEach((f, i) => I.bell(D, t, f * (0.99 + R() * 0.02), [0.05, 0.03, 0.02, 0.012][i], { dec: 0.5 + R() * 0.2 })); I.noise(D, t, 0.14, 0.04, 'highpass', 3000); I.bass(D, t, 140, 0.05, 0.01, { rel: 0.05 }); break;
@@ -450,8 +506,14 @@
       case 'hit_Nebel': I.noise(D, t, 0.2, 0.5, 'bandpass', 500, { to: 2400, q: 1.2, att: 0.15, wet: 0.5 }); I.bell(D, t + 0.25, 1046, 0.02, { dec: 1.5 }); I.bass(D, t + 0.25, 100, 0.07, 0.02, { rel: 0.15 }); break;
       case 'hit_Seele': [1046, 1318, 1568].forEach((f, i) => I.bell(D, t + i * 0.05, f, 0.035, { dec: 1.4 })); I.noise(D, t, 0.12, 0.18, 'lowpass', 1600); break;
       case 'crit': I.box(D, t, 2637, 0.05, { dec: 0.4 }); I.noise(D, t, 0.25, 0.1, 'highpass', 2500); I.bass(D, t, 90, 0.15, 0.03, { rel: 0.25 }); break;
-      case 'super': [69, 76, 81].forEach((m, i) => I.pluck(D, t + i * 0.04, mtof(m), 0.05, { dec: 0.4 })); break;
-      case 'weak': I.pluck(D, t, mtof(50), 0.05, { dec: 0.3, bright: 700 }); break;
+      case 'super': // sehr effektiv: kräftiger Schlag, heller Akkord
+        I.bass(D, t, 62, 0.28, 0.06, { rel: 0.3, cut: 380 }); I.noise(D, t, 0.22, 0.18, 'lowpass', 3200, { to: 700 }); I.noise(D, t + 0.01, 0.1, 0.08, 'highpass', 5000);
+        [69, 76, 81, 88].forEach((m, i) => I.pluck(D, t + 0.02 + i * 0.035, mtof(m), 0.06, { dec: 0.5 })); break;
+      case 'weak': // nicht sehr effektiv: dumpfer, gedämpfter Plopp
+        I.bass(D, t, 110, 0.06, 0.02, { rel: 0.08, cut: 260 }); I.noise(D, t, 0.05, 0.12, 'lowpass', 500, { to: 200 }); I.pluck(D, t + 0.03, mtof(45), 0.035, { dec: 0.25, bright: 500 }); break;
+      case 'immune': // keine Wirkung: hohles Verpuffen
+        I.noise(D, t, 0.08, 0.3, 'bandpass', 900, { to: 300, q: 2 }); I.box(D, t + 0.05, 330, 0.025, { dec: 0.2 }); break;
+      case 'enc_wild': case 'enc_trainer': case 'enc_boss': encounterStinger(D, t, n.slice(4)); break;
       case 'status': [76, 72, 69].forEach((m, i) => I.box(D, t + i * 0.07, mtof(m), 0.04, { dec: 0.4 })); break;
       case 'encounter': I.noise(D, t, 0.22, 0.6, 'bandpass', 300, { to: 3000, q: 1.5, att: 0.5 }); I.bell(D, t + 0.55, mtof(57), 0.1, { dec: 2 }); I.bass(D, t + 0.55, 55, 0.2, 0.1, { rel: 0.6 }); break;
       case 'throw': { const o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(1100, t + 0.35); env(g, t, 0.02, 0.06, 0.1, 0.25); o.connect(g); g.connect(out(D, t, 0, 0.3)); o.start(t); o.stop(t + 0.5); I.noise(D, t, 0.06, 0.35, 'bandpass', 1200, { to: 4000 }); break; }

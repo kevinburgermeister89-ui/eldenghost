@@ -236,7 +236,7 @@
         case 'x': g.drawImage(willow(R < 0.5 ? 1 : 0), X, Y - 8); break;
         case 'f': g.drawImage(fence(at(m, x - 1, y) === 'f', at(m, x + 1, y) === 'f'), X, Y); break;
         case 'g': g.drawImage(grave(R < 0.4 ? 1 : 0), X, Y); break;
-        case 'L': case 'e': g.drawImage(lantern(c === 'L'), X, Y); break;
+        case 'L': case 'e': break;     // Laternen sind begehbar und werden als Figuren nach y sortiert gezeichnet (world.js)
         case 'S': g.drawImage(sign(), X, Y); break;
         case 'r': g.drawImage(rock(R < 0.5 ? 1 : 0), X, Y); break;
         case 'k': g.drawImage(stump(), X, Y); break;
@@ -273,5 +273,5 @@
     }
     return (OC[key] = G.Art.raster(S, 64, 60, 1));
   }
-  G.Tiles = { ground, objects, house, reed, stone, pad, PAL };
+  G.Tiles = { ground, objects, house, reed, stone, pad, PAL, lantern };
 })(window.G);

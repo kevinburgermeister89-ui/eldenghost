@@ -4,30 +4,34 @@ window.G = window.G || {};
 (function (G) {
   G.VW = 256; G.VH = 240; G.T = 16;
   G.SAVE_KEY = 'eldenghost.save.v1';
-  G.SAVE_VERSION = 4; // v4: typenlose Attacken unter Level 8 (Lernlisten neu abgeleitet)
+  G.SAVE_VERSION = 5; // v5: Pflanze als 9. Typ, neue Starter-Linien (Irrfackel -> Glutwurm); v4: typenlose Attacken unter Level 8 (Lernlisten neu abgeleitet)
   // v3: 8 Elemente (IDs unverändert, alte Spielstände bleiben gültig)
 
   // 8 klassische Elemente (Kapitel 1 ab Spielstand v3). Tabelle: Angriffstyp -> Verteidigungstyp -> Faktor (fehlend = 1)
-  G.TYPES = ['Feuer', 'Wasser', 'Elektro', 'Stein', 'Psycho', 'Boden', 'Gift', 'Kampf'];
+  G.TYPES = ['Feuer', 'Wasser', 'Pflanze', 'Elektro', 'Stein', 'Psycho', 'Boden', 'Gift', 'Kampf'];
   // Neutral: typenlose Attacken (Rempler, Kratzer, Biss …) – immer 1×, kein Typbonus, kein Geist hat diesen Typ
   G.NEUTRAL = 'Neutral';
   G.TYPE_COLORS = {
-    Neutral: '#b8b0c8', Feuer: '#f58c4c', Wasser: '#5aa8f2', Elektro: '#f0cc40', Stein: '#c4ae88',
+    Neutral: '#b8b0c8', Feuer: '#f58c4c', Wasser: '#5aa8f2', Pflanze: '#6cc45a', Elektro: '#f0cc40', Stein: '#c4ae88',
     Psycho: '#ec7cbc', Boden: '#c8985a', Gift: '#a872dc', Kampf: '#d8604c'
   };
   G.CHART = {
-    Feuer:   { Gift: 2, Psycho: 2, Feuer: 0.5, Wasser: 0.5, Stein: 0.5 },
-    Wasser:  { Feuer: 2, Stein: 2, Boden: 2, Wasser: 0.5 },
-    Elektro: { Wasser: 2, Psycho: 2, Elektro: 0.5, Stein: 0.5, Boden: 0 },
+    // Starter-Dreieck: Feuer > Pflanze > Wasser > Feuer (je 2×), Rückrichtung je ½×
+    Feuer:   { Pflanze: 2, Gift: 2, Psycho: 2, Feuer: 0.5, Wasser: 0.5, Stein: 0.5 },
+    Wasser:  { Feuer: 2, Stein: 2, Boden: 2, Wasser: 0.5, Pflanze: 0.5 },
+    Pflanze: { Wasser: 2, Stein: 2, Boden: 2, Feuer: 0.5, Pflanze: 0.5, Gift: 0.5 },
+    Elektro: { Wasser: 2, Psycho: 2, Elektro: 0.5, Stein: 0.5, Pflanze: 0.5, Boden: 0 },
     Stein:   { Feuer: 2, Elektro: 2, Stein: 0.5, Boden: 0.5, Kampf: 0.5 },
     Psycho:  { Kampf: 2, Gift: 2, Psycho: 0.5 },
-    Boden:   { Feuer: 2, Elektro: 2, Stein: 2, Gift: 2, Kampf: 0.5 },
-    Gift:    { Wasser: 2, Kampf: 2, Gift: 0.5, Boden: 0.5, Stein: 0.5 },
+    Boden:   { Feuer: 2, Elektro: 2, Stein: 2, Gift: 2, Kampf: 0.5, Pflanze: 0.5 },
+    Gift:    { Wasser: 2, Kampf: 2, Pflanze: 2, Gift: 0.5, Boden: 0.5, Stein: 0.5 },
     Kampf:   { Stein: 2, Elektro: 2, Psycho: 0.5, Gift: 0.5 }
   };
-  G.eff1 = (mt, dt) => { if (mt === 'Neutral') return 1;  const r = G.CHART[mt] && G.CHART[mt][dt]; return r === undefined ? 1 : r; };
+  G.eff1 = (mt, dt) => { if (mt === 'Neutral') return G.NEUTRAL_VS[dt] || 1;  const r = G.CHART[mt] && G.CHART[mt][dt]; return r === undefined ? 1 : r; };
   // Doppeltypen: Faktoren multiplizieren sich (z. B. Feuer gegen Gift/Psycho = 4×)
   G.typesOf = sp => G.SPECIES[sp].types || [G.SPECIES[sp].type];
+  // Neutral (typenlos) wirkt 1× – ausser gegen Stein: ½× (wie Normal gegen Gestein)
+  G.NEUTRAL_VS = { Stein: 0.5 };
   G.eff = (mt, sp) => G.typesOf(sp).reduce((f, t) => f * G.eff1(mt, t), 1);
   G.hasType = (sp, t) => G.typesOf(sp).includes(t);
   G.isNeutral = id => G.MOVES[id] && G.MOVES[id].type === 'Neutral';
@@ -103,22 +107,68 @@ window.G = window.G || {};
     grimmstoss:     { name: 'Grimmstoss',     type: 'Kampf',   power: 80, acc: 90,  pp: 10 },
     ahnenstoss:     { name: 'Ahnenstoss',     type: 'Kampf',   power: 75, acc: 90,  pp: 10 },                         // Boss
     giftschlamm:    { name: 'Giftschlamm',    type: 'Gift',    power: 70, acc: 90,  pp: 10 },
-    erdklumpen:     { name: 'Erdklumpen',     type: 'Boden',   power: 60, acc: 95,  pp: 15 }
+    erdklumpen:     { name: 'Erdklumpen',     type: 'Boden',   power: 60, acc: 95,  pp: 15 },
+    // Pflanze (v14)
+    blattwirbel:    { name: 'Blattwirbel',    type: 'Pflanze', power: 45, acc: 100, pp: 25 },
+    feenstaub:      { name: 'Feenstaub',      type: 'Pflanze', power: 0,  acc: 100, pp: 20, effect: { who: 'foe',  stat: 'acc', n: -1 } },
+    rankensog:      { name: 'Rankensog',      type: 'Pflanze', power: 55, acc: 95,  pp: 15, drain: 0.5 },
+    wurzelhieb:     { name: 'Wurzelhieb',     type: 'Pflanze', power: 80, acc: 90,  pp: 10 },
+    waldsegen:      { name: 'Waldsegen',      type: 'Pflanze', power: 0,  acc: 100, pp: 5,  heal: 0.5 },
+    feensturm:      { name: 'Feensturm',      type: 'Pflanze', power: 90, acc: 85,  pp: 5 },
+    // neue Starter-Linien: Drache und Ente
+    drachenglut:    { name: 'Drachenglut',    type: 'Feuer',   power: 90, acc: 85,  pp: 5 },
+    schwanenruf:    { name: 'Schwanenruf',    type: 'Wasser',  power: 90, acc: 85,  pp: 5 }
   };
   G.STAT_NAMES = { atk: 'Angriffskraft', def: 'Verteidigung', acc: 'Genauigkeit' };
 
   // ---------- Geister (19) ----------
   // evo: { to, lvl } – Entwicklung beim Level-up (nach Kampfende). boss: nicht fangbar in Kapitel 1.
   G.SPECIES = {
-    // Starter-Linie Irrlicht
-    flackerling: { name: 'Flackerling', g: 'm', type: 'Feuer', types: ['Feuer'], base: { hp: 40, atk: 52, def: 38, spd: 56 }, catch: 0.45, xp: 55,
+    // Starter-Linie Feuer: Drache (Flackerling -> Glutwurm -> Seelendrache)
+    flackerling: { name: 'Flackerling', g: 'm', type: 'Feuer', types: ['Feuer'], base: { hp: 40, atk: 50, def: 38, spd: 54 }, catch: 0.45, xp: 55,
       learn: [[1, 'kratzer'], [1, 'heuler'], [6, 'biss'], [8, 'irrfeuer'], [10, 'blendlicht'], [12, 'glutschein'], [13, 'irrweg']],
-      evo: { to: 'irrfackel', lvl: 14 },
-      desc: 'Ein Füchslein aus warmer Glut, dessen Schweifspitze glimmt. Früher lockte es Reisende ins Moor – heute leuchtet es ihnen lieber den Heimweg.' },
-    irrfackel: { name: 'Irrfackel', g: 'f', type: 'Feuer', types: ['Feuer', 'Psycho'], base: { hp: 58, atk: 74, def: 52, spd: 76 }, catch: 0.2, xp: 120,
+      evo: { to: 'glutwurm', lvl: 14 },
+      desc: 'Ein kleiner Glutdrache, kaum grösser als eine Laterne. Seine Schwanzflamme flackert, wenn er aufgeregt ist – und er ist fast immer aufgeregt.' },
+    glutwurm: { name: 'Glutwurm', g: 'm', type: 'Feuer', types: ['Feuer'], base: { hp: 58, atk: 74, def: 54, spd: 74 }, catch: 0.2, xp: 120,
       learn: [[1, 'kratzer'], [1, 'heuler'], [6, 'biss'], [8, 'irrfeuer'], [10, 'blendlicht'], [12, 'glutschein'], [13, 'irrweg'], [16, 'seelenbrand'], [19, 'grabesruf']],
-      desc: 'Ihre drei Schweife brennen ohne Holz und flackern selbst im Regen. Wer ihr folgt, kommt immer an – nur nicht immer dort, wo er wollte. Ihr Blick liest Gedanken wie Glut.' },
-    // Starter-Linie Moor
+      evo: { to: 'seelendrache', lvl: 22 },
+      desc: 'Ein junger Lindwurm mit Flügeln aus Glut. Er übt heimlich das Fliegen über dem Moor – die Irrlichter, die man nachts sieht, sind oft nur seine Funken.' },
+    seelendrache: { name: 'Seelendrache', g: 'm', type: 'Feuer', types: ['Feuer', 'Psycho'], base: { hp: 80, atk: 100, def: 74, spd: 90 }, catch: 0.1, xp: 200,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'irrfeuer'], [12, 'glutschein'], [16, 'seelenbrand'], [19, 'grabesruf'], [22, 'schleiersturz'], [26, 'drachenglut']],
+      desc: 'Ein uralter Geisterdrache, dessen Schwingen wie Nordlicht glimmen. Man sagt, er trage die Seelen der Verirrten auf dem Rücken heim – durch Feuer, das nicht verbrennt.' },
+    // Starter-Linie Wasser: Ente (Pfützling -> Nebelente -> Mondschwan)
+    pfuetzling: { name: 'Pfützling', g: 'm', type: 'Wasser', types: ['Wasser'], base: { hp: 48, atk: 44, def: 42, spd: 44 }, catch: 0.45, xp: 55,
+      learn: [[1, 'rempler'], [1, 'starren'], [6, 'kopfnuss'], [8, 'wasserstrahl'], [10, 'sumpfsog'], [12, 'moorkaelte'], [13, 'grabesruf']],
+      evo: { to: 'nebelente', lvl: 14 },
+      desc: 'Ein flaumiges Geisterentlein, das in jeder Pfütze den Mond sucht. Wenn es niest, regnet es ein kleines bisschen.' },
+    nebelente: { name: 'Nebelente', g: 'f', type: 'Wasser', types: ['Wasser'], base: { hp: 72, atk: 62, def: 64, spd: 58 }, catch: 0.2, xp: 120,
+      learn: [[1, 'rempler'], [1, 'starren'], [6, 'kopfnuss'], [8, 'wasserstrahl'], [10, 'sumpfsog'], [12, 'moorkaelte'], [13, 'grabesruf'], [16, 'moorflut'], [19, 'nebelschleier']],
+      evo: { to: 'mondschwan', lvl: 22 },
+      desc: 'Sie gleitet so leise über den Moorsee, dass der Nebel hinter ihr die Form ihrer Flügel behält. Ihr Gefieder schimmert wie nasses Silber.' },
+    mondschwan: { name: 'Mondschwan', g: 'm', type: 'Wasser', types: ['Wasser', 'Psycho'], base: { hp: 96, atk: 82, def: 86, spd: 70 }, catch: 0.1, xp: 200,
+      learn: [[1, 'rempler'], [1, 'starren'], [8, 'wasserstrahl'], [10, 'sumpfsog'], [16, 'moorflut'], [19, 'nebelschleier'], [22, 'schleiersturz'], [26, 'schwanenruf']],
+      desc: 'Ein majestätischer Geisterschwan mit Mondsichel auf der Stirn. In klaren Nächten zieht er über das Moor, und wo sein Spiegelbild fällt, finden Verlorene den Weg.' },
+    // Starter-Linie Pflanze: Feenbaum (Blattling -> Hainfee -> Feenlinde)
+    blattling: { name: 'Blattling', g: 'm', type: 'Pflanze', types: ['Pflanze'], base: { hp: 48, atk: 44, def: 46, spd: 42 }, catch: 0.45, xp: 55,
+      learn: [[1, 'rempler'], [1, 'starren'], [6, 'kopfnuss'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog'], [13, 'grabesruf']],
+      evo: { to: 'hainfee', lvl: 14 },
+      desc: 'Ein winziger Setzling mit Blattflügeln, der um Laternen tanzt. Wo er einschläft, wächst am Morgen ein Kreis aus Mondklee.' },
+    hainfee: { name: 'Hainfee', g: 'f', type: 'Pflanze', types: ['Pflanze'], base: { hp: 70, atk: 66, def: 70, spd: 56 }, catch: 0.2, xp: 120,
+      learn: [[1, 'rempler'], [1, 'starren'], [6, 'kopfnuss'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog'], [13, 'grabesruf'], [16, 'wurzelhieb'], [19, 'waldsegen']],
+      evo: { to: 'feenlinde', lvl: 22 },
+      desc: 'Eine Dryade mit Haar aus jungen Birkenzweigen. Sie flüstert mit den Bäumen am Moorrand, und manchmal antworten sie mit Blütenregen.' },
+    feenlinde: { name: 'Feenlinde', g: 'f', type: 'Pflanze', types: ['Pflanze', 'Psycho'], base: { hp: 100, atk: 84, def: 96, spd: 50 }, catch: 0.1, xp: 200,
+      learn: [[1, 'rempler'], [1, 'starren'], [8, 'blattwirbel'], [12, 'rankensog'], [16, 'wurzelhieb'], [19, 'waldsegen'], [22, 'schleiersturz'], [26, 'feensturm']],
+      desc: 'Ein uralter Feenbaum, in dessen Krone Geisterlichter wohnen. Unter ihren Ästen wurde früher Gericht gehalten, geheiratet und Abschied genommen.' },
+    // wilde Pflanze-Geister (früh fangbar)
+    kleeling: { name: 'Kleeling', g: 'm', type: 'Pflanze', types: ['Pflanze'], base: { hp: 42, atk: 42, def: 44, spd: 50 }, catch: 0.6, xp: 46,
+      learn: [[1, 'rempler'], [3, 'starren'], [6, 'kopfnuss'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog']],
+      evo: { to: 'moorranke', lvl: 16 },
+      desc: 'Ein vierblättriges Kleeblatt mit Stielbeinchen, das durchs Nebelgras hüpft. Wer es fängt, hat angeblich eine Woche lang Glück.' },
+    moorranke: { name: 'Moorranke', g: 'f', type: 'Pflanze', types: ['Pflanze', 'Gift'], base: { hp: 62, atk: 64, def: 58, spd: 62 }, catch: 0.3, xp: 108,
+      learn: [[1, 'rempler'], [3, 'starren'], [6, 'kopfnuss'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog'], [16, 'schattenbiss'], [19, 'wurzelhieb']],
+      desc: 'Eine Kletterranke, die sich um alte Grabsteine windet. Ihre Blüten öffnen sich nur bei Nebel und duften nach Regen und Bittermandel.' },
+    // wilde Wasser-Linie (früher Starter)
     moorlurch: { name: 'Moorlurch', g: 'm', type: 'Wasser', types: ['Wasser'], base: { hp: 52, atk: 46, def: 48, spd: 36 }, catch: 0.45, xp: 55,
       learn: [[1, 'rempler'], [1, 'starren'], [6, 'biss'], [8, 'wasserstrahl'], [10, 'sumpfsog'], [12, 'moorkaelte'], [13, 'grabesruf']],
       evo: { to: 'moorunke', lvl: 14 },
@@ -128,7 +178,7 @@ window.G = window.G || {};
       desc: 'Ihr Ruf klingt wie eine Glocke unter Wasser. Ihre Warzen sind giftig, doch Verirrte hören sie und wissen plötzlich wieder, wie ihr Zuhause riecht.' },
     // Stein-Linie (früher Starter, jetzt nur noch wild: Nebelgras, Torfstich)
     kieselgeist: { name: 'Kieselgeist', g: 'm', type: 'Stein', types: ['Stein'], base: { hp: 46, atk: 48, def: 60, spd: 28 }, catch: 0.45, xp: 55,
-      learn: [[1, 'rempler'], [1, 'haerten'], [6, 'kopfnuss'], [8, 'kieselhagel'], [10, 'felsruf'], [12, 'grenzwacht']],
+      learn: [[1, 'rempler'], [1, 'heuler'], [6, 'haerten'], [7, 'kopfnuss'], [8, 'kieselhagel'], [10, 'felsruf'], [12, 'grenzwacht']],
       evo: { to: 'menhirgeist', lvl: 14 },
       desc: 'Ein Schildkrötengeist mit einem Panzer aus Bachkieseln. Er lag jahrelang als Grenzstein am Weg und vergisst nie ein Gesicht.' },
     menhirgeist: { name: 'Menhirgeist', g: 'm', type: 'Stein', types: ['Stein', 'Boden'], base: { hp: 66, atk: 66, def: 84, spd: 38 }, catch: 0.2, xp: 120,
@@ -183,27 +233,36 @@ window.G = window.G || {};
       learn: [[1, 'rempler'], [8, 'irrnebel'], [8, 'ahnenstoss'], [8, 'nebelwand'], [10, 'schleiersturz'], [16, 'ahnenruf']],
       desc: 'So alt wie der Nebel selbst, mit einem Geweih aus Dunst. Er hält die Verlorenen fest, damit sie nicht allein weitergehen müssen.' }
   };
-  G.SPECIES_ORDER = ['flackerling', 'irrfackel', 'moorlurch', 'moorunke', 'kieselgeist', 'menhirgeist',
+  G.SPECIES_ORDER = ['flackerling', 'glutwurm', 'seelendrache', 'pfuetzling', 'nebelente', 'mondschwan', 'blattling', 'hainfee', 'feenlinde',
+    'kleeling', 'moorranke', 'moorlurch', 'moorunke', 'kieselgeist', 'menhirgeist',
     'schattenmotte', 'grabfalter', 'nebelkauz', 'schleierkauz', 'laternchen', 'totenleuchte',
     'torfwicht', 'hauchling', 'raufdachs', 'grimmdachs', 'schwammling', 'moderhut', 'nebelahn'];
-  // Starter-Dreieck: Feuer schlägt Gift, Gift schlägt Wasser, Wasser schlägt Feuer
-  G.STARTERS = ['flackerling', 'moorlurch', 'schwammling'];
+  // Starter-Dreieck: Feuer schlägt Pflanze, Pflanze schlägt Wasser, Wasser schlägt Feuer
+  G.STARTERS = ['flackerling', 'pfuetzling', 'blattling'];
+  // alte Arten-IDs (Spielstand-Migration): der Glutfuchs Irrfackel wurde zum Glutwurm der neuen Drachen-Linie
+  G.SPECIES_RENAMED = { irrfackel: 'glutwurm' };
   // Starter-Linie eines Spielstands (auch aus Entwicklungen und alten Spielständen ableitbar, z. B. Kieselgeist)
-  G.STARTER_LINE = { flackerling: 'flackerling', irrfackel: 'flackerling', moorlurch: 'moorlurch', moorunke: 'moorlurch',
+  G.STARTER_LINE = { flackerling: 'flackerling', glutwurm: 'flackerling', seelendrache: 'flackerling', pfuetzling: 'pfuetzling', nebelente: 'pfuetzling',
+    mondschwan: 'pfuetzling', blattling: 'blattling', hainfee: 'blattling', feenlinde: 'blattling', moorlurch: 'moorlurch', moorunke: 'moorlurch',
     schwammling: 'schwammling', moderhut: 'schwammling', kieselgeist: 'kieselgeist', menhirgeist: 'kieselgeist' };
   G.starterOf = S => { if (!S) return null; if (S.starter) return S.starter; const m = [...(S.team || []), ...(S.box || [])].find(m => G.STARTER_LINE[m.sp]); return m ? G.STARTER_LINE[m.sp] : null; };
 
   // ---------- Wildgebiete ----------
   // G.WILD bleibt für Nebelgras (Kompatibilität). lvl: [min, max]; Formel siehe design.md §10.
-  G.WILD = [['schattenmotte', 22], ['nebelkauz', 20], ['laternchen', 22], ['schwammling', 8], ['raufdachs', 8], ['moorlurch', 8], ['kieselgeist', 6], ['flackerling', 6]];
+  G.WILD = [['schattenmotte', 20], ['nebelkauz', 18], ['laternchen', 20], ['kleeling', 14], ['schwammling', 8], ['raufdachs', 8], ['moorlurch', 8], ['kieselgeist', 4], ['flackerling', 4]];
+  // Story-Reihenfolge der Wildgebiete; Level steigen monoton (siehe README «Level-Kurve»)
+  G.ZONE_ORDER = ['nebelgras', 'kuestengras', 'schilfrand', 'torfstich', 'kapelle'];
   G.WILD_AREAS = {
     nebelgras: { tile: '"', rate: 0.055, lvl: [2, 6], table: G.WILD },
-    schilfrand: { tile: 'q', rate: 0.05, lvl: [7, 10],
-      table: [['torfwicht', 30], ['raufdachs', 18], ['nebelkauz', 20], ['schattenmotte', 15], ['laternchen', 10], ['moorlurch', 7]] },
-    torfstich: { tile: 'm', rate: 0.06, lvl: [9, 12],
+    // Küstenweg zum Leuchtturm (Prolog-Ziel nach Fenn): etwas stärker als das Dorf-Nebelgras
+    kuestengras: { tile: '"', map: 'kueste', rate: 0.05, lvl: [5, 8],
+      table: [['schattenmotte', 18], ['nebelkauz', 20], ['laternchen', 18], ['kleeling', 14], ['moorlurch', 12], ['raufdachs', 10], ['kieselgeist', 4], ['hauchling', 4]] },
+    schilfrand: { tile: 'q', rate: 0.05, lvl: [8, 11],
+      table: [['torfwicht', 28], ['raufdachs', 16], ['nebelkauz', 18], ['schattenmotte', 14], ['kleeling', 10], ['laternchen', 9], ['moorlurch', 7]] },
+    torfstich: { tile: 'm', rate: 0.06, lvl: [10, 13],
       table: [['torfwicht', 32], ['raufdachs', 14], ['schwammling', 12], ['moorlurch', 12], ['nebelkauz', 10], ['hauchling', 10], ['kieselgeist', 6], ['flackerling', 4]] },
-    kapelle: { tile: 'c', rate: 0.065, lvl: [11, 13],
-      table: [['hauchling', 30], ['schattenmotte', 20], ['laternchen', 16], ['schwammling', 12], ['grabfalter', 8], ['schleierkauz', 8], ['raufdachs', 6]] }
+    kapelle: { tile: 'c', rate: 0.065, lvl: [12, 15],
+      table: [['hauchling', 28], ['schattenmotte', 18], ['laternchen', 14], ['schwammling', 12], ['grabfalter', 8], ['schleierkauz', 8], ['moorranke', 6], ['raufdachs', 6]] }
   };
 
   // ---------- Gegenstände ----------
@@ -244,7 +303,8 @@ window.G = window.G || {};
     fenn: { name: 'Fenn', title: 'Kleiner Geisterbeschwörer', area: 'dorf', pos: [13, 15], sight: 0,
       // zweiter Geist je nach Starter, so abgestimmt, dass jeder Starter nach etwas Training (Lv 7) gut 3 von 4 Kämpfen gewinnt
       team: [['laternchen', 5], ['raufdachs', 6]],
-      teamFor: { flackerling: 'moorlurch', moorlurch: 'raufdachs', schwammling: 'nebelkauz', kieselgeist: 'flackerling' },
+      // Konter-Wahl: Fenn nimmt den Typ, der deinen Starter schlägt (Wasser gegen Feuer, Pflanze gegen Wasser, Feuer gegen Pflanze)
+      teamFor: { flackerling: 'moorlurch', pfuetzling: 'kleeling', blattling: 'flackerling', moorlurch: 'raufdachs', schwammling: 'nebelkauz', kieselgeist: 'flackerling' },
       ask: ['Fenn: Du! Du hast jetzt auch Geister, oder? Ich hab jeden Tag im Nebelgras trainiert!',
         'Fenn: Ilse sagt, man soll erst im Nebelgras üben, bis die Geister ein paar Level stärker sind. Level 7 oder so. Dann ist es ein fairer Kampf.'],
       askQ: 'Fenn: Willst du gegen mich kämpfen?',
@@ -306,6 +366,7 @@ window.G = window.G || {};
   };
   // Alte Spielstände (v1) und fehlende Felder ergänzen
   G.migrateMon = m => {
+    if (G.SPECIES_RENAMED[m.sp]) { m.sp = G.SPECIES_RENAMED[m.sp]; m.moves = (m.moves || []).filter(id => G.SPECIES[m.sp].learn.some(([, mv]) => mv === id)); }
     if (!G.SPECIES[m.sp]) m.sp = 'flackerling';
     m.moves = (m.moves || []).filter(id => G.MOVES[id]);
     if (!m.moves.length) m.moves = ['hauch'];

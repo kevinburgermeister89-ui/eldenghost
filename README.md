@@ -14,7 +14,7 @@ Reines HTML5 Canvas + Vanilla JS, kein Build-Schritt. Mobile-first (Hochformat),
 | A (sprechen, bestätigen) | Leertaste / Z / E | A (oder aufs Textfeld tippen) |
 | B (zurück, Entwicklung abbrechen) | Esc / X / Backspace | B |
 | START = Menü | Enter / M (oder B in der Oberwelt) | START |
-| SELECT = Ton an/aus | Shift | SELECT |
+| SELECT = Ton an/aus | Shift | SELECT oder Lautsprecher-Taste |
 
 Auf Touch-Geräten sieht die Steuerung aus wie ein Game Boy: Bildschirm im dunklen Gehäuse (mit Power-LED und Schriftzug),
 Steuerkreuz links, A/B diagonal rechts (B links unterhalb von A), START/SELECT mittig darunter. Tasten zeigen einen
@@ -37,7 +37,7 @@ Diagonalen, Totzone, Wischen, Knopf-Begrenzung, Sofortstart); `tests/test_game.p
 Das nächste Ziel steht immer oben im START-Menü («Ziel») und erscheint als Hinweis, sobald es sich ändert.
 0. **Aufwachen im Elternhaus** (Mutter und Vater am Tisch). Ohne Geist lässt Ilse dich nicht in den Nebel (Süden und Ostweg gesperrt).
 1. **Ilse** auf dem Dorfplatz erzählt vom Nebel über Moor und Meer und von den verlorenen Geistern, die Licht suchen.
-2. **Starterwahl in der Welt:** drei Laternensteine hinter Ilse mit Flackerling (Feuer), Moorlurch (Wasser) und Schwammling (Gift).
+2. **Starterwahl in der Welt:** drei Laternensteine hinter Ilse mit Flackerling (Feuer, Glutdrache), Pfützling (Wasser, Geisterentlein) und Blattling (Pflanze, Feenbaum-Setzling).
    Ansprechen zeigt den Geist gross, Typ, Beschreibung und Ilses Einschätzung; bestätigen mit «Ja» (mit «Nein» abbrechbar).
    Danach übergibt Ilse **5 Seelenfänger** und erklärt das Fangen.
    **Dorfführung** (nur neue Spielstände, `flags.tour` 0 → 2): Ilse fragt «Kennst du dich im Dorf schon aus?» – «Zeig es mir»
@@ -91,62 +91,127 @@ Alte Spielstände mit Geist überspringen Einführung und Fang-Übung (Ziel: Leu
 - Vorschau-Modus `index.html?demo=battle`: Kampf-Endlosschleife mit neuen Geistern, ohne Spielstand zu verändern.
 
 ## Elemente & Typentabelle
-8 Elemente: **Feuer, Wasser, Elektro, Stein, Psycho, Boden, Gift, Kampf**. Doppeltypen sind möglich, die Faktoren
-multiplizieren sich (z. B. Feuer gegen Gift/Psycho = 4×). Gleicher Typ wie der Angreifer: ×1,5. Die Tabelle steht auch
-in der Geisterchronik (Menü), dort mit einer Zeile «Neutral».
+9 Elemente: **Feuer, Wasser, Pflanze, Elektro, Stein, Psycho, Boden, Gift, Kampf** (Pflanze neu in v14). Doppeltypen sind
+möglich, die Faktoren multiplizieren sich (z. B. Feuer gegen Gift/Psycho = 4×). Gleicher Typ wie der Angreifer: ×1,5. Die
+Tabelle steht auch in der Geisterchronik (Menü), dort mit einer Zeile «Neutral».
 
 **Neutral (typenlos):** Rempler, Hauch, Kratzer (je 40), Biss, Kopfnuss (je 55, 95 %), dazu die Statusattacken Heuler
 (Angriff des Gegners −1), Starren (Verteidigung des Gegners −1) und Härten (eigene Verteidigung +1); «Letzter Hauch» ist
-ebenfalls typenlos. Neutral wirkt immer 1× gegen jeden Typ und bekommt keinen Typbonus (kein Geist hat den Typ Neutral).
-**Unter Lv 8 kennen alle Geister nur typenlose Attacken** – Starter, Wildgeister (Nebelgras Lv 2–6, Schilfrand ab Lv 7) und
-Beschwörer. Die erste eigene Typ-Attacke kommt mit Lv 8 (Hauchling: Wehmut mit 8, Seufzer mit 9). Im Kampf: schlichter
-Treffer (kurzer Vorstoss, helle Funken, kleiner Ring, dumpfer Schlag).
+ebenfalls typenlos. Neutral wirkt 1× gegen jeden Typ – **ausser gegen Stein: ½×** (v14, wie Normal gegen Gestein) – und
+bekommt keinen Typbonus (kein Geist hat den Typ Neutral).
+**Unter Lv 8 kennen alle Geister nur typenlose Attacken** – Starter, Wildgeister und Beschwörer. Die erste eigene
+Typ-Attacke kommt mit Lv 8. Damit frühe Stein-Geister trotz ½× schlagbar bleiben: Kieselgeist lernt zuerst Heuler (Härten
+erst mit Lv 6), ist im Nebelgras seltener (Gewicht 4) und erscheint im Nebelgras und am Küstenweg höchstens 3 Level unter
+deinem stärksten Geist (Simulation: Starter Lv 5 gegen Kieselgeist Lv 2: 97–100 %, Lv 7 gegen Lv 4: 93–97 %, Lv 8 gegen Lv 5: 100 %).
 
-| Angriff ↓ / Ziel → | Feu | Was | Ele | Ste | Psy | Bod | Gif | Kam |
-|---|---|---|---|---|---|---|---|---|
-| **Feuer**   | ½ | ½ |   | ½ | 2 |   | 2 |   |
-| **Wasser**  | 2 | ½ |   | 2 |   | 2 |   |   |
-| **Elektro** |   | 2 | ½ | ½ | 2 | 0 |   |   |
-| **Stein**   | 2 |   | 2 | ½ |   | ½ |   | ½ |
-| **Psycho**  |   |   |   |   | ½ |   | 2 | 2 |
-| **Boden**   | 2 |   | 2 | 2 |   |   | 2 | ½ |
-| **Gift**    |   | 2 |   | ½ |   | ½ | ½ | 2 |
-| **Kampf**   |   |   | 2 | 2 | ½ |   | ½ |   |
+| Angriff ↓ / Ziel → | Feu | Was | Pfl | Ele | Ste | Psy | Bod | Gif | Kam |
+|---|---|---|---|---|---|---|---|---|---|
+| **Feuer** | ½ | ½ | 2 |   | ½ | 2 |   | 2 |   |
+| **Wasser** | 2 | ½ | ½ |   | 2 |   | 2 |   |   |
+| **Pflanze** | ½ | 2 | ½ |   | 2 |   | 2 | ½ |   |
+| **Elektro** |   | 2 | ½ | ½ | ½ | 2 | 0 |   |   |
+| **Stein** | 2 |   |   | 2 | ½ |   | ½ |   | ½ |
+| **Psycho** |   |   |   |   |   | ½ |   | 2 | 2 |
+| **Boden** | 2 |   | ½ | 2 | 2 |   |   | 2 | ½ |
+| **Gift** |   | 2 | 2 |   | ½ |   | ½ | ½ | 2 |
+| **Kampf** |   |   |   | 2 | 2 | ½ |   | ½ |   |
+| **Neutral** |   |   |   |   | ½ |   |   |   |   |
 
-Leer = 1×. Jeder Typ trifft 2–4 Typen sehr wirksam und hat 1–3 Schwächen (Boden ist offensiv stark, hat aber wenige
-Vertreter und schwächere Attacken).
+Leer = 1×. Jeder Typ trifft 2–4 Typen sehr wirksam und hat 2–4 Schwächen (Stein hat seit Pflanze vier Schwächen, hält dafür
+Neutral besser aus). **Pflanze:** stark gegen Wasser, Stein, Boden; schwach gegen Feuer und Gift; resistent gegen Wasser,
+Elektro, Boden und Pflanze.
 
-**Starter-Dreieck:** Flackerling (Feuer), Moorlurch (Wasser), Schwammling (Gift) – Feuer schlägt Gift, Gift schlägt Wasser,
-Wasser schlägt Feuer – das Dreieck greift ab Lv 8, wenn die Typ-Attacken kommen. Alle drei haben vergleichbare Basiswerte
-(182–186) und entwickeln sich mit Lv 14. Kieselgeist ist kein Starter mehr, bleibt aber im Nebelgras und Torfstich fangbar.
+**Starter-Dreieck (v14):** Feuer > Pflanze > Wasser > Feuer, jeweils 2×, rückwärts symmetrisch ½×. Es greift ab Lv 8, wenn
+die Typ-Attacken kommen. Basiswerte 178–182, Entwicklungen mit **Lv 14 und Lv 22** (Begründung: Die Geschichte endet derzeit
+um Lv 16–20 – Nebelahn Lv 16, Kapelle bis Lv 15; mit Lv 30 würde niemand die dritte Stufe sehen. Lv 22 ist mit EP fürs
+Fangen und Bank-EP nach dem Moor gut erreichbar und bleibt ein Ziel für das Nachspiel.)
+
+| Linie | Stufe 1 | Stufe 2 (Lv 14) | Stufe 3 (Lv 22) |
+|---|---|---|---|
+| Feuer (Drache) | **Flackerling** – kleiner Glutdrache, Feuer | **Glutwurm** – junger Lindwurm mit Glutflügeln, Feuer | **Seelendrache** – Geisterdrache mit Nordlicht-Schwingen, Feuer/Psycho |
+| Wasser (Ente) | **Pfützling** – flaumiges Geisterentlein, Wasser | **Nebelente** – elegante Nebelente, Wasser | **Mondschwan** – Geisterschwan mit Mondsichel, Wasser/Psycho |
+| Pflanze (Feenbaum) | **Blattling** – Setzling mit Blattflügeln, Pflanze | **Hainfee** – Dryade mit Blütenkranz, Pflanze | **Feenlinde** – uralter Feenbaum voller Geisterlichter, Pflanze/Psycho |
 
 | Starter | Lv 1 | Lv 6 | Lv 8 (erste Typ-Attacke) | danach |
 |---|---|---|---|---|
-| Flackerling | Kratzer, Heuler | Biss | Irrfeuer (Feuer) | Blendblitz 10, Glutschein 12, Irrweg 13 |
-| Moorlurch | Rempler, Starren | Biss | Wasserstrahl (Wasser) | Sumpfsog 10, Moorkälte 12, Grabesruf 13 |
-| Schwammling | Rempler, Härten | Kopfnuss | Giftstaub (Gift) | Sporenwolke 10, Giftbiss 11, Erdklumpen 12, Moorkälte 13 |
+| Flackerling | Kratzer, Heuler | Biss | Irrfeuer (Feuer) | Blendlicht 10, Glutschein 12, Irrweg 13, Seelenbrand 16, Grabesruf 19, Schleiersturz 22, Drachenglut 26 |
+| Pfützling | Rempler, Starren | Kopfnuss | Wasserstrahl (Wasser) | Sumpfsog 10, Moorkälte 12, Grabesruf 13, Moorflut 16, Nebelschleier 19, Schleiersturz 22, Schwanenruf 26 |
+| Blattling | Rempler, Starren | Kopfnuss | Blattwirbel (Pflanze) | Feenstaub 10, Rankensog 12, Grabesruf 13, Wurzelhieb 16, Waldsegen 19, Schleiersturz 22, Feensturm 26 |
 
-Fenn (erster Beschwörer) passt seinen zweiten Geist an deinen Starter an: Laternchen Lv 5 plus Lv 6 Moorlurch
-(gegen Flackerling), Raufdachs (gegen Moorlurch) bzw. Nebelkauz (gegen Schwammling); Kieselgeist-Spielstände treffen einen
-Flackerling. Alte Spielstände behalten alle Geister; die Starter-Linie wird aus dem Team abgeleitet.
-Frühe Balance (Simulation `/tmp/sim3.js`, ein Starter allein, ohne Gegenstände, Gegner-KI wie im Spiel): gegen Fenn mit
-Lv 7 (zwei Level Training) Flackerling 79 %, Moorlurch 74 %, Schwammling 80 % Siege (Lv 6: ca. 2–21 %, Lv 8: 100 %);
-Starter Lv 5 gegen Nebelgras Lv 3–6: 70–76 %.
+Neue Pflanzen-Attacken: Blattwirbel (45), Feenstaub (Genauigkeit −1), Rankensog (55, saugt ½), Wurzelhieb (80), Waldsegen
+(heilt ½), Feensturm (90); dazu Drachenglut (Feuer 90) und Schwanenruf (Wasser 90) als Stufe-3-Attacken. Wilde Pflanzen-Geister:
+**Kleeling** (Pflanze, früh im Nebelgras und am Küstenweg) und **Moorranke** (Pflanze/Gift, Kapelle). Schwammling → Moderhut
+(Gift) und Moorlurch → Moorunke (Wasser/Gift) bleiben wild fangbar (keine Überschneidung mit der Enten-Linie).
+
+**Fenn** (erster Beschwörer) wählt den Konter zu deinem Starter: Laternchen Lv 5 plus Lv 6 Moorlurch (gegen Flackerling),
+Kleeling (gegen Pfützling) bzw. Flackerling (gegen Blattling); alte Spielstände: Raufdachs (Moorlurch), Nebelkauz (Schwammling),
+Flackerling (Kieselgeist). Balance (Simulation, Starter allein, Gegner-KI wie im Spiel, 4000 Kämpfe): gegen Fenn mit **Lv 7**
+Flackerling **80 %**, Pfützling **83 %**, Blattling **81 %** (Lv 6: 6–19 %, Lv 8: 99–100 %); Starter Lv 5 gegen Nebelgras: 69–74 %.
+
+**Alte Spielstände (v4 → v5):** nichts geht verloren. Flackerling bleibt Flackerling (neues Aussehen), Irrfackel heisst jetzt
+Glutwurm (gleiche Linie). Wer mit Moorlurch (Wasser) oder Schwammling bzw. Kieselgeist gestartet ist, bekommt **einmalig und
+freiwillig** den neuen Starter derselben Rolle angeboten (Pfützling bzw. Blattling): Ilse trägt ein «!», erzählt vom neuen Licht
+am Laternenstein und fragt «… zusätzlich mitnehmen?»; Level = stärkster Geist − 2 (5–30), bei vollem Team in die Kiste.
 
 | Geist | Typ | Geist | Typ |
 |---|---|---|---|
-| Flackerling → Irrfackel | Feuer → Feuer/Psycho | Laternchen → Totenleuchte | Elektro → Elektro/Psycho |
-| Moorlurch → Moorunke | Wasser → Wasser/Gift | Torfwicht | Boden |
-| Kieselgeist → Menhirgeist | Stein → Stein/Boden | Hauchling | Psycho |
-| Schattenmotte → Grabfalter | Gift/Psycho | **Raufdachs → Grimmdachs** (neu) | Kampf → Kampf/Boden |
-| Nebelkauz → Schleierkauz | Psycho | **Schwammling → Moderhut** (neu, Starter) | Gift → Gift/Boden |
+| Laternchen → Totenleuchte | Elektro → Elektro/Psycho | Moorlurch → Moorunke | Wasser → Wasser/Gift |
+| Kieselgeist → Menhirgeist | Stein → Stein/Boden | Torfwicht | Boden |
+| Schattenmotte → Grabfalter | Gift/Psycho | Hauchling | Psycho |
+| Nebelkauz → Schleierkauz | Psycho | Raufdachs → Grimmdachs | Kampf → Kampf/Boden |
+| Schwammling → Moderhut | Gift → Gift/Boden | Kleeling · Moorranke | Pflanze · Pflanze/Gift |
 | Nebelahn (Wächter) | Psycho/Kampf | | |
 
-Neue Attacken: Wasserstrahl, Moorflut (Wasser), Funkenflug, Glimmstrom, Blitzschlag (Elektro), Prankenhieb, Grimmstoss,
-Ahnenstoss (Kampf), Giftschlamm (Gift), Erdklumpen (Boden); bestehende wurden umbenannt/umtypisiert (z. B. Giftstaub,
-Giftbiss, Sporenwolke, Gedankenstoss, Traumsturz, Torfbeben). Raufdachs lebt am Schilfrand/Torfstich (selten Kapelle),
-Schwammling im Nebelgras, Torfstich und in der Kapelle. Kaspar führt jetzt einen Raufdachs.
 Status: «klamm» trifft keine Wasser-Geister, «verirrt» keine Psycho-Geister.
+
+### Level-Kurve der Wildgebiete (v14)
+Entlang der Geschichte steigen die Wild-Level monoton (`G.ZONE_ORDER`, Test in `test_v14.py`); ausserhalb des Dorfs höchstens
+2 Level über deinem stärksten Geist, im Dorf höchstens 1.
+
+| Gebiet (Story-Reihenfolge) | Wann | Wild-Level | erwartetes Team | Beschwörer |
+|---|---|---|---|---|
+| Nebelgras (Dorf) | Fang-Übung, vor Fenn | 2–6 | 5–7 | Fenn 5/6 |
+| Küstenweg zum Leuchtturm (neu `kuestengras`) | Prolog 4–6 | 5–8 | 7–10 | – |
+| Schilfrand (Tiefes Moor) | Nebengeschichte ab Wegweiser | 8–11 | 9–12 | Selma 9/10 |
+| Torfstich | Moor, Mitte | 10–13 | 11–14 | – |
+| Kapelle / Moorkern | vor Kaspar & Nebelahn | 12–15 | 13–16 | Kaspar 12/12/13, Nebelahn 16 |
+
+**EP (v14):** Fangen gibt genauso viele EP wie Besiegen (Art-EP × Level / 5, Beschwörer ×1,5). Alle Geister, die im Kampf
+waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpfte Geister (0 KP) nichts. Bank-Geister
+bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
+schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
+
+## v14: Neue Starter, Pflanze, Kampf-Feedback, Klang & Steuerung
+- **Neue Starter-Linien** (Drache, Ente, Feenbaum) und **Typ Pflanze** – siehe «Elemente & Typentabelle»; alle 9 Stufen im
+  Comic-Pixelstil mit Blinzel-/Atem-Idle, Pflanzen-Treffer mit Blattwirbel-Partikeln und eigenem Klang (Rascheln, Holzklopfen, Zupfakkord).
+- **Eigene Animation je Attacke** (`MOVE_FX` in `js/battle.js`, 55 Einträge, 0,6–1,8 s, jede ≤ 3 s): z. B. Kratzer =
+  drei Krallenstriche, Biss = zuschnappende Zahnreihen, Heuler = Schallringe, Wasserstrahl = durchgehender Strahl, Irrfeuer =
+  drei umeinander tanzende Flammen, Blitzschlag = zwei Zickzack-Blitze von oben, Felsruf = fallender Felsbrocken,
+  Schwanenruf = Rufringe und Federflug, Feensturm = Wirbel aus Blättern und Blütenfunken.
+- **Wirksamkeit als Pop-up im Einschlag** («Sehr effektiv!» orange und gross, «Nicht sehr effektiv …» grau, «Hat keine Wirkung …»),
+  poppt am Ziel auf, hält kurz und verblasst – **ohne eigene Textzeile, ohne Tastendruck, ohne Wartezeit** (die alten Zeilen
+  «Das ist sehr wirksam!» entfallen). Sehr effektiv: kräftigerer Schlag, Blitz, Bildschirmwackeln; schwach: gedämpfter Treffer,
+  kleinerer Einschlag; wirkungslos: 0 Schaden, hohles Verpuffen. Im Attacken-Menü steht hinter jeder Schadensattacke ▲ (grün,
+  stark), ▼ (grau, schwach) oder ✕ (wirkungslos) gegen den aktuellen Gegner – **immer**, denn Typ und Name des Gegners stehen
+  ohnehin im Kampf-HUD. Bei 1× steht nichts.
+- **Level-up:** warmer Streicher-Jingle mit Harfen-Arpeggio, Lichtstoss und aufsteigende Funken am Geist, EP-Leiste füllt sich
+  bis zum Rand und blinkt, Banner «Level X!» mit Werte-Tafel (alt → neu, +Differenz); steht, solange der Text läuft (A überspringt).
+- **Begegnungs-Stinger** (synchron zu Blitz und Wisch, Kampfmusik setzt erst danach ein): wild = aufsteigendes Nebelrauschen,
+  Geisterschimmer, tiefer Puls; Beschwörer = entschlossener mit Trommelschlag; Boss = tiefer, Orgelgrund mit kleiner Sekunde.
+  Respektiert Ton-Schalter und Stimmen-Obergrenze.
+- **Umgebung positionsabhängig:** Wasser (Wellen an der Küste, Plätschern an Moor/See) wird lauter, je näher man dem Wasser
+  ist, mit leichter Stereo-Lage zur Seite des Wassers; Wind stärker auf offenen Flächen und an der Küste; drinnen knistert es
+  nahe am Ofen/an der Esse. Vorberechnete Distanzkarte pro Karte (BFS), Pegel alle 0,1 s weich nachgeführt, im Kampf aus.
+- **Begehbare Laternen:** Strassen- und Moorlaternen sind nicht mehr fest; sie werden nach y mit Figuren sortiert gezeichnet
+  (hinter/vor der Spielfigur). Moorlaternen lassen sich weiterhin mit A entzünden – auch wenn man auf ihnen steht.
+- **Aufgaben-Markierungen nur über Personen** (keine Häuser, Türen, Zettel, Schilder, Steine, Tagebücher); während der
+  Dorfführung trägt Ilse das «!».
+- **Lautsprecher-Taste** unten rechts (Querformat: oben links), 46 px, Symbol zeigt den Zustand (Wellen = an, durchgestrichen =
+  aus), SELECT bleibt synchron (Anzeige «Ton ♪/✕» + kurzer Hinweis «Ton an/aus»). Sie ist absolut positioniert (keine
+  Verschiebung anderer Tasten), überlappt weder Steuerkreuz (+28 px Trefferzone) noch A/B/START/SELECT, nimmt keine
+  Zeiger-Capture und löst nur bei einem Tippen aus, das auf ihr beginnt und endet – Wischen vom Steuerkreuz darüber bleibt Bewegung.
+- **Ton standardmässig an:** neue Spiele und Neuinstallationen starten mit Ton; das v14-Update setzt ein früher gespeichertes
+  «Ton aus» einmalig zurück (`eldenghost.soundReset = 14`), danach gilt die eigene Wahl.
 
 ## v13: Heilungskirchen, Aufgaben-Markierungen, robuster Ton
 - **Heilungskirchen** (wiederverwendbare Vorlage `addChurch(Karte, {x, y, id, name, healer})` in `js/world.js`: Gebäude 4×3
@@ -157,9 +222,8 @@ Status: «klamm» trifft keine Wasser-Geister, «verirrt» keine Psycho-Geister.
   entzündeten Moorlaterne). Das Bett zu Hause heilt weiterhin (und speichert); Ilse füllt nur Seelenfänger auf.
 - **Aufgaben-Markierungen:** «!» (Sprechblase mit Leuchten, sanftes Wippen) über allen, die die Geschichte oder eine
   Nebenaufgabe *jetzt* weiterbringen, «?» bei Abgaben (Marens Laterne bei Ilse). Vollständig aus den Story-Flags
-  abgeleitet (`MARKS` in `js/world.js`): Ilse (Start, nach dem Fang, Nebenaufgabe), Laternensteine (Wahl), Jorins Tür
-  (Zettel), Wido, Wegweiser «Tiefes Moor», Tagebuch in der Hütte, Kaspar, Nebelahn, Onno (schlafend), Eltern (Abschied),
-  Wenke (bis zum ersten Gespräch), die Stationen der Dorfführung.
+  abgeleitet (`MARKS` in `js/world.js`), seit v14 nur über Personen: Ilse (Start, nach dem Fang, Führung, Nebenaufgabe,
+  Starter-Geschenk), Wido, Kaspar, Onno (schlafend), Eltern (Abschied), Wenke (bis zum ersten Gespräch).
 - **Ton-Robustheit (Android):** `S.unlock()` bei jeder Eingabe (pointerup/touchend/click/keydown – auf Touch zählt
   pointerdown in Chrome nicht als Nutzeraktivierung!) sowie bei visibilitychange/focus/pageshow; «interrupted» wird wie
   «suspended» behandelt, ein geschlossener Kontext wird neu aufgebaut und das Stück neu gestartet. Nach dem Fortsetzen
@@ -247,7 +311,7 @@ Leichtgewichtig: max. 160 Partikel, vorberechnete Leucht-Sprites, 60 fps.
 - `js/data.js` – Typen, Typentabelle, Attacken, Geister, Formeln
 - `js/audio.js` – WebAudio: Ambient-Drone, Wind, Glockentöne, Kampfmusik, Effekte
 - `js/art.js` – Rasterer für den Comic-Pixelstil (Formen → Pixel, Schattierung, Kontur, Mondlicht-Kante)
-- `js/creatures.js` – die 19 Geister (Vorder-/Rückansicht, beliebige Grössen)
+- `js/creatures.js` – die 28 Geister (Vorder-/Rückansicht, beliebige Grössen)
 - `js/people.js` – Spieler, Dorfbewohner (auch Mutter, Vater, Onno, Kapitänin Wenke), Seelenfänger
 - `js/tiles.js` – Oberwelt-Kacheln, Objekte, Häuser und Wasser-Deko im Comic-Pixelstil
 - `js/sprites.js` – Hochauflösungs-Werkzeuge (mkHi, Scale2x), Geister-Sprite-Tabelle
@@ -265,6 +329,13 @@ Leichtgewichtig: max. 160 Partikel, vorberechnete Leucht-Sprites, 60 fps.
   Heilungskirchen (Heilen stellt alles her, Wiedererwachen nach verlorenem Kampf), Markierungen je Story-Schritt, Dorfführung
   (vollständig, überspringbar per Auswahl und B, Kirche/kostenlos erwähnt, alte Spielstände ohne Führung), Ton (Suspend/Resume
   per Tippen/Taste/Sichtbarkeit, «interrupted», geschlossener Kontext, Wachhund, Zonenwechsel, begrenzte Knotenzahl)
+- `tests/test_v14.py` – Starter-Linien/Entwicklungsstufen, Dreieck & Pflanze, Neutral gegen Stein, Sprites, Starter-Geschenk
+  für alte Spielstände, begehbare Laternen (durchlaufen, Moorlaterne auf der Kachel anzünden), Stinger (wild/Beschwörer/Boss,
+  Ton aus), Wirksamkeits-Pop-ups (alle Fälle, keine Zusatzzeile, gleiche Zugdauer, Menü-Hinweis), EP (Fang = Sieg, Bank 65 %,
+  erschöpft 0), Level-up (Jingle, Banner, Werte-Tafel), monotone Level-Kurve, eine Animation je Attacke (≤ 3 s, gemessen),
+  Umgebungsklang nah/fern, Lautsprecher-Taste (Abstände, keine Verschiebung, Wischen löst nicht aus, Tippen schaltet, SELECT synchron),
+  Ton-Standard und einmalige Rücksetzung
+- `tests/shots_v14.py` – v14-Screenshots 134–139 (alle 9 Starter-Stufen, Laternensteine, Starterwahl, Menü-Hinweis ▲, «Sehr effektiv!»-Pop-up, Level-up-Tafel)
 - `tests/test_game.py` – Playwright-E2E-Test (Desktop + Mobil 390×844 per Touch): Kartenwechsel, Status, Gegenstände, Entwicklung, Beschwörerkampf, Moor, Speichern/Migration, Game-Boy-Layout
 - `G.debug` (Konsole): `lead(sp,lvl)`, `items({...})`, `warp(map,x,y)`, `wild(sp,lvl,moves)`; `G.debugEncounterRate`, `G.debugCatch`, `G.debugStatus`
 

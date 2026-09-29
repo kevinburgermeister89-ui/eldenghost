@@ -38,6 +38,10 @@
     if ((s.v || 1) < 3 && n.map === 'dorf' && n.player && G.World && G.World.solidAt(G.MAPS.dorf, n.player.x, n.player.y)) n.player = { x: 16, y: 7, dir: 'down' };
     // Starter-Wechsel (Schwammling statt Kieselgeist): Geister bleiben, nur die Starter-Linie wird vermerkt
     if (!n.starter) n.starter = G.starterOf(n);
+    // v5 (neue Starter): Wasser- (Moorlurch), Gift- (Schwammling) und Stein-Starter (Kieselgeist) behalten ihre Geister und
+    // bekommen einmalig freiwillig den neuen Starter der gleichen Rolle (Wasser -> Pfützling, Gift/Stein -> Blattling) angeboten.
+    // Feuer: Flackerling bleibt Flackerling, Irrfackel heisst jetzt Glutwurm (gleiche Linie, neues Aussehen)
+    if ((s.v || 1) < 5 && n.team.length && !n.flags.gift) { const g = { moorlurch: 'pfuetzling', schwammling: 'blattling', kieselgeist: 'blattling' }[n.starter]; if (g) n.flags.gift = g; }
     // Prolog «Das erloschene Licht»: alte Spielstände mit Geist überspringen Einführung und Fang-Übung,
     // erhalten den Leuchtturm-Auftrag und – falls leer – 5 Seelenfänger
     if (n.flags.story == null) {
@@ -143,8 +147,8 @@
     return `<h2 style="margin-top:12px">Typentabelle</h2><div class="hint">Zeile greift an, Spalte verteidigt. Doppeltypen multiplizieren sich.</div>
       <table class="typechart"><tr><th></th>${T.map(t => `<th style="color:${G.TYPE_COLORS[t]}">${ab(t)}</th>`).join('')}</tr>
       ${T.map(a => `<tr><th style="color:${G.TYPE_COLORS[a]}">${a}</th>${T.map(d => cell(G.eff1(a, d))).join('')}</tr>`).join('')}
-      <tr class="neutral"><th style="color:${G.TYPE_COLORS.Neutral}">Neutral</th>${T.map(() => '<td></td>').join('')}</tr></table>
-      <div class="hint">Neutral (typenlos) wie Rempler, Kratzer oder Biss wirkt immer 1× und bekommt keinen Typbonus. Typ-Attacken lernen Geister erst ab Level ${G.TYPE_MOVE_LVL}.</div>`;
+      <tr class="neutral"><th style="color:${G.TYPE_COLORS.Neutral}">Neutral</th>${T.map(d => cell(G.eff1('Neutral', d))).join('')}</tr></table>
+      <div class="hint">Neutral (typenlos) wie Rempler, Kratzer oder Biss wirkt 1× – nur gegen Stein ½× – und bekommt keinen Typbonus. Typ-Attacken lernen Geister erst ab Level ${G.TYPE_MOVE_LVL}.</div>`;
   }
   G.chartHtml = chartHtml;
   G.Menu.chronik = async () => {
@@ -278,7 +282,7 @@
       const a = G.anims[i]; a.t += dt * 1000; const p = Math.min(1, a.t / a.ms); a.fn(p);
       if (p >= 1) { G.anims.splice(i, 1); a.res(); }
     }
-    if (G.mode === 'world') G.World.update(dt);
+    if (G.mode === 'world') G.World.update(dt); else if (G.Snd.amb && G.Snd.ambLevel && (G.Snd.ambLevel.water || G.Snd.ambLevel.wind || G.Snd.ambLevel.hearth)) G.Snd.ambience(null);   // Kampf/Titel: Umgebung aus
     ctx.setTransform(G.OUT, 0, 0, G.OUT, 0, 0);
     ctx.imageSmoothingEnabled = false;
     const r0 = performance.now();
@@ -307,7 +311,7 @@
   // ?demo=battle: Vorschau-Kampf ohne Spielstand (für Live-Vorschau / Screenshots)
   async function demoFlow() {
     G.demo = true; G.state = newState(); UI.title(false);
-    const pairs = [['irrfackel', 'nebelahn'], ['moorunke', 'totenleuchte'], ['menhirgeist', 'schleierkauz'], ['nebelkauz', 'grabfalter'], ['hauchling', 'torfwicht']];
+    const pairs = [['glutwurm', 'nebelahn'], ['nebelente', 'kleeling'], ['hainfee', 'moorranke'], ['moorunke', 'totenleuchte'], ['menhirgeist', 'schleierkauz'], ['nebelkauz', 'grabfalter'], ['hauchling', 'torfwicht']];
     G.state.player = { x: 8, y: 13, dir: 'up' }; G.state.map = 'dorf'; enterWorld();
     for (let i = 0; ; i = (i + 1) % pairs.length) {
       G.debug.lead(pairs[i][0], 24);
@@ -315,5 +319,10 @@
       G.state.team.forEach(m => { m.hp = G.stats(m).hp; m.status = null; G.fillPP(m); });
     }
   }
-  G.Store.ready.then(() => { G.Snd.on = G.Store.get('eldenghost.sound') !== '0'; { const fx = G.Store.get('eldenghost.fx'); if (fx === 'hoch' || fx === 'niedrig') { G.fxMode = fx; G.lowFx = fx === 'niedrig'; } if (/[?&]lowfx=1/.test(location.search)) G.lowFx = true; } UI.syncSound(); if (/[?&]demo=battle/.test(location.search)) demoFlow(); else titleFlow(); });
+  // Ton ist standardmässig AN. v14: ein früher gespeichertes «Ton aus» wird einmalig auf AN zurückgesetzt; danach gilt die eigene Wahl
+  G.soundMigrate = () => {
+    if (G.Store.get('eldenghost.soundReset') === '14') return false;
+    G.Store.set('eldenghost.sound', '1'); G.Store.set('eldenghost.soundReset', '14'); G.Snd.on = true; return true;
+  };
+  G.Store.ready.then(() => { G.soundMigrate(); G.Snd.on = G.Store.get('eldenghost.sound') !== '0'; { const fx = G.Store.get('eldenghost.fx'); if (fx === 'hoch' || fx === 'niedrig') { G.fxMode = fx; G.lowFx = fx === 'niedrig'; } if (/[?&]lowfx=1/.test(location.search)) G.lowFx = true; } UI.syncSound(); if (/[?&]demo=battle/.test(location.search)) demoFlow(); else titleFlow(); });
 })(window.G);
