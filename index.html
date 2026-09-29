@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0816">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Eldenghost">
+<meta name="application-name" content="Eldenghost">
+<meta name="description" content="Ein düster-gemütliches Geister-Sammelspiel im Nebel.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<title>Eldenghost</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="bezel">
+    <div id="screen">
+      <canvas id="game" width="512" height="480"></canvas>
+      <div id="hud-enemy" class="hp-panel hidden">
+        <div class="row"><span class="nm"></span><span class="lv"></span></div>
+        <div class="row small"><span class="ty"></span></div>
+        <div class="bar"><i></i></div>
+      </div>
+      <div id="hud-ally" class="hp-panel hidden">
+        <div class="row"><span class="nm"></span><span class="lv"></span></div>
+        <div class="bar"><i></i></div>
+        <div class="row small"><span class="ty"></span><span class="hpnum"></span></div>
+        <div class="xpbar"><i></i></div>
+      </div>
+      <div id="title" class="hidden">
+        <h1>Eldenghost</h1>
+        <p>Ein Geisterabenteuer im Nebel</p>
+      </div>
+      <div id="textbox" class="hidden"><div id="text"></div><div id="next">▼</div></div>
+      <div id="choices" class="hidden"></div>
+      <div id="toast" class="hidden"></div>
+    </div>
+    <div id="bezel-label" aria-hidden="true"><span id="led"></span><span class="pw">POWER</span><b>ELDENGHOST</b></div>
+  </div>
+  <div id="controls">
+    <div id="dpad" aria-label="Steuerkreuz">
+      <div class="dp up" data-d="up"></div>
+      <div class="dp left" data-d="left"></div>
+      <div class="dp right" data-d="right"></div>
+      <div class="dp down" data-d="down"></div>
+      <div class="dp mid"></div>
+      <div id="dp-knob" aria-hidden="true"></div>
+    </div>
+    <div id="ab">
+      <div class="abw"><button id="btn-b" class="round" aria-label="B">B</button></div>
+      <div class="abw"><button id="btn-a" class="round" aria-label="A">A</button></div>
+    </div>
+    <div id="mid">
+      <div class="pw-wrap"><button id="btn-select" class="pill" aria-label="Select (Ton)"></button><span class="pl">SELECT</span><span class="pl2" id="snd-state">Ton ♪</span></div>
+      <div class="pw-wrap"><button id="btn-start" class="pill" aria-label="Start (Menü)"></button><span class="pl">START</span><span class="pl2">Menü</span></div>
+    </div>
+  </div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/platform.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/art.js"></script>
+<script src="js/creatures.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/people.js"></script>
+<script src="js/tiles.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/world.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+'use strict';
+// Eldenghost – Spieldaten Kapitel 1 «Das Licht im Moor» (Typen, Attacken, Status, Geister, Gegenstände, Trainer)
+window.G = window.G || {};
+(function (G) {
+  G.VW = 256; G.VH = 240; G.T = 16;
+  G.SAVE_KEY = 'eldenghost.save.v1';
+  G.SAVE_VERSION = 3; // v3: 8 Elemente (IDs unverändert, alte Spielstände bleiben gültig)
+
+  // 8 klassische Elemente (Kapitel 1 ab Spielstand v3). Tabelle: Angriffstyp -> Verteidigungstyp -> Faktor (fehlend = 1)
+  G.TYPES = ['Feuer', 'Wasser', 'Elektro', 'Stein', 'Psycho', 'Boden', 'Gift', 'Kampf'];
+  G.TYPE_COLORS = {
+    Feuer: '#f58c4c', Wasser: '#5aa8f2', Elektro: '#f0cc40', Stein: '#c4ae88',
+    Psycho: '#ec7cbc', Boden: '#c8985a', Gift: '#a872dc', Kampf: '#d8604c'
+  };
+  G.CHART = {
+    Feuer:   { Gift: 2, Psycho: 2, Feuer: 0.5, Wasser: 0.5, Stein: 0.5 },
+    Wasser:  { Feuer: 2, Stein: 2, Boden: 2, Wasser: 0.5 },
+    Elektro: { Wasser: 2, Psycho: 2, Elektro: 0.5, Stein: 0.5, Boden: 0 },
+    Stein:   { Feuer: 2, Elektro: 2, Stein: 0.5, Boden: 0.5, Kampf: 0.5 },
+    Psycho:  { Kampf: 2, Gift: 2, Psycho: 0.5 },
+    Boden:   { Feuer: 2, Elektro: 2, Stein: 2, Gift: 2, Kampf: 0.5 },
+    Gift:    { Wasser: 2, Kampf: 2, Gift: 0.5, Boden: 0.5, Stein: 0.5 },
+    Kampf:   { Stein: 2, Elektro: 2, Psycho: 0.5, Gift: 0.5 }
+  };
+  G.eff1 = (mt, dt) => { const r = G.CHART[mt] && G.CHART[mt][dt]; return r === undefined ? 1 : r; };
+  // Doppeltypen: Faktoren multiplizieren sich (z. B. Feuer gegen Gift/Psycho = 4×)
+  G.typesOf = sp => G.SPECIES[sp].types || [G.SPECIES[sp].type];
+  G.eff = (mt, sp) => G.typesOf(sp).reduce((f, t) => f * G.eff1(mt, t), 1);
+  G.hasType = (sp, t) => G.typesOf(sp).includes(t);
+
+  // ---------- Statuseffekte ----------
+  G.STATUS = {
+    klamm: {
+      name: 'Klamm', short: 'KLM', color: '#7fa38a',
+      dot: 1 / 12,            // verliert am Rundenende 1/12 der max. LP (min. 1)
+      persist: true,          // bleibt nach dem Kampf bis Kräutertee/Wacholderrauch/Ruhe zu Hause
+      immune: ['Wasser'],     // Wasser-Geister werden nie klamm
+      msgOn: '{n} wird klamm vor Moorkälte!', msgTick: '{n} zittert vor Kälte.', msgOff: '{n} ist wieder warm.'
+    },
+    verirrt: {
+      name: 'Verirrt', short: 'VRT', color: '#8ff0e4',
+      turns: [2, 4],          // Dauer in eigenen Zügen
+      skip: 0.33,             // 33 %: Attacke verfliegt, Zug verloren (kein Selbstschaden)
+      persist: false,         // endet mit dem Kampf oder beim Auswechseln
+      immune: ['Psycho'],
+      msgOn: '{n} hat sich im Nebel verirrt!', msgTick: '{n} irrt umher und findet sein Ziel nicht.', msgOff: '{n} findet den Weg zurück.'
+    }
+  };
+
+  // ---------- Attacken (pp neu; bestehende power/acc unverändert) ----------
+  G.MOVES = {
+    // IDs bleiben (Spielstände), Namen und Typen passen zu den 8 Elementen
+    hauch:          { name: 'Hauch',          type: 'Psycho',  power: 35, acc: 100, pp: 35 },
+    rempler:        { name: 'Rempler',        type: 'Kampf',   power: 40, acc: 100, pp: 35 },
+    grabesruf:      { name: 'Grabesruf',      type: 'Psycho',  power: 0,  acc: 100, pp: 20, effect: { who: 'foe',  stat: 'def', n: -1 } },
+    irrfeuer:       { name: 'Irrfeuer',       type: 'Feuer',   power: 45, acc: 95,  pp: 25 },
+    glutschein:     { name: 'Glutschein',     type: 'Feuer',   power: 65, acc: 90,  pp: 15 },
+    blendlicht:     { name: 'Blendblitz',     type: 'Elektro', power: 0,  acc: 100, pp: 20, effect: { who: 'foe',  stat: 'acc', n: -1 } },
+    schlammwurf:    { name: 'Schlammwurf',    type: 'Boden',   power: 45, acc: 95,  pp: 25 },
+    sumpfsog:       { name: 'Sumpfsog',       type: 'Wasser',  power: 55, acc: 95,  pp: 15, drain: 0.5 },
+    kieselhagel:    { name: 'Kieselhagel',    type: 'Stein',   power: 45, acc: 95,  pp: 25 },
+    felsruf:        { name: 'Felsruf',        type: 'Stein',   power: 70, acc: 85,  pp: 10 },
+    haerten:        { name: 'Härten',         type: 'Stein',   power: 0,  acc: 100, pp: 20, effect: { who: 'self', stat: 'def', n: 1 } },
+    schattenstaub:  { name: 'Giftstaub',      type: 'Gift',    power: 40, acc: 100, pp: 30 },
+    schattenbiss:   { name: 'Giftbiss',       type: 'Gift',    power: 60, acc: 95,  pp: 15 },
+    nebelstoss:     { name: 'Gedankenstoss',  type: 'Psycho',  power: 50, acc: 95,  pp: 25 },
+    nebelschleier:  { name: 'Trugschleier',   type: 'Psycho',  power: 0,  acc: 100, pp: 20, effect: { who: 'foe',  stat: 'acc', n: -1 } },
+    seufzer:        { name: 'Seufzer',        type: 'Psycho',  power: 55, acc: 100, pp: 25 },
+    wehmut:         { name: 'Wehmut',         type: 'Psycho',  power: 0,  acc: 100, pp: 20, effect: { who: 'foe',  stat: 'atk', n: -1 } },
+    erinnerung:     { name: 'Erinnerung',     type: 'Psycho',  power: 0,  acc: 100, pp: 5,  heal: 0.5 },              // heilt 50 % der max. LP (self)
+    letzterhauch:   { name: 'Letzter Hauch',  type: 'Kampf',   power: 35, acc: 100, pp: 0,  recoil: 0.25, fallback: true }, // automatisch, wenn alle AP leer
+    irrweg:         { name: 'Irrweg',         type: 'Psycho',  power: 0,  acc: 85,  pp: 15, status: { id: 'verirrt', chance: 100 } },
+    seelenbrand:    { name: 'Seelenbrand',    type: 'Feuer',   power: 80, acc: 90,  pp: 10 },
+    moorkaelte:     { name: 'Moorkälte',      type: 'Wasser',  power: 40, acc: 100, pp: 20, status: { id: 'klamm', chance: 30 } },
+    klammgriff:     { name: 'Klammgriff',     type: 'Kampf',   power: 60, acc: 90,  pp: 15, status: { id: 'klamm', chance: 20 } },
+    torfwelle:      { name: 'Torfbeben',      type: 'Boden',   power: 80, acc: 90,  pp: 10 },
+    grenzwacht:     { name: 'Grenzwacht',     type: 'Stein',   power: 0,  acc: 100, pp: 10, effect: { who: 'self', stat: 'def', n: 2 } },
+    menhirschlag:   { name: 'Menhirschlag',   type: 'Stein',   power: 85, acc: 85,  pp: 10 },
+    aschestaub:     { name: 'Sporenwolke',    type: 'Gift',    power: 0,  acc: 100, pp: 20, effect: { who: 'foe',  stat: 'atk', n: -1 } },
+    schattenschwinge:{ name: 'Traumschwinge', type: 'Psycho',  power: 75, acc: 95,  pp: 10 },
+    irrnebel:       { name: 'Wirrnebel',      type: 'Psycho',  power: 40, acc: 95,  pp: 20, status: { id: 'verirrt', chance: 25 } },
+    nebelwand:      { name: 'Geisterwand',    type: 'Psycho',  power: 0,  acc: 100, pp: 20, effect: { who: 'self', stat: 'def', n: 1 } },
+    schleiersturz:  { name: 'Traumsturz',     type: 'Psycho',  power: 75, acc: 90,  pp: 10 },
+    ahnenruf:       { name: 'Ahnenruf',       type: 'Psycho',  power: 90, acc: 90,  pp: 5 },                         // nur Boss
+    // neu mit den Elementen
+    wasserstrahl:   { name: 'Wasserstrahl',   type: 'Wasser',  power: 50, acc: 100, pp: 25 },
+    moorflut:       { name: 'Moorflut',       type: 'Wasser',  power: 80, acc: 90,  pp: 10 },
+    funkenflug:     { name: 'Funkenflug',     type: 'Elektro', power: 45, acc: 100, pp: 25 },
+    glimmstrom:     { name: 'Glimmstrom',     type: 'Elektro', power: 65, acc: 95,  pp: 15 },
+    blitzschlag:    { name: 'Blitzschlag',    type: 'Elektro', power: 80, acc: 85,  pp: 10 },
+    prankenhieb:    { name: 'Prankenhieb',    type: 'Kampf',   power: 50, acc: 100, pp: 25 },
+    grimmstoss:     { name: 'Grimmstoss',     type: 'Kampf',   power: 80, acc: 90,  pp: 10 },
+    ahnenstoss:     { name: 'Ahnenstoss',     type: 'Kampf',   power: 75, acc: 90,  pp: 10 },                         // Boss
+    giftschlamm:    { name: 'Giftschlamm',    type: 'Gift',    power: 70, acc: 90,  pp: 10 },
+    erdklumpen:     { name: 'Erdklumpen',     type: 'Boden',   power: 60, acc: 95,  pp: 15 }
+  };
+  G.STAT_NAMES = { atk: 'Angriffskraft', def: 'Verteidigung', acc: 'Genauigkeit' };
+
+  // ---------- Geister (19) ----------
+  // evo: { to, lvl } – Entwicklung beim Level-up (nach Kampfende). boss: nicht fangbar in Kapitel 1.
+  G.SPECIES = {
+    // Starter-Linie Irrlicht
+    flackerling: { name: 'Flackerling', g: 'm', type: 'Feuer', types: ['Feuer'], base: { hp: 40, atk: 52, def: 38, spd: 56 }, catch: 0.45, xp: 55,
+      learn: [[1, 'hauch'], [1, 'irrfeuer'], [5, 'blendlicht'], [8, 'glutschein'], [11, 'irrweg']],
+      evo: { to: 'irrfackel', lvl: 14 },
+      desc: 'Ein Füchslein aus warmer Glut, dessen Schweifspitze glimmt. Früher lockte es Reisende ins Moor – heute leuchtet es ihnen lieber den Heimweg.' },
+    irrfackel: { name: 'Irrfackel', g: 'f', type: 'Feuer', types: ['Feuer', 'Psycho'], base: { hp: 58, atk: 74, def: 52, spd: 76 }, catch: 0.2, xp: 120,
+      learn: [[1, 'hauch'], [1, 'irrfeuer'], [5, 'blendlicht'], [8, 'glutschein'], [11, 'irrweg'], [16, 'seelenbrand'], [19, 'grabesruf']],
+      desc: 'Ihre drei Schweife brennen ohne Holz und flackern selbst im Regen. Wer ihr folgt, kommt immer an – nur nicht immer dort, wo er wollte. Ihr Blick liest Gedanken wie Glut.' },
+    // Starter-Linie Moor
+    moorlurch: { name: 'Moorlurch', g: 'm', type: 'Wasser', types: ['Wasser'], base: { hp: 52, atk: 46, def: 48, spd: 36 }, catch: 0.45, xp: 55,
+      learn: [[1, 'rempler'], [1, 'wasserstrahl'], [6, 'sumpfsog'], [9, 'grabesruf'], [12, 'moorkaelte']],
+      evo: { to: 'moorunke', lvl: 14 },
+      desc: 'Schläft tagsüber im Torfwasser. Die glimmenden Flecken auf seinem Rücken zählen die Seelen, die er getröstet hat.' },
+    moorunke: { name: 'Moorunke', g: 'f', type: 'Wasser', types: ['Wasser', 'Gift'], base: { hp: 76, atk: 62, def: 66, spd: 48 }, catch: 0.2, xp: 120,
+      learn: [[1, 'rempler'], [1, 'wasserstrahl'], [6, 'sumpfsog'], [9, 'grabesruf'], [12, 'moorkaelte'], [16, 'moorflut'], [19, 'giftschlamm']],
+      desc: 'Ihr Ruf klingt wie eine Glocke unter Wasser. Ihre Warzen sind giftig, doch Verirrte hören sie und wissen plötzlich wieder, wie ihr Zuhause riecht.' },
+    // Stein-Linie (früher Starter, jetzt nur noch wild: Nebelgras, Torfstich)
+    kieselgeist: { name: 'Kieselgeist', g: 'm', type: 'Stein', types: ['Stein'], base: { hp: 46, atk: 48, def: 60, spd: 28 }, catch: 0.45, xp: 55,
+      learn: [[1, 'rempler'], [1, 'kieselhagel'], [5, 'haerten'], [9, 'felsruf'], [12, 'grenzwacht']],
+      evo: { to: 'menhirgeist', lvl: 14 },
+      desc: 'Ein Schildkrötengeist mit einem Panzer aus Bachkieseln. Er lag jahrelang als Grenzstein am Weg und vergisst nie ein Gesicht.' },
+    menhirgeist: { name: 'Menhirgeist', g: 'm', type: 'Stein', types: ['Stein', 'Boden'], base: { hp: 66, atk: 66, def: 84, spd: 38 }, catch: 0.2, xp: 120,
+      learn: [[1, 'rempler'], [1, 'kieselhagel'], [5, 'haerten'], [9, 'felsruf'], [12, 'grenzwacht'], [16, 'menhirschlag'], [19, 'torfwelle']],
+      desc: 'Auf seinem Rücken trug man einst Wachtfeuer. Die Russspuren glühen noch, wenn er an alte Freunde denkt.' },
+    // Nebelgras
+    schattenmotte: { name: 'Schattenmotte', g: 'f', type: 'Gift', types: ['Gift', 'Psycho'], base: { hp: 36, atk: 48, def: 34, spd: 60 }, catch: 0.6, xp: 45,
+      learn: [[1, 'hauch'], [4, 'schattenstaub'], [6, 'grabesruf'], [8, 'schattenbiss'], [10, 'aschestaub']],
+      evo: { to: 'grabfalter', lvl: 12 },
+      desc: 'Flattert nur um Lichter, die längst erloschen sind. Ihr Flügelstaub macht schläfrig und leicht giftig.' },
+    grabfalter: { name: 'Grabfalter', g: 'm', type: 'Gift', types: ['Gift', 'Psycho'], base: { hp: 52, atk: 68, def: 46, spd: 84 }, catch: 0.3, xp: 105,
+      learn: [[1, 'hauch'], [1, 'schattenstaub'], [5, 'grabesruf'], [7, 'schattenbiss'], [10, 'aschestaub'], [15, 'schattenschwinge'], [18, 'irrnebel']],
+      desc: 'Seine Flügel tragen die Muster alter Grabinschriften. Wer genau hinsieht, findet manchmal den eigenen Namen.' },
+    nebelkauz: { name: 'Nebelkauz', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 44, atk: 44, def: 42, spd: 50 }, catch: 0.55, xp: 50,
+      learn: [[1, 'hauch'], [1, 'nebelstoss'], [4, 'nebelschleier'], [8, 'grabesruf'], [11, 'irrnebel']],
+      evo: { to: 'schleierkauz', lvl: 13 },
+      desc: 'Sein Ruf ist so leise, dass man ihn erst hört, wenn er schon vorbei ist.' },
+    schleierkauz: { name: 'Schleierkauz', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 62, atk: 62, def: 58, spd: 70 }, catch: 0.3, xp: 110,
+      learn: [[1, 'hauch'], [1, 'nebelstoss'], [4, 'nebelschleier'], [8, 'grabesruf'], [11, 'irrnebel'], [16, 'schleiersturz'], [19, 'nebelwand']],
+      desc: 'Er webt den Nebel nicht – er kämmt ihn. Wo er nachts sitzt, ist der Morgen klarer.' },
+    laternchen: { name: 'Laternchen', g: 'n', type: 'Elektro', types: ['Elektro'], base: { hp: 40, atk: 40, def: 44, spd: 46 }, catch: 0.55, xp: 48,
+      learn: [[1, 'rempler'], [1, 'funkenflug'], [4, 'blendlicht'], [9, 'glimmstrom'], [12, 'irrweg']],
+      evo: { to: 'totenleuchte', lvl: 16 },
+      desc: 'Ein Glühwürmchen, das in einer vergessenen Stalllaterne überwintert hat. Sein Hinterleib knistert vor Funken, wenn es sich freut.' },
+    totenleuchte: { name: 'Totenleuchte', g: 'f', type: 'Elektro', types: ['Elektro', 'Psycho'], base: { hp: 60, atk: 58, def: 66, spd: 62 }, catch: 0.25, xp: 110,
+      learn: [[1, 'rempler'], [1, 'funkenflug'], [4, 'blendlicht'], [9, 'glimmstrom'], [12, 'irrweg'], [18, 'blitzschlag'], [20, 'erinnerung']],
+      desc: 'Früher schwebte sie über dem Friedhof, damit die Toten nicht im Dunkeln warten mussten. Ihr Licht summt wie ein Gewitter in der Ferne.' },
+    // Tiefes Moor
+    torfwicht: { name: 'Torfwicht', g: 'm', type: 'Boden', types: ['Boden'], base: { hp: 58, atk: 54, def: 52, spd: 38 }, catch: 0.45, xp: 62,
+      learn: [[1, 'rempler'], [1, 'schlammwurf'], [8, 'erdklumpen'], [11, 'klammgriff'], [14, 'haerten'], [17, 'torfwelle']],
+      desc: 'Ein Maulwurfs-Wicht, der in alten Torfstichen wohnt und sammelt, was Menschen dort verloren haben: Knöpfe, Ringe, Lieder. Er spürt jedes Beben der Erde.' },
+    hauchling: { name: 'Hauchling', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 48, atk: 44, def: 44, spd: 54 }, catch: 0.5, xp: 52,
+      learn: [[1, 'hauch'], [1, 'wehmut'], [9, 'seufzer'], [12, 'grabesruf'], [15, 'erinnerung'], [18, 'schattenbiss']],
+      desc: 'Der letzte Atemzug eines Menschen, der nicht fertig war mit Abschiednehmen – leicht wie ein Kitz im Morgendunst. Er folgt gern jemandem, der zuhört.' },
+    // neu: Kampf- und Giftlinien (Moorrand, Torfstich, Kapelle)
+    raufdachs: { name: 'Raufdachs', g: 'm', type: 'Kampf', types: ['Kampf'], base: { hp: 54, atk: 62, def: 44, spd: 46 }, catch: 0.45, xp: 58,
+      learn: [[1, 'rempler'], [1, 'prankenhieb'], [5, 'haerten'], [8, 'schlammwurf'], [11, 'klammgriff']],
+      evo: { to: 'grimmdachs', lvl: 15 },
+      desc: 'Ein junger Dachs, der jeden Abend den Moorpfad abläuft. Er rauft gern, aber nie mit jemandem, der kleiner ist als er.' },
+    grimmdachs: { name: 'Grimmdachs', g: 'm', type: 'Kampf', types: ['Kampf', 'Boden'], base: { hp: 74, atk: 84, def: 62, spd: 56 }, catch: 0.2, xp: 122,
+      learn: [[1, 'rempler'], [1, 'prankenhieb'], [5, 'haerten'], [8, 'schlammwurf'], [11, 'klammgriff'], [15, 'grimmstoss'], [18, 'torfwelle']],
+      desc: 'Sein Bau reicht bis unter die alten Grabsteine. Wer dort gräbt, bekommt es mit ihm zu tun – er wacht über die Ruhe der Toten.' },
+    schwammling: { name: 'Schwammling', g: 'm', type: 'Gift', types: ['Gift'], base: { hp: 50, atk: 50, def: 48, spd: 36 }, catch: 0.45, xp: 55,
+      learn: [[1, 'rempler'], [1, 'schattenstaub'], [4, 'aschestaub'], [7, 'schattenbiss'], [10, 'erdklumpen'], [12, 'moorkaelte']],
+      evo: { to: 'moderhut', lvl: 14 },
+      desc: 'Ein Pilzgeist, der nachts im Nebelgras spriesst. Seine Sporen leuchten schwach, und wer sie einatmet, träumt vom Moor.' },
+    moderhut: { name: 'Moderhut', g: 'm', type: 'Gift', types: ['Gift', 'Boden'], base: { hp: 74, atk: 70, def: 68, spd: 44 }, catch: 0.2, xp: 120,
+      learn: [[1, 'rempler'], [1, 'schattenstaub'], [4, 'aschestaub'], [7, 'schattenbiss'], [10, 'erdklumpen'], [12, 'moorkaelte'], [15, 'giftschlamm'], [18, 'torfwelle']],
+      desc: 'Unter seinem breiten Hut wachsen Wurzeln bis tief ins Moor. Er erinnert sich an jeden, der je unter ihm Schutz vor dem Regen suchte.' },
+    // Wächter (Boss)
+    nebelahn: { name: 'Nebelahn', g: 'm', type: 'Psycho', types: ['Psycho', 'Kampf'], base: { hp: 96, atk: 70, def: 70, spd: 56 }, catch: 0, xp: 160, boss: true,
+      learn: [[1, 'irrnebel'], [1, 'ahnenstoss'], [1, 'nebelwand'], [1, 'schleiersturz'], [16, 'ahnenruf']],
+      desc: 'So alt wie der Nebel selbst, mit einem Geweih aus Dunst. Er hält die Verlorenen fest, damit sie nicht allein weitergehen müssen.' }
+  };
+  G.SPECIES_ORDER = ['flackerling', 'irrfackel', 'moorlurch', 'moorunke', 'kieselgeist', 'menhirgeist',
+    'schattenmotte', 'grabfalter', 'nebelkauz', 'schleierkauz', 'laternchen', 'totenleuchte',
+    'torfwicht', 'hauchling', 'raufdachs', 'grimmdachs', 'schwammling', 'moderhut', 'nebelahn'];
+  // Starter-Dreieck: Feuer schlägt Gift, Gift schlägt Wasser, Wasser schlägt Feuer
+  G.STARTERS = ['flackerling', 'moorlurch', 'schwammling'];
+  // Starter-Linie eines Spielstands (auch aus Entwicklungen und alten Spielständen ableitbar, z. B. Kieselgeist)
+  G.STARTER_LINE = { flackerling: 'flackerling', irrfackel: 'flackerling', moorlurch: 'moorlurch', moorunke: 'moorlurch',
+    schwammling: 'schwammling', moderhut: 'schwammling', kieselgeist: 'kieselgeist', menhirgeist: 'kieselgeist' };
+  G.starterOf = S => { if (!S) return null; if (S.starter) return S.starter; const m = [...(S.team || []), ...(S.box || [])].find(m => G.STARTER_LINE[m.sp]); return m ? G.STARTER_LINE[m.sp] : null; };
+
+  // ---------- Wildgebiete ----------
+  // G.WILD bleibt für Nebelgras (Kompatibilität). lvl: [min, max]; Formel siehe design.md §10.
+  G.WILD = [['schattenmotte', 22], ['nebelkauz', 20], ['laternchen', 22], ['schwammling', 8], ['raufdachs', 8], ['moorlurch', 8], ['kieselgeist', 6], ['flackerling', 6]];
+  G.WILD_AREAS = {
+    nebelgras: { tile: '"', rate: 0.055, lvl: [2, 6], table: G.WILD },
+    schilfrand: { tile: 'q', rate: 0.05, lvl: [7, 10],
+      table: [['torfwicht', 30], ['raufdachs', 18], ['nebelkauz', 20], ['schattenmotte', 15], ['laternchen', 10], ['moorlurch', 7]] },
+    torfstich: { tile: 'm', rate: 0.06, lvl: [9, 12],
+      table: [['torfwicht', 32], ['raufdachs', 14], ['schwammling', 12], ['moorlurch', 12], ['nebelkauz', 10], ['hauchling', 10], ['kieselgeist', 6], ['flackerling', 4]] },
+    kapelle: { tile: 'c', rate: 0.065, lvl: [11, 13],
+      table: [['hauchling', 30], ['schattenmotte', 20], ['laternchen', 16], ['schwammling', 12], ['grabfalter', 8], ['schleierkauz', 8], ['raufdachs', 6]] }
+  };
+
+  // ---------- Gegenstände ----------
+  // kind: heal | cure | revive | catch | key.  battle/field: wo nutzbar.
+  G.ITEMS = {
+    laterne:      { name: 'Seelenfänger', art: 'einen', kind: 'catch', mult: 1.0, battle: true, field: false,
+      desc: 'Eine kleine Laterne aus Mondglas. Ein müder Geist findet darin Ruhe und folgt dir danach.' },
+    mondlaterne:  { name: 'Mondglas-Fänger', art: 'einen', kind: 'catch', mult: 1.5, battle: true, field: false,
+      desc: 'Doppelt geblasenes Mondglas. Selbst scheue Geister fühlen sich darin geborgen.' },
+    kraeutertee:  { name: 'Kräutertee', kind: 'heal', hp: 20, battle: true, field: true,
+      desc: 'Heddas Mischung aus Moorminze und Lindenblüten. Heilt 20 LP.' },
+    starktee:     { name: 'Starker Kräutertee', kind: 'heal', hp: 50, battle: true, field: true,
+      desc: 'Lange gezogen, mit einem Löffel Heidehonig. Heilt 50 LP.' },
+    wacholder:    { name: 'Wacholderrauch', kind: 'cure', cures: ['klamm'], battle: true, field: true,
+      desc: 'Ein glimmendes Bündel. Der Rauch vertreibt die Moorkälte.' },
+    klarblick:    { name: 'Klarblick-Tropfen', kind: 'cure', cures: ['verirrt'], battle: true, field: false,
+      desc: 'Tau aus Mondblumen. Wer ihn schmeckt, findet den Weg zurück.' },
+    nachtkerze:   { name: 'Nachtkerze', kind: 'revive', hpFrac: 0.5, battle: true, field: true,
+      desc: 'Eine Kerze, die nie ganz ausgeht. Holt einen erschöpften Geist mit halber Kraft zurück.' },
+    moorminze:    { name: 'Moorminze', kind: 'key', battle: false, field: false,
+      desc: 'Duftendes Kraut vom Moorrand. Hedda tauscht 2 Stück gegen einen Kräutertee.' },
+    jorinsbrief:  { name: 'Jorins Zettel', kind: 'key', battle: false, field: false,
+      desc: '«Bin im Moor. Zurück, wenn der Nebel geht. – Jorin» Auf der Rückseite: eine Skizze der Bohlenwege.' },
+    kompass:      { name: 'Vaters Kompass', kind: 'key', battle: false, field: false,
+      desc: 'Messing, mit einem Sprung im Glas. Die Nadel zeigt nicht nach Norden – sie zeigt nach Hause.' },
+    marenslaterne:{ name: 'Marens Laterne', kind: 'key', battle: false, field: false,
+      desc: 'Eine verbeulte Laterne mit einem eingeritzten «M». Sie ist kalt, aber nicht leer.' }
+  };
+
+  // Team eines Beschwörers; teamFor ersetzt den zweiten Geist je nach Starter des Spielers
+  G.trainerTeam = id => {
+    const tr = G.TRAINERS[id]; if (!tr.teamFor) return tr.team;
+    const sp = tr.teamFor[G.starterOf(G.state)]; return sp ? tr.team.map((e, i) => i === 1 ? [sp, e[1]] : e) : tr.team;
+  };
+  // ---------- Geisterbeschwörer & Boss ----------
+  G.TRAINERS = {
+    fenn: { name: 'Fenn', title: 'Kleiner Geisterbeschwörer', area: 'dorf', pos: [13, 15], sight: 3,
+      // zweiter Geist richtet sich nach deinem Starter (kleiner Rivale): Feuer → Raufdachs, Wasser → Schwammling, Gift → Flackerling
+      team: [['laternchen', 5], ['raufdachs', 5]],
+      teamFor: { flackerling: 'raufdachs', moorlurch: 'schwammling', schwammling: 'flackerling', kieselgeist: 'schattenmotte' },
+      reward: { kraeutertee: 2 },
+      get intro() {
+        const sp = G.trainerTeam('fenn')[1][0];
+        return ['Fenn: Halt! Ich bin ein echter Geisterbeschwörer. Fast. Mama sagt, ich darf nur bis zum Wegweiser.',
+          `Fenn: Und ich hab einen neuen Freund – ${{ m: 'meinen', f: 'meine', n: 'mein' }[G.SPECIES[sp].g]} ${G.SPECIES[sp].name}! Den hab ich ganz allein im Nebelgras gefunden.`, 'Fenn: Kämpfen darf ich überall!'];
+      },
+      lose: ['Fenn: Ooh … Laternchen, das war trotzdem toll von dir.'],
+      after: ['Fenn: Wenn du Jorin findest, sagst du ihm, dass ich seine Schnitzfigur noch habe? Ich pass gut auf sie auf.'] },
+    selma: { name: 'Selma', title: 'Geisterbeschwörerin', area: 'tiefesmoor', pos: [16, 34], sight: 4,
+      team: [['nebelkauz', 9], ['moorlurch', 10]],
+      reward: { klarblick: 1, laterne: 3 },
+      intro: ['Selma: Du willst tiefer hinein? Dann zeig mir, dass deine Geister dich tragen, wenn der Steg es nicht mehr tut.'],
+      lose: ['Selma: Gut. Dein Licht zittert nicht. Das ist selten.'],
+      after: ['Selma: Hinter den drei Weiden wird der Nebel dicker. Dort wirst du nicht mehr sehen, was dich angreift – nur hören.'] },
+    kaspar: { name: 'Kaspar Graumantel', title: 'Geisterbeschwörer', area: 'tiefesmoor', pos: [18, 9], sight: 4,
+      team: [['grabfalter', 12], ['raufdachs', 12], ['hauchling', 13]],
+      reward: { mondlaterne: 2, starktee: 1 },
+      intro: ['Kaspar: Noch jemand, der den Alten stören will? Er gehört mir. Wer ihn bindet, befiehlt dem Nebel.', 'Kaspar: Geh nach Hause, Kind. Oder kämpfe.'],
+      lose: ['Kaspar: … Deine Geister folgen dir nicht, weil sie müssen. Merkwürdig.'],
+      after: ['Kaspar: Geh. Aber wenn du ihn nicht bindest, wirst du ihn trösten müssen. Das ist schwerer.'] },
+    nebelahn: { name: 'Nebelahn', title: 'Wächter des Tiefen Moors', area: 'tiefesmoor', pos: [16, 3], boss: true, noFlee: true, noCatch: true, hpMult: 1.5, // Boss-LP x1.5 (56 -> 84 LP)
+      team: [['nebelahn', 16]],
+      reward: { marenslaterne: 1 },
+      intro: ['Eine Stimme wie nasser Wind: «Noch ein Licht, das jemanden sucht.»', '«Hier findet niemand heim. Hier hört niemand auf zu warten.»'],
+      lose: ['Der Nebel sinkt in sich zusammen wie ein müder Mensch.', '«Dann nimm ihn mit. Und sag ihr, dass ich gut auf sie aufgepasst habe.»'],
+      after: ['Der Hügel ist still. Nur ein schwaches Glimmen zwischen den Steinen – wie ein Atem, der wartet.'] }
+  };
+
+  // ---------- Helfer & Formeln ----------
+  G.art = (sp, kind) => {
+    const g = G.SPECIES[sp].g;
+    if (kind === 'wild') return { m: 'Ein wilder', f: 'Eine wilde', n: 'Ein wildes' }[g];
+    return { m: 'Der wilde', f: 'Die wilde', n: 'Das wilde' }[g];
+  };
+  G.statCalc = (b, l) => Math.floor(b * 2 * l / 100) + 5;
+  G.hpCalc = (b, l) => Math.floor(b * 2 * l / 100) + l + 10;
+  G.xpFor = l => Math.floor(0.8 * l * l * l);
+  G.stats = m => {
+    const b = G.SPECIES[m.sp].base;
+    return { hp: Math.floor(G.hpCalc(b.hp, m.lvl) * (m.hpMult || 1)), atk: G.statCalc(b.atk, m.lvl), def: G.statCalc(b.def, m.lvl), spd: G.statCalc(b.spd, m.lvl) };
+  };
+  G.fillPP = m => { m.pp = m.pp || {}; for (const id of m.moves) m.pp[id] = G.MOVES[id].pp; return m; };
+  G.makeMon = (sp, lvl) => {
+    const m = { sp, lvl, xp: G.xpFor(lvl), moves: [], hp: 0, status: null };
+    for (const [l, mv] of G.SPECIES[sp].learn) if (l <= lvl && !m.moves.includes(mv)) m.moves.push(mv);
+    m.moves = m.moves.slice(-4);
+    G.fillPP(m);
+    m.hp = G.stats(m).hp;
+    return m;
+  };
+  // Alte Spielstände (v1) und fehlende Felder ergänzen
+  G.migrateMon = m => {
+    if (!G.SPECIES[m.sp]) m.sp = 'flackerling';
+    m.moves = (m.moves || []).filter(id => G.MOVES[id]);
+    if (!m.moves.length) m.moves = ['hauch'];
+    m.pp = m.pp || {};
+    for (const id of m.moves) if (typeof m.pp[id] !== 'number') m.pp[id] = G.MOVES[id].pp;
+    if (m.status === undefined || (m.status && !G.STATUS[m.status.id])) m.status = null;
+    if (m.status && !G.STATUS[m.status.id].persist) m.status = null;
+    const st = G.stats(m); m.hp = Math.max(0, Math.min(st.hp, m.hp == null ? st.hp : m.hp));
+    return m;
+  };
+  G.nm = m => G.SPECIES[m.sp].name;
+  G.rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  G.pickWeighted = list => {
+    let tot = list.reduce((s, x) => s + x[1], 0), r = Math.random() * tot;
+    for (const x of list) { r -= x[1]; if (r <= 0) return x[0]; }
+    return list[0][0];
+  };
+  G.genitive = name => { const f = name.split(' ')[0]; return /[sxz]$/.test(f) ? f + '’' : f + 's'; };
+})(window.G);
