@@ -55,19 +55,20 @@
   const at = (m, x, y) => (x < 0 || y < 0 || x >= m.w || y >= m.h) ? (m.kind === 'interior' ? 'W' : 'T') : m.tiles[y][x];
 
   // ================= DORF =================
-  const D = newMap('dorf', 34, 32, 'outdoor', { name: 'Eldenghost' });
+  const D = newMap('dorf', 48, 32, 'outdoor', { name: 'Eldenghost' });   // v16: nach Osten erweitert (Anger mit Piets Haus, Teich, Obstgarten)
   {
     const W = D.w, H = D.h;
     for (let x = 0; x < W; x++) { set(D, x, 0, 'T'); set(D, x, H - 1, 'T'); }
     for (let y = 0; y < H; y++) { set(D, 0, y, 'T'); set(D, W - 1, y, 'T'); }
     for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
       if ((x === 1 || y === 1 || x === W - 2 || y === H - 2) && hash(x, y, 7) < 0.6) set(D, x, y, 'T');
-    rect(D, 2, 6, 31, 6, ','); rect(D, 16, 6, 16, H - 2, ','); rect(D, 16, 12, 23, 12, ',');
+    rect(D, 2, 6, 45, 6, ','); rect(D, 16, 6, 16, H - 2, ','); rect(D, 16, 12, 23, 12, ',');
     D.houses = [
       { x: 4, y: 3, roof: '#4e3c70', id: 'home' }, { x: 11, y: 3, roof: '#3a4c6c', id: 'hedda' },
       { x: 21, y: 3, roof: '#5e3c4e', id: 'oda' }, { x: 22, y: 9, roof: '#40505e', id: 'jorin' },
       // neu: Wassermühle am Dorfteich (Rad im Mühlgraben) und Schmiede am Ostweg (Gebäude im Comic-Pixelstil, siehe BUILD)
       { x: 2, y: 7, id: 'muehle', art: 'muehle' }, { x: 26, y: 12, id: 'schmiede', art: 'schmiede' },
+      { x: 38, y: 3, roof: '#3e5a5a', id: 'piet' },   // v16: Fischer Piet am Anger
       ...(G.FEAT.cats ? [{ x: 10, y: 11, roof: '#6a4a3a', id: 'katzen' }] : [])   // v16: Kevin & Cassandra mit Filou und Mira
     ];
     for (const h of D.houses) { rect(D, h.x, h.y, h.x + 3, h.y + 2, 'h'); set(D, h.x + 1, h.y + 2, 'D'); }
@@ -92,10 +93,20 @@
     // v15: Weg vom Katzenhaus zur Hauptstrasse; Bäume, die das Dach verdecken würden, weichen
     if (G.FEAT.cats) { set(D, 12, 10, '.'); set(D, 10, 14, '.'); rect(D, 11, 14, 11, 15, ','); rect(D, 11, 15, 15, 15, ',');
     for (const [x, y] of [[10, 11], [11, 11], [12, 11], [13, 11], [10, 12], [11, 12], [12, 12], [13, 12], [10, 13], [12, 13], [13, 13]]) set(D, x, y, 'h'); set(D, 11, 13, 'D'); }
+    // v16: Anger im Osten – Weg vom Dorfplatz, zweiter Teich, Obstgarten, Blumen, Laternen; mehr Nebelgras im Südosten
+    rect(D, 34, 7, 34, 15, ','); rect(D, 28, 15, 34, 15, ',');
+    [[9, 36, 39], [10, 35, 40], [11, 36, 39]].forEach(([y, a, b]) => rect(D, a, y, b, y, '~'));
+    [[42, 9], [44, 9], [42, 11], [44, 11], [42, 13], [44, 13], [46, 8], [37, 14], [46, 14]].forEach(([x, y]) => set(D, x, y, 'T'));
+    [[35, 8], [41, 10], [43, 12], [36, 13], [39, 13], [45, 10], [43, 8], [33, 11]].forEach(([x, y]) => set(D, x, y, '*'));
+    rect(D, 43, 5, 45, 5, 'f'); set(D, 35, 5, 'L'); set(D, 44, 7, 'L'); set(D, 35, 12, 'L'); set(D, 41, 8, 'r');
+    rect(D, 33, 18, 44, 23, '"'); rect(D, 33, 26, 44, 29, '"');
+    [[36, 20], [41, 19], [39, 22], [44, 21], [35, 27], [40, 28], [43, 26]].forEach(([x, y]) => set(D, x, y, 'T'));
+    [[38, 18], [42, 23], [37, 29], [44, 28]].forEach(([x, y]) => set(D, x, y, '*')); set(D, 33, 25, 'r'); set(D, 38, 25, 'r');
     // Ostweg zur Nebelküste (an den Gräbern vorbei) mit Wegweiser
-    rect(D, 17, 24, 33, 24, ','); set(D, 31, 23, 'S');
+    rect(D, 17, 24, W - 1, 24, ','); set(D, 45, 23, 'S');
     D.doors = {
       '5,5': { to: 'home' }, '12,5': { to: 'hedda' }, ...(G.FEAT.cats ? { '11,13': { to: 'katzen' } } : {}), '22,5': { to: 'oda' }, '3,9': { to: 'muehle' }, '27,14': { to: 'schmiede' },
+      '39,5': { to: 'piet', cond: () => false, locked: () => G.UI.say(G.flag('pietTalk') ? 'Piets Tür ist zu. Drinnen riecht es nach Teer und Räucherfisch.' : 'Die Tür ist zu. Ein Schild: «Bin draussen am Teich. – Piet»') },
       '23,11': { to: 'jorin', cond: () => q1() >= 7, locked: async () => {
         if (!G.flag('note')) {
           await G.UI.sayAll(['An der Tür hängt ein Zettel: «Bin im Moor. Zurück, wenn der Nebel geht. – Jorin»', 'Das Papier ist feucht. Seit Tagen hat ihn niemand abgenommen.']);
@@ -106,10 +117,10 @@
     };
     D.warps['16,30'] = { to: 'tiefesmoor', x: 16, y: 38, dir: 'up', cond: () => q1() >= 3,
       msg: ['Der Nebel steht hier wie eine Wand. Ohne Grund gehst du da nicht hinein.'] };
-    D.warps['33,24'] = { to: 'kueste', x: 1, y: 11, dir: 'right', cond: () => story() >= 4,
+    D.warps['47,24'] = { to: 'kueste', x: 1, y: 11, dir: 'right', cond: () => story() >= 4,
       msg: () => [story() < 2 ? 'Ilse (ruft dir nach): Halt! Ohne einen Geist an deiner Seite gehst du nicht in den Nebel!' : 'Der Küstenpfad verschwindet im Nebel. Ilse wollte vorher noch mit dir sprechen.'] };
     D.signs = {
-      '31,23': () => ['Wegweiser: «Nach Osten: Nebelküste – Leuchtturm und Hafen.»', 'Darunter, frisch eingeritzt: «Vorsicht, Küstennebel!»'],
+      '45,23': () => ['Wegweiser: «Nach Osten: Nebelküste – Leuchtturm und Hafen.»', 'Darunter, frisch eingeritzt: «Vorsicht, Küstennebel!»'],
       '17,15': () => ['Wegweiser: «Nach Süden: Nebelgras.»', 'Darunter, in krakeliger Schrift: «Im Nebel wohnen wilde Geister. Nimm Licht mit!»'],
       '17,29': () => {
         if (q1() === 2) { setQ(3); return ['Wegweiser: «Tiefes Moor». Jemand hat mit Kreide einen Pfeil darunter gemalt – und ein kleines «J».', 'Der Nebel am Wegende weicht ein wenig zurück, als wüsste er, dass du einen Grund hast.']; }
@@ -209,7 +220,7 @@
     [[14, 14], [18, 14], [16, 10]].forEach(([x, y]) => set(K, x, y, 'L'));
     set(K, 14, 10, 'S');
     K.signs = { '14,10': () => ['Wegweiser: «Norden: Leuchtturm. Süden: Hafen. Westen: Eldenghost.»'] };
-    K.warps['0,11'] = { to: 'dorf', x: 32, y: 24, dir: 'left' };
+    K.warps['0,11'] = { to: 'dorf', x: 46, y: 24, dir: 'left' };
     K.doors = { '22,6': { to: 'leuchtturm' } };
     K.pickups = [{ x: 11, y: 3, flag: 'p_klat', item: 'laterne', n: 2 }, { x: 2, y: 9, flag: 'p_ktee', item: 'kraeutertee', n: 1 }];
   }
@@ -248,7 +259,7 @@
   ].forEach((r, y) => r.split('').forEach((c, x) => set(HC, x, y, c)));
   HC.warps['6,16'] = { to: 'kueste', x: 13, y: 7, dir: 'down' };
   HC.warps['19,1'] = { to: 'kueste', x: 17, y: 2, dir: 'down', cond: () => !!G.flag('quantum'),
-    msg: ['Synx sitzt vor dem Ausgang und putzt sich gelangweilt die Pfote. Hier kommst du nicht vorbei.'] };
+    msg: ['Vor dem Ausgang wabert schwarzer Rauch. Dutzende Augen öffnen sich darin und folgen dir. Ein leises Zischen – hier kommst du nicht vorbei.'] };
   // Glimmende Funde auch im Dorf
   D.pickups = [{ x: 4, y: 26, flag: 'p_dtee', item: 'kraeutertee', n: 1 }, { x: 29, y: 18, flag: 'p_dlat', item: 'laterne', n: 2 }];
 
@@ -305,8 +316,36 @@
     { id: 'wido', spr: 'wido', x: 22, y: 25, dir: 'up', talk: talkWido },
     { id: 'fenn', spr: 'fenn', x: 13, y: 15, dir: 'right', trainer: 'fenn', sight: 0, show: () => q1() < 7 && story() >= 3 && !!G.state && G.state.team.length > 0 }, // erst nach der Fang-Übung, kein Überfall
     // drei Laternensteine mit den Starter-Geistern (Wahl direkt in der Welt)
-    ...G.STARTERS.map((sp, i) => ({ id: 'altar' + i, altar: sp, x: 17 + 2 * i, y: 9, dir: 'down', talk: () => talkAltar(sp) }))
+    ...G.STARTERS.map((sp, i) => ({ id: 'altar' + i, altar: sp, x: 17 + 2 * i, y: 9, dir: 'down', talk: () => talkAltar(sp) })),
+    // v16: Dorfleben – Leute gehen umher (wander: erlaubtes Rechteck), Begleitgeister (pet) laufen hinterher
+    { id: 'greta', spr: 'greta', x: 5, y: 13, dir: 'down', wander: [2, 11, 9, 14], pet: { sp: 'moosigel', name: 'Pieks' }, talk: () => talkVillager('greta') },
+    { id: 'lotte', spr: 'lotte', x: 37, y: 12, dir: 'down', wander: [33, 12, 41, 14], pet: { sp: 'funkmaus', name: 'Zisch' }, talk: () => talkVillager('lotte') },
+    { id: 'piet', spr: 'piet', x: 38, y: 7, dir: 'down', wander: [35, 7, 41, 8], pet: { sp: 'gischtkrebs', name: 'Knorz' }, talk: () => talkVillager('piet') }
   ];
+  // Wido bekommt einen ruhigen Begleiter: ein Laternchen schwebt neben ihm über den Gräbern
+  D.npcs.find(n => n.id === 'wido').pet = { sp: 'laternchen', name: 'Flämmchen', at: [23, 25], hover: true };
+  const VILLAGE_TALK = {
+    greta: ['Greta: Das ist Pieks. Ich hab ihn als Kleinen im Nebelgras gefunden, halb unter einem Pilz versteckt.',
+      'Greta: Moosigel mögen feuchtes Gras. Wenn du selbst einen willst: südlich vom Dorf, im Nebelgras.',
+      'Greta: Pieks frisst mir die Schnecken aus dem Beet. Dafür darf er auf dem Ofen schlafen.'],
+    lotte: ['Lotte: Das ist Zisch! Wenn man ihn streichelt, knistert es.',
+      'Lotte: Funkmäuse wohnen im Küstengras. Papa sagt, sie mögen Gewitter.',
+      'Lotte: Ich darf noch nicht allein in den Nebel. Aber Zisch passt auf mich auf.'],
+    piet: ['Piet: Moin. Der Krebs heisst Knorz. Hat mich an der Küste in den Stiefel gezwickt und ist einfach geblieben.',
+      'Piet: Gischtkrebse sitzen im Küstengras zwischen den Steinen. Pass auf deine Finger auf.',
+      'Piet: Seit der Nebel da ist, beissen die Fische schlecht. Knorz stört das nicht.']
+  };
+  const PET_TALK = {
+    moosigel: n => `${n} schnuppert an deiner Laterne und rollt sich halb zusammen.`,
+    funkmaus: n => `${n} springt einmal im Kreis. Deine Haare knistern.`,
+    gischtkrebs: n => `${n} hebt drohend eine Schere – und putzt sich dann damit das Auge.`,
+    laternchen: n => `${n} flackert kurz heller, als würde es dich grüssen.`
+  };
+  async function talkVillager(id) {
+    const n = D.npcs.find(o => o.id === id), L = VILLAGE_TALK[id], k = 'vt_' + id;
+    G.state.flags[k] = ((G.state.flags[k] || 0) + 1); if (id === 'piet') G.state.flags.pietTalk = 1;
+    n.wt = 4; await G.UI.say(L[(G.state.flags[k] - 1) % L.length]);
+  }
   G.MAPS.home.npcs = [
     { id: 'mutter', spr: 'mutter', x: 2, y: 3, dir: 'right', talk: talkMutter },
     { id: 'vater', spr: 'vater', x: 5, y: 3, dir: 'left', talk: talkVater }
@@ -319,14 +358,14 @@
     { id: 'onnoS', spr: 'onnoSleep', x: 18, y: 4, dir: 'down', show: () => story() < 6, talk: talkOnnoSleep },
     { id: 'wenke', spr: 'wenke', x: 15, y: 18, dir: 'up', show: () => story() >= 8 || arrive.wenke, talk: talkWenke }
   ];
-  // v15 Klippenhöhle: zwei Beschwörer, Team Quantum (Mandy, Hans, der sprechende Sphinx-Kater Synx)
+  // v16 Klippenhöhle: zwei Beschwörer, Team Quantum (Mandy, Hans und ihr Alptraum-Geist, der Nachtmahr)
   const qShow = () => !G.flag('quantum');
   G.MAPS.hoehle.npcs = [
     { id: 'ruedi', spr: 'ruedi', x: 14, y: 11, dir: 'left', trainer: 'ruedi', sight: 0 },
     { id: 'nele', spr: 'nele', x: 19, y: 9, dir: 'down', trainer: 'nele', sight: 0 },
     { id: 'mandy', spr: 'mandy', x: 17, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() },
     { id: 'hans', spr: 'hans', x: 21, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() },
-    { id: 'synx', mon: 'synx', x: 19, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() }
+    { id: 'mahr', mon: 'nachtmahr', x: 19, y: 2, dir: 'down', show: qShow, talk: () => quantumTalk() }
   ];
   G.MAPS.hoehle.signs['8,13'] = ['Eine Grubenlaterne, frisch gefüllt. Jemand kommt hier regelmässig vorbei.'];
   // ---------- v15: Kevin & Cassandra, Filou & Mira ----------
@@ -599,7 +638,7 @@
     { to: [28, 15], face: 'up', look: [27, 14], lines: ['Ilse: Branns Schmiede. Er schmiedet Laternenrahmen aus Raseneisen – rau wie ein Stein, aber ein gutes Herz.'] },
     { to: [4, 10], face: 'up', look: [3, 9], lines: ['Ilse: Die Mühle am Teich. Mathis mahlt dort Korn und weiss mehr über Wasser und Wind, als er zugibt.'] },
     { to: [15, 15], face: 'down', look: [16, 16], lines: ['Ilse: Und hier beginnt das Nebelgras. Dort streifen wilde Geister umher – der beste Ort, um zu üben und stärker zu werden.'] },
-    { to: [15, 15], face: 'right', look: [31, 23], cam: [29 * T, 22 * T], lines: ['Ilse: Siehst du den Weg dort im Osten, bei den Gräbern? Das ist der Küstenpfad – er führt zum Hafen und zum Leuchtturm.',
+    { to: [15, 15], face: 'right', look: [45, 23], cam: [31 * T, 22 * T], lines: ['Ilse: Siehst du den Weg dort im Osten, bei den Gräbern? Das ist der Küstenpfad – er führt zum Hafen und zum Leuchtturm.',
       'Ilse: Aber dafür ist später Zeit.'] }
   ];
   const tour = { active: false, stop: -1, skip: false, said: [], visited: 0 };
@@ -727,14 +766,14 @@
     const st = story(), n = K.npcs.find(o => o.id === 'onnoS');
     if (st < 4) return G.UI.sayAll(['Ein alter Mann in gelbem Ölzeug schläft an den Baum gelehnt. Er schnarcht wie eine ferne Brandung.', 'Du lässt ihn schlafen.']);
     if (G.FEAT.cave && !G.flag('quantum')) return G.UI.sayAll(['Ein alter Mann in gelbem Ölzeug schläft an den Baum gelehnt. Ein feiner violetter Dunst liegt über ihm.',
-      'Du rüttelst ihn an der Schulter – er murmelt nur etwas von «Rätseln» und «Katzenaugen» und schläft weiter.',
+      'Du rüttelst ihn an der Schulter – er murmelt nur etwas von «Augen … so viele Augen» und schläft weiter.',
       'Dieser Schlaf ist nicht natürlich. Irgendetwas in der Klippenhöhle hält ihn fest.']);
     await G.UI.sayAll(['Ein alter Mann in gelbem Ölzeug schläft an den Baum gelehnt, die Mütze tief im Gesicht. Er schnarcht wie eine ferne Brandung.', 'Du rüttelst ihn sanft an der Schulter …']);
     G.UI.hideText();
     n.spr = 'onno'; face(n, P.x, P.y); n.alert = 1; G.Snd.sfx('alert'); await G.wait(650); n.alert = 0;
     await G.UI.sayAll([
       'Onno: Hm? Was – wer … Ist es schon dunkel?!',
-      ...(G.FEAT.cave ? ['Onno: Ich hatte so einen seltsamen Traum … Eine Katze mit Steinflügeln sass auf meiner Brust und hat mir Rätsel ins Ohr geflüstert.'] : []),
+      ...(G.FEAT.cave ? ['Onno: Ich hatte so einen seltsamen Traum … Schwarzer Rauch sass auf meiner Brust, voller Augen, und hat mir ins Ohr geflüstert.'] : []),
       'Onno: Beim Klabautergeist! Der Turm! Ich wollte mich nur kurz hinsetzen. Der Ostwind macht mich immer so schläfrig.',
       'Onno: Ich bin Onno, der Wärter hier. Komm mit, schnell – ohne das Licht findet heute Nacht nichts und niemand den Hafen.'
     ]);
@@ -819,25 +858,25 @@
           'In der Kammer glimmt eine goldene Lichtader. Ein dünner Strahl zieht sich von der Decke – vom Leuchtturm her – in einen summenden Glaskolben.',
           'Mandy: … und wenn der Kolben voll ist, haben wir genug Leuchtseele für die ganze Anlage. Hans, hör auf, an dem Ding zu klopfen.',
           'Hans: Ich klopfe nicht. Ich prüfe. Das ist ein Unterschied.',
-          'Synx: Pst. Wir haben Besuch.',
-          'Die geflügelte Sphinx-Katze dreht langsam den Kopf zu dir. Ihre Augen leuchten wie zwei Laternen im Nebel.',
-          'Synx: Ein Kind mit einer Laterne. Wie rührend. Weisst du, was man bekommt, wenn man einem Leuchtturm die Seele abzapft?',
-          'Synx: … Einen sehr müden Leuchtturmwärter. Ich habe ihm ein paar hübsche Träume geschenkt. Er schläft tief und fest.',
+          'Zwischen den beiden hängt schwarzer Rauch in der Luft. Er bewegt sich gegen den Luftzug.',
+          'Dann öffnen sich darin Augen. Zwei, fünf, ein Dutzend – violett und rot, keines blinzelt zur gleichen Zeit. Ein langes Zischen füllt die Kammer.',
+          'Mandy: Ruhig, Kleiner. Das ist nur ein Kind mit einer Laterne.',
+          'Hans: Unser Nachtmahr. Den Wärter hat er mit seinem Traumdunst eingeschläfert. Der schläft jetzt, bis wir fertig sind.',
           'Mandy: Wir sind Team Quantum. Wir sammeln Licht, das sonst nur verschwendet wird – für Dinge, die du nicht verstehen würdest.',
           'Hans: Ich versteh sie auch nicht immer. Aber die Uniform ist bequem.'
         ]);
         G.World.camFocus = null;
-      } else await G.UI.say('Synx: Schon wieder du? Hartnäckig. Das mag ich fast.');
+      } else { G.Snd.sfx('hiss'); await G.UI.say('Der Nachtmahr zischt, als du näherkommst. Mandy: Schon wieder du? Hartnäckig, das muss man dir lassen.'); }
       await quantumTalk(true);
     } finally { G.UI.hideText(); G.lock--; }
   }
   async function quantumTalk(inScene) {
     if (!inScene) G.lock++;
     try {
-      await G.UI.say('Mandy: Hinweis unter Kollegen: Das hier wird kein Spaziergang. Drei Geister – und dann Synx. Unter Level 11 würde ich es gar nicht erst versuchen.');
+      await G.UI.say('Mandy: Hinweis unter Kollegen: Das hier wird kein Spaziergang. Drei Geister – und dann der Nachtmahr. Unter Level 11 würde ich es gar nicht erst versuchen.');
       const hint = G.state.team.some(m => m.hp < G.stats(m).hp) ? ' Deine Geister sind angeschlagen – trink Tee oder ruh dich aus, bevor du kämpfst.' : '';
       if (!(await G.UI.yesNo('Gegen Team Quantum kämpfen?' + hint))) {
-        await G.UI.sayAll(['Synx: Lauf ruhig. Heile deine Geister. Wir warten – das Licht läuft ja nicht weg.', '(Tipp: Kräutertee aus der Tasche heilt; wer verliert, erwacht in der Mondkirche. Die Höhle bleibt offen.)']);
+        await G.UI.sayAll(['Hans: Lauf ruhig. Heil deine Geister. Wir warten – das Licht läuft ja nicht weg.', '(Tipp: Kräutertee aus der Tasche heilt; wer verliert, erwacht in der Mondkirche. Die Höhle bleibt offen.)']);
         G.UI.hideText(); if (G.P) { const P0 = G.P; if (P0.y <= 5 && G.map.id === 'hoehle') G.World.setMap('hoehle', P0.x, 6, 'down'); }
         G.Snd.music(G.World.areaMusic()); return;
       }
@@ -854,8 +893,8 @@
       const S = G.state; S.flags.quantum = 1;
       await G.UI.sayAll([
         'Der Glaskolben bekommt einen Sprung. Das gefangene Licht zischt heraus und fliesst die Ader entlang zurück, hinauf zum Leuchtturm.',
-        'Synx: Wie ärgerlich. Nun gut – behalte deinen kleinen Sieg.',
-        'Synx: Aber merk dir eines, Laternenkind: Licht wirft immer auch Schatten. Und in den Schatten sind wir zu Hause.',
+        'Der Nachtmahr flackert. Aus dem Rauch dringt ein Flüstern, viele Stimmen auf einmal, keine Worte. Dann schrumpft er in Mandys Glaslaterne.',
+        'Mandy: Merk dir eines, Laternenkind: Licht wirft immer auch Schatten. Und in den Schatten sind wir zu Hause.',
         'Mandy: Team Quantum vergisst nicht! Hans – Rückzug!',
         'Hans: Ich hab doch gerade erst meinen Tee ausgepackt …'
       ]);
@@ -1629,10 +1668,11 @@
     for (const n of m.npcs) {
       const beaten = n.trainer && G.flag('t_' + n.trainer);
       [n.cx, n.cy] = beaten && n.after ? n.after : [n.x, n.y];
-      n.cdir = n.dir; n.ox = 0; n.oy = 0; n.alert = 0;
+      n.cdir = n.dir; n.ox = 0; n.oy = 0; n.alert = 0; n.mv = null; n.wt = null;
+      if (n.pet) { const [px, py] = n.pet.at || [n.cx - 1, n.cy]; n.pet.px = px * T; n.pet.py = py * T; n.pet.to = [px, py]; }
     }
   }
-  const npcAt = (x, y) => G.map.npcs.find(n => npcVisible(n) && n.cx === x && n.cy === y);
+  const npcAt = (x, y) => G.map.npcs.find(n => npcVisible(n) && ((n.cx === x && n.cy === y) || (n.mv && n.fx === x && n.fy === y)));
   const pickupAt = (x, y) => G.map.pickups.find(p => p.x === x && p.y === y && !G.flag(p.flag));
   const solid = (x, y) => SOLID[G.map.kind].has(at(G.map, x, y)) || !!npcAt(x, y);
   G.World.tileAt = (x, y) => at(G.map, x, y);
@@ -1871,7 +1911,8 @@
     // auf einer Moorlaterne stehend: A zündet diese an (sofern vorne nichts anderes wartet)
     if (at(m, P.x, P.y) === 'e' && !npcAt(fx, fy) && !m.signs[fx + ',' + fy] && at(m, fx, fy) !== 'e' && at(m, fx, fy) !== 'D') { fx = P.x; fy = P.y; }
     const c = at(m, fx, fy), key = fx + ',' + fy;
-    const npc = npcAt(fx, fy);
+    const npc = npcAt(fx, fy), pet = !npc && petAt(fx, fy);
+    if (pet) { G.lock++; if (G.Snd) G.Snd.sfx('blip'); await G.UI.say(PET_TALK[pet.sp] ? PET_TALK[pet.sp](pet.name) : `${pet.name} schaut dich neugierig an.`); G.UI.hideText(); G.lock--; return; }
     if (npc) {
       if (!npc.mon) npc.cdir = OPP[P.dir];
       if (npc.trainer && !G.flag('t_' + npc.trainer)) {
@@ -2059,6 +2100,58 @@
     else { A.idle += dt; A.frame = { img: idleFrame(spr, P.dir, A.idle, 0), ph: -1, lift: 0 }; }
     return A.frame;
   }
+  // ---------- v16: Dorfleben – umhergehende Leute und Begleitgeister ----------
+  // Bewegung nur im eigenen Rechteck, nie auf Türen/Übergänge/Schilder/Funde, nie direkt neben die Spielfigur (blockiert nie den nächsten Schritt)
+  function wanderOk(m, n, x, y) {
+    const r = n.wander; if (x < r[0] || y < r[1] || x > r[2] || y > r[3]) return false;
+    if (SOLID[m.kind].has(at(m, x, y))) return false;
+    const k = x + ',' + y; if (m.doors[k] || m.warps[k] || m.signs[k]) return false;
+    if (m.npcs.some(o => o !== n && npcVisible(o) && ((o.cx === x && o.cy === y) || (o.mv && o.fx === x && o.fy === y)))) return false;
+    if (Math.abs(P.x - x) + Math.abs(P.y - y) <= 1 || Math.abs(P.tx - x) + Math.abs(P.ty - y) <= 1) return false;
+    if (m.pickups.some(p => p.x === x && p.y === y && !G.flag(p.flag))) return false;
+    return true;
+  }
+  const WSTEP = 0.55;
+  function updateVillage(m, dt, rnd = Math.random) {
+    const busy = G.lock > 0 || !!G.UI.kind || G.mode !== 'world';
+    for (const n of m.npcs) {
+      if (!npcVisible(n)) continue;
+      if (n.pet) updatePet(n, dt);
+      if (!n.wander) continue;
+      if (n.mv) {
+        n.mv.p = Math.min(1, n.mv.p + dt / WSTEP); n.ox = -n.mv.dx * (1 - n.mv.p) * T; n.oy = -n.mv.dy * (1 - n.mv.p) * T;
+        if (n.mv.p >= 1) { n.mv = null; n.ox = n.oy = 0; } continue;
+      }
+      if (busy) continue;
+      n.wt = (n.wt == null ? 1 + rnd() * 3 : n.wt) - dt;
+      if (n.wt > 0) continue;
+      n.wt = 1.2 + rnd() * 3.5;
+      if (rnd() < 0.3) { n.cdir = ['up', 'down', 'left', 'right'][rnd() * 4 | 0]; continue; }   // schaut sich um
+      const dirs = [[1, 0, 'right'], [-1, 0, 'left'], [0, 1, 'down'], [0, -1, 'up']].map(d => [rnd(), d]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+      for (const [dx, dy, d] of dirs) {
+        const nx = n.cx + dx, ny = n.cy + dy; if (!wanderOk(m, n, nx, ny)) continue;
+        n.fx = n.cx; n.fy = n.cy; n.cx = nx; n.cy = ny; n.cdir = d; n.mv = { dx, dy, p: 0 }; n.ox = -dx * T; n.oy = -dy * T; n.steps = (n.steps || 0) + 1;
+        if (n.pet && !n.pet.at) n.pet.to = [n.fx, n.fy];
+        break;
+      }
+    }
+  }
+  function updatePet(n, dt) {
+    const p = n.pet, [tx, ty] = p.to, gx = tx * T, gy = ty * T, dx = gx - p.px, dy = gy - p.py, d = Math.hypot(dx, dy), sp = 34 * dt;
+    if (d <= sp) { p.px = gx; p.py = gy; p.moving = false; } else { p.px += dx / d * sp; p.py += dy / d * sp; p.moving = true; if (Math.abs(dx) > 1) p.face = dx > 0 ? 1 : -1; }
+  }
+  const petAt = (x, y) => { const n = G.map.npcs.find(o => o.pet && npcVisible(o) && Math.round(o.pet.px / T) === x && Math.round(o.pet.py / T) === y); return n && n.pet; };
+  function petEnt(ctx, n, cx, cy, t) {
+    const p = n.pet, sx = Math.round(p.px) - cx, sy = Math.round(p.py) - cy; if (sx < -30 || sy < -30 || sx > VW + 30 || sy > VH + 30) return null;
+    return { y: p.py - 1, draw: () => {
+      const hop = p.hover ? Math.sin(t * 2 + 1) * 2 - 5 : p.moving ? -Math.abs(Math.sin(t * 12)) * 2 : Math.sin(t * 2.4 + n.x) * 0.6;
+      shadow(ctx, sx + 1, sy + 1, p.hover ? 4 : 5);
+      const img = G.SPR.mon[p.sp].at(24, (t + n.x) % 3.3 < 0.14);
+      ctx.save(); if ((p.face || -1) > 0) { ctx.translate(sx + 8, 0); ctx.scale(-1, 1); ctx.translate(-(sx + 8), 0); }
+      ctx.drawImage(img, sx - 4, Math.round(sy - 10 + hop), 24, 24); ctx.restore();
+    } };
+  }
+  G.World.village = { updateVillage, wanderOk, petAt, WSTEP };
   function npcFrame(n) {
     const spr = G.SPR[n.spr]; if (!spr) return null;
     if ((n.ox || n.oy) && spr.walk) { const d = Math.abs(n.ox) + Math.abs(n.oy), ph = (Math.floor(d / 8) + ((n.cx + n.cy) % 2) * 2) % 4;
@@ -2108,14 +2201,18 @@
     renderDust(ctx, cx, cy, dt);
     // Figuren
     const ents = [];
+    updateVillage(m, dt);
     for (const n of m.npcs) {
       if (!npcVisible(n)) continue;
       const sx = n.cx * T - cx + n.ox, sy = n.cy * T - cy + n.oy;
+      if (n.pet) { const pe = petEnt(ctx, n, cx, cy, t); if (pe) ents.push(pe); }
       ents.push({ y: n.cy * T + n.oy, draw: () => {
         if (n.mon) {
           const a = 0.75 + 0.2 * Math.sin(t * 1.5);
-          const gr = ctx.createRadialGradient(sx + 8, sy + 2, 0, sx + 8, sy + 2, 34); gr.addColorStop(0, 'rgba(200,215,245,0.35)'); gr.addColorStop(1, 'rgba(200,215,245,0)');
+          const dark = n.mon === 'nachtmahr', gc = dark ? '120,40,120' : '200,215,245';   // Nachtmahr: violett-roter Schein statt hellem Geisterlicht
+          const gr = ctx.createRadialGradient(sx + 8, sy + 2, 0, sx + 8, sy + 2, 34); gr.addColorStop(0, `rgba(${gc},${dark ? 0.3 + 0.1 * Math.sin(t * 3) : 0.35})`); gr.addColorStop(1, `rgba(${gc},0)`);
           ctx.fillStyle = gr; ctx.fillRect(sx - 30, sy - 32, 76, 70);
+          if (dark) for (let i = 0; i < 6; i++) { const q = (t * 0.35 + i / 6) % 1, x = sx + 8 + Math.sin(i * 2.3 + t) * 10, y = sy - 4 - q * 26; ctx.fillStyle = `rgba(20,12,30,${0.35 * (1 - q)})`; ctx.beginPath(); ctx.arc(x, y, 3 + q * 5, 0, 6.3); ctx.fill(); }
           shadow(ctx, sx, sy + 2, 9); ctx.globalAlpha = a; ctx.drawImage(G.SPR.mon[n.mon].at(32, (t % 3.7) < 0.14), sx - 8, Math.round(sy - 18 + Math.sin(t * 1.2) * 2), 32, 32); ctx.globalAlpha = 1;
           return;
         }
@@ -2197,6 +2294,8 @@
       ctx.globalAlpha = 0.6 * w.a; spr(ctx, LSPR.wisp, x, y, 16); ctx.globalAlpha = w.a; spr(ctx, LSPR.core, x, y, 3.4);
     }
     ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
+    // v16: Figur nicht von Laternenschein ausbleichen lassen – Sprite halbtransparent über das additive Licht legen (Haar bleibt schwarz)
+    if (pf && !opt.hidePlayer) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.6; drawChar(ctx, pf.img, Math.round(P.px) - cx, Math.round(P.py) - cy - pf.lift); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter'; }
     renderStoryGlow(ctx, m, cx, cy, t);
     if (G.World.healFx != null && !opt.hidePlayer) renderHealFx(ctx, Math.round(P.px) - cx + 8, Math.round(P.py) - cy, G.World.healFx, t);
     for (const f of m.flies) {
@@ -2451,6 +2550,7 @@
     ],
     home: [{ id: 'mutter', m: () => story() === 6 ? '!' : null }, { id: 'vater', m: () => story() === 6 ? '!' : null }],
     hoehle: [{ id: 'mandy', m: () => story() >= 4 && !G.flag('quantum') ? '!' : null }],
+    katzen: [{ id: 'cassandra', m: () => !G.flag('kc') || giftReady() ? '!' : null }],
     kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 && (!G.FEAT.cave || G.flag('quantum')) ? '!' : null }, { id: 'wenke', m: () => story() >= 8 && !G.flag('wenke') ? '!' : null }],
     tiefesmoor: [{ id: 'kaspar', m: () => q1() === 4 ? '!' : null }]
   };

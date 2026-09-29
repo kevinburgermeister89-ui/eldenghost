@@ -35,8 +35,8 @@ window.G = window.G || {};
   G.eff = (mt, sp) => G.typesOf(sp).reduce((f, t) => f * G.eff1(mt, t), 1);
   G.hasType = (sp, t) => G.typesOf(sp).includes(t);
   G.isNeutral = id => G.MOVES[id] && G.MOVES[id].type === 'Neutral';
-  // Stufenweise Veröffentlichung: v16-Inhalte (Klippenhöhle/Team Quantum, Legende, Katzenhaus) und v17 (seltene Spezialgeister) sind vorbereitet, aber noch aus
-  G.FEAT = { cave: false, legend: false, cats: false, rare: false };
+  // Stufenweise Veröffentlichung: v16 schaltet Klippenhöhle/Team Quantum, Legende und Katzenhaus frei; v17 (seltene Sondergeister) ist vorbereitet, aber noch aus
+  G.FEAT = { cave: true, legend: true, cats: true, rare: false };
   G.TYPE_MOVE_LVL = 8; // erste Typ-Attacke frühestens ab Level 8
 
   // ---------- Statuseffekte ----------
@@ -150,9 +150,9 @@ window.G = window.G || {};
     wiedergeburt:   { name: 'Wiedergeburt',   type: 'Feuer',   power: 0,  acc: 100, pp: 5,  heal: 0.5 },
     hainruf:        { name: 'Hainruf',        type: 'Pflanze', power: 75, acc: 95,  pp: 10 },
     kronenlicht:    { name: 'Kronenlicht',    type: 'Pflanze', power: 100, acc: 90, pp: 5 },
-    // Synx (Team Quantum)
-    raetselblick:   { name: 'Rätselblick',    type: 'Psycho',  power: 60, acc: 95,  pp: 15, status: { id: 'verirrt', chance: 25 } },
-    sphinxkralle:   { name: 'Sphinxkralle',   type: 'Stein',   power: 70, acc: 90,  pp: 10 },
+    // Nachtmahr (Team Quantums Alptraum-Geist)
+    augenstarren:   { name: 'Tausend Augen',  type: 'Psycho',  power: 60, acc: 95,  pp: 15, status: { id: 'verirrt', chance: 25 } },
+    rauchgriff:     { name: 'Rauchgriff',     type: 'Gift',    power: 60, acc: 90,  pp: 10 },
     alptraum:       { name: 'Alptraum',       type: 'Psycho',  power: 85, acc: 90,  pp: 5 }
   };
   G.STAT_NAMES = { atk: 'Angriffskraft', def: 'Verteidigung', acc: 'Genauigkeit' };
@@ -348,9 +348,9 @@ window.G = window.G || {};
       learn: [[1, 'rempler'], [8, 'blattwirbel'], [10, 'hainruf'], [16, 'rankensog'], [20, 'wurzelhieb'], [24, 'waldsegen'], [32, 'kronenlicht']],
       desc: 'Sein Geweih ist eine ganze Baumkrone voller Geisterlichter. Man sagt, er sei der Hüter aller Wälder, die es je gab – und aller, die noch wachsen werden.' },
     // ===== Team Quantum & Legende =====
-    synx: { name: 'Synx', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 54, atk: 50, def: 50, spd: 54 }, catch: 0, xp: 150, boss: true,
-      learn: [[1, 'kratzer'], [8, 'raetselblick'], [8, 'sphinxkralle'], [8, 'nebelwand'], [10, 'irrnebel']],
-      desc: 'Ein sprechender Sphinx-Kater von Team Quantum, mit steinernen Flügeln und Augen wie zwei Rätsel. Er stellt Fragen, auf die es keine gute Antwort gibt – und geniesst es.' },
+    nachtmahr: { name: 'Nachtmahr', g: 'm', type: 'Psycho', types: ['Psycho'], base: { hp: 54, atk: 50, def: 50, spd: 54 }, catch: 0, xp: 150, boss: true,
+      learn: [[1, 'hauch'], [8, 'augenstarren'], [8, 'rauchgriff'], [8, 'nebelwand'], [10, 'irrnebel']],
+      desc: 'Ein Alptraum-Geist aus Rauch und Schatten, übersät mit Augen, die nie gleichzeitig blinzeln. Er spricht nicht – er zischt und flüstert. Wer in seinem Dunst einschläft, träumt tagelang.' },
     fyrlumen: { name: 'Fyrlumen', g: 'n', type: 'Psycho', types: ['Psycho', 'Elektro'], base: { hp: 110, atk: 100, def: 100, spd: 110 }, catch: 0, xp: 300, boss: true, legend: true,
       learn: [[1, 'hauch'], [8, 'blendlicht'], [8, 'glimmstrom'], [9, 'nebelschleier']],
       desc: 'Gesichtet über dem Leuchtturm der Nebelküste: ein Geist aus Licht und Nebel mit Schwingen wie ein Leuchtfeuer. Er bricht nur auf, wenn eine grosse Geschichte beginnt – und Ungemach droht.' },
@@ -366,13 +366,13 @@ window.G = window.G || {};
     'tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
     'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler',
     'mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch',
-    'nebelahn', 'synx', 'fyrlumen'];
+    'nebelahn', 'nachtmahr', 'fyrlumen'];
   // v15: neue Tier- und Naturgeister (15) und seltene Sondergeister (4 Linien)
   G.NEW15 = ['tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
     'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler'];
   G.RARE = ['mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch'];
   // Stufenweise: noch nicht freigeschaltete Geister erscheinen nicht in der Chronik
-  G.SPECIES_ORDER = G.SPECIES_ORDER.filter(sp => (G.FEAT.rare || !G.RARE.includes(sp)) && (G.FEAT.cave || sp !== 'synx') && (G.FEAT.legend || sp !== 'fyrlumen'));
+  G.SPECIES_ORDER = G.SPECIES_ORDER.filter(sp => (G.FEAT.rare || !G.RARE.includes(sp)) && (G.FEAT.cave || sp !== 'nachtmahr') && (G.FEAT.legend || sp !== 'fyrlumen'));
   // Starter-Dreieck: Feuer schlägt Pflanze, Pflanze schlägt Wasser, Wasser schlägt Feuer
   G.STARTERS = ['flackerling', 'pfuetzling', 'blattling'];
   // alte Arten-IDs (Spielstand-Migration): der Glutfuchs Irrfackel wurde zum Glutwurm der neuen Drachen-Linie
@@ -507,12 +507,12 @@ window.G = window.G || {};
       lose: ['Nele: Du bist stärker, als du aussiehst. Nimm den Tee mit, du wirst ihn brauchen.'],
       after: ['Nele: Oben in der Kammer glimmt es seltsam. Als würde jemand das Licht vom Leuchtturm abzapfen.'] },
     quantum: { name: 'Mandy und Hans', title: 'Team Quantum', area: 'hoehle', pos: [18, 2], sight: 0, noFlee: true, noCatch: true, music: 'quantum',
-      callers: ['Mandy', 'Hans', 'Mandy', 'Synx'],
-      team: [['sumpfnatter', 6], ['keilerling', 6], ['funkmaus', 7], ['synx', 9]],
-      phases: { synx: 2 }, hpMultFor: { synx: 0.75 },   // zwei Lebensbalken à 75 % (Balance-Simulation: README)
+      callers: ['Mandy', 'Hans', 'Mandy', 'Mandy'],
+      team: [['sumpfnatter', 6], ['keilerling', 6], ['funkmaus', 7], ['nachtmahr', 9]],
+      phases: { nachtmahr: 2 }, hpMultFor: { nachtmahr: 0.75 },   // zwei Lebensbalken à 75 % (Balance-Simulation: README)
       reward: { starktee: 1, laterne: 3 },
       intro: ['Mandy: Also gut. Hans, du nimmst links.', 'Hans: Ich nehme immer links. Links ist meine Schokoladenseite.'],
-      lose: ['Synx: … Genug. Dieses Kind hat mehr Licht, als gut für uns ist.', 'Mandy: Das war nur ein Aufwärmen. Nur damit das klar ist.',
+      lose: ['Der Nachtmahr zieht sich zischend in Mandys Glaslaterne zurück. Seine Augen glimmen noch einen Moment hinter dem Glas.', 'Mandy: Das war nur ein Aufwärmen. Nur damit das klar ist.',
         'Hans: Ich finde ja, wir haben gut ausgesehen.'],
       after: [] },
     kaspar: { name: 'Kaspar Graumantel', title: 'Geisterbeschwörer', area: 'tiefesmoor', pos: [18, 9], sight: 4,

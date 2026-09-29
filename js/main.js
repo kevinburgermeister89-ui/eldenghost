@@ -34,6 +34,8 @@
     if (!G.MAPS[n.map]) n.map = 'dorf';
     // v15: Klippenhöhle vor Onno – wer Onno schon geweckt hat, hat Team Quantum «schon hinter sich»; neu bebaute Kacheln räumen
     if ((n.flags.story || 0) >= 6) n.flags.quantum = 1;
+    // v16: wer noch in Onnos (jetzt umschlossenem) Hain stand, ohne Team Quantum besiegt zu haben, steht vor dem Höhleneingang
+    if (n.map === 'kueste' && n.player && !n.flags.quantum && n.player.x >= 16 && n.player.x <= 19 && n.player.y <= 4) n.player = { x: 13, y: 7, dir: 'down' };
     if (n.player && (n.map === 'kueste' || n.map === 'dorf') && G.World && G.World.solidAt(G.MAPS[n.map], n.player.x, n.player.y)) n.player = n.map === 'kueste' ? { x: 15, y: 7, dir: 'down' } : { x: 16, y: 7, dir: 'down' };
     if ((s.v || 1) < 2) {
       n.map = 'dorf';

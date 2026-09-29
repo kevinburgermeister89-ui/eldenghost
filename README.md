@@ -181,6 +181,27 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v16: Grösseres Dorf, Klippenhöhle, Team Quantum, Fyrlumen, Katzenhaus
+- **Grösseres Dorf & Dorfleben:** das Dorf ist nach Osten gewachsen (Anger mit Teich, Obstwiese, Blumenbeeten). Greta, Lotte und Piet
+  gehen in ihrem Bereich umher (nie auf Türen/Übergänge, nie in den Weg der Spielfigur); Begleitgeister folgen ihnen
+  (Pieks – Moosigel, Zisch – Funkmaus, Knorz – Gischtkrebs, dazu Widos Flämmchen – Laternchen), alle auch wild fangbar und ansprechbar.
+- **Klippenhöhle** (vor Onno): mehrere Räume, dunkel mit Laternenlicht, wilde Stein-/Neutral-Geister Lv 5–9, zwei Beschwörer
+  (Ruedi, Nele), die vorher fragen; eigenes Höhlenstück.
+- **Team Quantum** (Mandy & Hans, erster Auftritt): Zwischensequenz – sie haben die Lichtseele des Leuchtturms abgezapft,
+  der Traumnebel ihres **Nachtmahrs** hält Onno im Schlaf. Bosskampf mit 3 Geistern, der Nachtmahr (Rauchleib, viele Augen,
+  zischt und flüstert, spricht nicht) zuletzt mit **zwei Phasen**: besiegt heilt er sich voll, der Bildschirm verdunkelt sich rot-violett,
+  «Der Alptraum erhebt sich wütend!», Phase 2 ca. +15–20 % Angriff/Tempo und neue Attacke «Alptraum»; zwei HP-Punkte zeigen die Phasen.
+  Heil-Hinweis vorher; Niederlage -> Mondkirche, Höhle bleibt offen. Danach Rückzug mit Drohung, Onno ist erreichbar.
+- **Fyrlumen** (Legende, Psycho/Elektro): wenn der Leuchtturm wieder brennt, ertönt ein Ruf, Fyrlumen schiesst heraus und zieht
+  als Silhouette über Himmel und Meer davon (nicht fangbar). Onno: es bricht nur auf, wenn eine grosse Geschichte beginnt und
+  Ungemach droht. Geisterbuch: «gesichtet».
+- **Katzenhaus von Kevin & Cassandra** mit Filou (schwarze Langhaarkatze) und Mira (braun-schwarz getigerte Langhaarkatze):
+  die Katzen streifen umher, spielen mit einem Spielzeug, rollen sich ein, miauen. Erster Besuch: gute Wünsche und Geschenke;
+  danach jede Stunde (echte Zeit, im Spielstand gespeichert) ein zufälliges Geschenk aus einem Pool, sonst ein freundlicher Satz.
+- **Haar** wird unter Laternen nicht mehr ausgebleicht.
+- **Musik:** die v14-Stücke bleiben (siehe v15.1); Höhle und Team Quantum haben eigene Stücke im v14-Stil.
+- Cache `eldenghost-v16`; Tests: `tests/test_v16.py`.
+
 ## v15: Neue Geister, Gebiete, Umgebungs-Ereignisse
 - **Hafenkapelle entfernt:** Bruder Tamme und die Kapelle an der Nebelküste gibt es nicht mehr; einzige Heilungskirche ist die
   Mondkirche. Alte Spielstände mit Wiedererwachen in der Kapelle erwachen in der Mondkirche (wer in der Kapelle stand, steht vor

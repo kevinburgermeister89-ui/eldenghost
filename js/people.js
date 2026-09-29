@@ -171,6 +171,10 @@
     // v15: Team Quantum – dunkelvioletter Mantel mit silbernem «Q»-Abzeichen
     mandy:     { hair: '#d84a8a', skin: '#f0d4c4', body: '#2e2440', coat: '#2e2440', buttons: '#c8c8d8', badge: '#c8e8ff', legs: '#1e1a2a', boot: '#141018', tail: true, cheek: false, brows: '#a83a6a' },
     hans:      { hair: '#c8b060', skin: '#e8c8b0', body: '#2e2440', coat: '#2e2440', buttons: '#c8c8d8', badge: '#c8e8ff', legs: '#1e1a2a', boot: '#141018', hat: '#241c34', hatBand: '#8a6ac8', cheek: false },
+    // v16: Dorfleben – Greta (mit Moosigel), Lotte (mit Funkmaus), Fischer Piet (mit Gischtkrebs)
+    greta:     { hair: '#d8d0c8', skin: '#ecd0bc', body: '#6a7a4a', skirt: '#4a3a2a', apron: '#d8c8a0', bun: true, scarf: '#a0604a', cheek: false, brows: '#b8b0a8' },
+    lotte:     { hair: '#c86a3a', skin: '#f4dcc8', body: '#4a7aa8', legs: '#3a3450', child: true, tail: true, belt: '#5a3424' },
+    piet:      { hair: '#9a9aa0', skin: '#dcb89c', body: '#2e4a6a', legs: '#2e3440', boot: '#1e2228', beard: '#a8a8b0', cap: '#5a3a2a', cheek: false, pipe: true },
     // v15: Höhlen-Beschwörer
     ruedi:     { hair: '#6a5040', skin: '#dcb89c', body: '#7a6a3a', legs: '#3a3428', boot: '#2a2218', cap: '#c8a030', beard: '#6a5040', strap: '#4a3a24', item: 'lamp' },
     nele:      { hair: '#e0c070', skin: '#f2dcc8', body: '#4a6a8a', legs: '#2e3a4a', tail: true, item: 'lamp', scarf: '#c86a4a', belt: '#4a3424' },

@@ -863,27 +863,22 @@
       S.P([[27, 12], [29, 9], [31, 12], [29, 15]], gl, { glow: true });
     },
     // ================= v15: Team Quantum & Legende =================
-    synx(S) { // Synx: sprechender Sphinx-Kater von Team Quantum – Steinflügel, gestreifter Kopfschmuck, Rätselaugen
-      const fur = '#c8a86a', fur2 = '#8a7040', st = '#8a8898', st2 = '#5e5c6e', band = '#3a2e5a', gold = '#e8c050', eye = '#c080ff';
-      S.P([[36, 34], [58, 6], [62, 16], [60, 28], [50, 38]], st, { name: 'wing', g: 'wing' });
-      for (const [x, y] of [[58, 10], [61, 20], [58, 30]]) S.C(40, 34, x, y, 1.2, st2, { clip: 'wing', flat: true, line: false });
-      S.C(46, 52, 58, 50, 3, fur, { g: 'tail' }).C(58, 50, 60, 42, 2.6, fur, { g: 'tail' }).E(60, 41, 2.4, 2.4, band, { g: 'tail' });
-      S.C(44, 50, 46, 59, 4, fur2, { g: 'legB' });
-      S.E(38, 46, 15, 10, fur, { name: 'body', g: 'body' });
-      S.E(31, 50, 7, 6, '#ecdcb4', X(F, { clip: 'body', line: false }));
-      S.C(26, 52, 20, 59, 4, fur, { g: 'legF' }).C(33, 53, 30, 59, 4, fur, { g: 'legF' });
-      S.E(18, 59.5, 4, 1.6, fur2).E(28, 59.5, 4, 1.6, fur2);
-      S.P([[12, 24], [22, 12], [34, 12], [42, 26], [38, 40], [30, 30], [18, 30], [10, 40]], band, { name: 'nemes', g: 'head' });
-      for (const y of [18, 24, 30, 36]) S.R(8, y, 36, 1.6, gold, { clip: 'nemes', flat: true, line: false });
-      S.P([[16, 16], [14, 4], [22, 12]], fur).P([[30, 12], [36, 2], [36, 16]], fur);
-      S.E(25, 25, 10, 9, fur, { name: 'head', g: 'head' });
-      S.E(18, 30, 5, 3.6, '#ecdcb4', X(F, { clip: 'head', line: false }));
-      S.eye(21, 23, 2.8, 3, eye, { dark: '#3a1a6a' }).eye(29, 23, 3, 3.2, eye, { dark: '#3a1a6a' });
-      S.C(17, 20, 24, 21.6, 1.1, '#2a1e3a', X(F, { flat: true, line: false })).C(26, 21.4, 33, 20, 1.1, '#2a1e3a', X(F, { flat: true, line: false }));
-      S.E(16, 29, 1.2, 1, '#6a3a4a', X(F, { flat: true }));
-      S.C(16, 33, 21, 32.4, 0.8, '#2a1e3a', X(F, { flat: true, line: false }));
-      S.E(25, 14, 2, 2, eye, { glow: true });
-      S.E(24, 8, 1, 1, eye, { glow: true }).E(4, 30, 1, 1, eye, { glow: true });
+    nachtmahr(S, back) { // Nachtmahr: Alptraum-Geist von Team Quantum – Rauchleib ohne feste Form, übersät mit Augen, gezackter Schlund
+      const sm0 = '#0e0a16', sm1 = '#1e1628', sm2 = '#30243e', sm3 = '#463456', red = '#ff3a5a', vio = '#c070ff';
+      const blob = (cx, cy, rx, ry, n, amp, ph) => { const pts = []; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, k = 1 + amp * Math.sin(a * 5 + ph) + amp * 0.6 * Math.sin(a * 9 + ph * 2); pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]); } return pts; };
+      // aufsteigende Rauchfahnen
+      for (const [x0, y0, x1, y1, w] of [[18, 20, 8, 2, 3], [44, 18, 56, 3, 3.2], [30, 12, 26, 0, 2.4], [52, 34, 62, 22, 2.6], [12, 38, 2, 28, 2.6]]) S.C(x0, y0, x1, y1, w, sm2, { alpha: 0.6, flat: true, noOutline: true, cast: false });
+      S.P([[10, 50], [6, 60], [16, 55], [21, 61], [28, 56], [34, 62], [40, 56], [47, 61], [54, 52]], sm0, { g: 'body' });
+      S.P(blob(32, 32, 22, 21, 36, 0.09, 0.7), sm1, { name: 'body', g: 'body' });
+      for (const [x, y, r] of [[20, 22, 8], [44, 26, 9], [30, 44, 9], [34, 12, 7]]) S.P(blob(x, y, r, r * 0.8, 14, 0.12, x), sm2, X(F, { clip: 'body', line: false }));
+      S.P(blob(26, 14, 6, 3, 12, 0.1, 1), sm3, X(F, { clip: 'body', line: false, alpha: 0.7 }));
+      // Schlund: gezackte Öffnung mit schwachem Glimmen
+      if (!back) S.P([[20, 38], [24, 43], [28, 39], [32, 44], [36, 39], [40, 43], [44, 38], [40, 49], [24, 49]], '#07040c', { name: 'maw' });
+      if (!back) S.E(32, 47, 7, 2.4, '#7a1a3a', { clip: 'maw', glow: true, flat: true, line: false });
+      // viele Augen, verschieden gross, rot und violett, mit Glimmen
+      const eyes = [[25, 22, 4, 4.4, red], [39, 22, 4.2, 4.6, red], [32, 12, 2.4, 2.6, vio], [16, 30, 2.6, 2.8, vio], [48, 30, 2.8, 3, vio], [13, 40, 1.8, 2, red], [51, 41, 2, 2.2, red], [23, 32, 1.6, 1.8, vio], [42, 33, 1.8, 2, red], [44, 13, 1.8, 2, vio], [20, 13, 1.6, 1.8, red]];
+      for (const [x, y, rx, ry, c] of eyes) { if (!back) S.E(x, y, rx + 1.4, ry + 1.4, c, { glow: true, alpha: 0.35, flat: true, noOutline: true, cast: false }); S.eye(x, y, rx, ry, c, { dark: '#1a0a14', white: 0.1 }); }
+      for (const [x, y] of [[8, 8], [58, 16], [4, 46], [62, 46], [28, 2]]) S.E(x, y, 1, 1, vio, { glow: true });
     },
     fyrlumen(S) { // Fyrlumen: legendärer Leuchtturmgeist – Vogelleib aus Licht, Prismenschwingen, Linsen-Halo, Nebelschleppe
       const body = '#f4f0e0', body2 = '#c8d8f0', gold = '#ffe8a0', pr1 = '#bfe8ff', pr2 = '#e8c8ff', mist = '#e0ecff', eye = '#6ac8ff';
@@ -919,7 +914,7 @@
     schwammling: 'dots', moderhut: 'moss', hauchling: 'wisp', laternchen: null, totenleuchte: null,
     tauhase: 'fur', funkmaus: 'fuzz', moosigel: 'moss', farnigel: 'moss', gischtkrebs: 'stone', glimmfuchs: 'fur', glutfaehe: 'fur', tropfsteinmolch: 'dots', kristallmolch: 'dots',
     flatterhauch: 'fuzz', blitzreiher: 'feather', sumpfnatter: 'dots', grubenkaefer: 'stone', keilerling: 'fur', moorkeiler: 'fur', mondluchs: 'fur', sternenluchs: 'fur', tiefenkalb: 'dots',
-    nebelwal: 'dots', funkenkueken: 'fuzz', aschephoenix: 'feather', farnkitz: 'fur', hainhirsch: 'fur', kronenhirsch: 'fur', synx: 'fur', fyrlumen: 'wisp' };
+    nebelwal: 'dots', funkenkueken: 'fuzz', aschephoenix: 'feather', farnkitz: 'fur', hainhirsch: 'fur', kronenhirsch: 'fur', nachtmahr: 'wisp', fyrlumen: 'wisp' };
   const hh = (x, y) => { let v = (x * 374761393 + y * 668265263) | 0; v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
   function texture(c, kind) {
     if (!kind) return;
