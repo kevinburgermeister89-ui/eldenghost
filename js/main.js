@@ -142,7 +142,9 @@
     const T = G.TYPES, ab = t => t.slice(0, 3).toUpperCase(), cell = f => f === 2 ? '<td class="se">2</td>' : f === 0.5 ? '<td class="nv">½</td>' : f === 0 ? '<td class="im">0</td>' : '<td></td>';
     return `<h2 style="margin-top:12px">Typentabelle</h2><div class="hint">Zeile greift an, Spalte verteidigt. Doppeltypen multiplizieren sich.</div>
       <table class="typechart"><tr><th></th>${T.map(t => `<th style="color:${G.TYPE_COLORS[t]}">${ab(t)}</th>`).join('')}</tr>
-      ${T.map(a => `<tr><th style="color:${G.TYPE_COLORS[a]}">${a}</th>${T.map(d => cell(G.eff1(a, d))).join('')}</tr>`).join('')}</table>`;
+      ${T.map(a => `<tr><th style="color:${G.TYPE_COLORS[a]}">${a}</th>${T.map(d => cell(G.eff1(a, d))).join('')}</tr>`).join('')}
+      <tr class="neutral"><th style="color:${G.TYPE_COLORS.Neutral}">Neutral</th>${T.map(() => '<td></td>').join('')}</tr></table>
+      <div class="hint">Neutral (typenlos) wie Rempler, Kratzer oder Biss wirkt immer 1× und bekommt keinen Typbonus. Typ-Attacken lernen Geister erst ab Level ${G.TYPE_MOVE_LVL}.</div>`;
   }
   G.chartHtml = chartHtml;
   G.Menu.chronik = async () => {

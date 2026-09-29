@@ -211,7 +211,7 @@
   D.npcs = [
     { id: 'ilse', spr: 'ilse', x: 18, y: 7, dir: 'down', talk: talkIlse },
     { id: 'wido', spr: 'wido', x: 22, y: 25, dir: 'up', talk: talkWido },
-    { id: 'fenn', spr: 'fenn', x: 13, y: 15, dir: 'right', trainer: 'fenn', sight: 3, show: () => q1() < 7 && !!G.state && G.state.team.length > 0 },
+    { id: 'fenn', spr: 'fenn', x: 13, y: 15, dir: 'right', trainer: 'fenn', sight: 0, show: () => q1() < 7 && story() >= 3 && !!G.state && G.state.team.length > 0 }, // erst nach der Fang-Übung, kein Überfall
     // drei Laternensteine mit den Starter-Geistern (Wahl direkt in der Welt)
     ...G.STARTERS.map((sp, i) => ({ id: 'altar' + i, altar: sp, x: 17 + 2 * i, y: 9, dir: 'down', talk: () => talkAltar(sp) }))
   ];
@@ -235,7 +235,7 @@
   G.MAPS.schmiede.npcs = [{ id: 'brann', spr: 'brann', x: 5, y: 2, dir: 'up', talk: talkBrann }];
   G.MAPS.muehle.npcs = [{ id: 'mathis', spr: 'mahlen', x: 6, y: 3, dir: 'down', talk: talkMathis }];
   M.npcs = [
-    { id: 'selma', spr: 'selma', x: 16, y: 36, dir: 'down', trainer: 'selma', sight: 4, after: [17, 36] },
+    { id: 'selma', spr: 'selma', x: 16, y: 36, dir: 'down', trainer: 'selma', sight: 0, after: [17, 36] }, // nur auf Ansprache
     { id: 'kaspar', spr: 'kaspar', x: 16, y: 10, dir: 'down', trainer: 'kaspar', sight: 4, after: [17, 10] },
     { id: 'nebelahn', mon: 'nebelahn', x: 16, y: 2, dir: 'down', show: () => q1() < 6, talk: talkBoss },
     { id: 'jorinS', spr: 'jorinSleep', x: 14, y: 3, dir: 'down', show: () => q1() < 6, talk: () => G.UI.sayAll(['Jorin liegt zwischen den Steinen, in Nebel gehüllt wie in eine Decke.', 'Neben ihm steht eine kalte Laterne. Sein Atem geht langsam und kalt.']) }
@@ -271,6 +271,7 @@
         'Ilse: Geh zur Küste und sieh nach. Der Ostweg führt an den Gräbern vorbei, dann durch eine Nebelbank bis ans Meer.'
       ]);
       setStory(4);
+      await G.UI.say('Ilse: Und lass dir Zeit. Im Nebelgras kannst du deine Geister stärker machen – Fenn wartet am Wegweiser schon ungeduldig auf einen Kampf, aber das hat Zeit, bis du bereit bist.');
       if (!S.flags.note) await G.UI.say('Ilse: Ach, und noch etwas … Bei Jorin brennt seit drei Tagen kein Licht. Wenn du Zeit hast, schau bei seiner Tür nach – das Haus östlich vom Weg.');
       return;
     }
@@ -1266,9 +1267,9 @@
   async function checkTrainers() {
     if (G.mode !== 'world' || G.lock > 0 || spotting) return;
     for (const n of G.map.npcs) {
-      if (!n.trainer || !npcVisible(n) || G.flag('t_' + n.trainer)) continue;
+      if (!n.trainer || !n.sight || !npcVisible(n) || G.flag('t_' + n.trainer)) continue;   // sight 0: kämpft nur auf Ansprache
       const [dx, dy] = DXY[n.cdir];
-      for (let i = 1; i <= (n.sight || 3); i++) {
+      for (let i = 1; i <= n.sight; i++) {
         const x = n.cx + dx * i, y = n.cy + dy * i;
         if (x === P.x && y === P.y) { await trainerSpots(n, i); return; }
         if (SOLID[G.map.kind].has(at(G.map, x, y)) || npcAt(x, y)) break;
@@ -1314,7 +1315,15 @@
     const npc = npcAt(fx, fy);
     if (npc) {
       if (!npc.mon) npc.cdir = OPP[P.dir];
-      if (npc.trainer && !G.flag('t_' + npc.trainer)) { G.lock++; await G.UI.sayAll(G.TRAINERS[npc.trainer].intro); G.UI.hideText(); G.lock--; return G.Battle.trainer(npc.trainer); }
+      if (npc.trainer && !G.flag('t_' + npc.trainer)) {
+        const tr = G.TRAINERS[npc.trainer];
+        G.lock++;
+        if (tr.ask) {   // freiwilliger Kampf: erst fragen, mit Trainingstipp
+          await G.UI.sayAll(tr.ask);
+          if (!(await G.UI.yesNo(tr.askQ))) { await G.UI.sayAll(tr.decline); G.UI.hideText(); G.lock--; return; }
+        }
+        await G.UI.sayAll(tr.intro); G.UI.hideText(); G.lock--; return G.Battle.trainer(npc.trainer);
+      }
       if (npc.trainer) return G.World.talk(G.TRAINERS[npc.trainer].after);
       G.lock++; await npc.talk(); G.UI.hideText(); G.lock--; return;
     }

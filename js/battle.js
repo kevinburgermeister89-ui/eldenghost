@@ -182,6 +182,8 @@
     Feuer: { s: 'Irrlicht', c: '#ff9a48', c2: '#fff0b8' }, Wasser: { s: 'Wasser', c: '#58b0f8', c2: '#dcf2ff' }, Elektro: { s: 'Elektro', c: '#ffe058', c2: '#fffbe4' },
     Stein: { s: 'Stein', c: '#9a8a78', c2: '#d8c8b0' }, Psycho: { s: 'Nebel', c: '#f4a4dc', c2: '#ffe4f6' }, Boden: { s: 'Moor', c: '#a0743e', c2: '#cfa466' },
     Gift: { s: 'Schatten', c: '#b474e8', c2: '#26103a' }, Kampf: { s: 'Kampf', c: '#ff7a52', c2: '#fff4e8' },
+    // typenlose Attacken: schlichter Treffer (kurzer Stoss, helle Funken, dezenter Ring)
+    Neutral: { s: 'Neutral', c: '#d8d0e4', c2: '#ffffff' },
     // Stile für Heilung, Fang und Zustände
     Seele: { s: 'Seele', c: '#c8bede', c2: '#fff4ff' }, Irrlicht: { s: 'Irrlicht', c: '#8ff0e4', c2: '#e8fff8' }, Nebel: { s: 'Nebel', c: '#dce4f2', c2: '#aab4d0' },
     Moor: { s: 'Moor', c: '#7a8a3a', c2: '#a4c46a' }
@@ -209,6 +211,9 @@
       case 'Kampf':
         for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28 + rnd(-0.1, 0.1), v = rnd(120, 170); P_({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.28, c: i % 2 ? f.c : f.c2, s: 2.5, k: 'spark' }); }
         P_({ x, y, k: 'ring', r: 4, dr: 140, life: 0.3, c: f.c2 }); P_({ x, y, k: 'ring', r: 2, dr: 90, life: 0.4, c: f.c }); P_({ x, y, k: 'glow', r: 14, dr: 50, life: 0.25, c: f.c2 }); break;
+      case 'Neutral':
+        for (let i = 0; i < 7; i++) { const a = i / 7 * 6.28 + rnd(-0.2, 0.2), v = rnd(70, 110); P_({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.22, c: i % 2 ? f.c : f.c2, s: 2, k: 'spark' }); }
+        P_({ x, y, k: 'ring', r: 3, dr: 90, life: 0.25, c: f.c2 }); P_({ x, y, k: 'glow', r: 10, dr: 30, life: 0.2, c: f.c }); break;
       case 'Irrlicht':
         for (let i = 0; i < n + 12; i++) { const a = rnd(0, 6.28), v = rnd(30, 130); P_({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, g: 30, life: rnd(0.5, 1.1), c: Math.random() < 0.4 ? f.c2 : f.c, s: Math.random() < 0.4 ? 2.5 : 1.5, k: 'spark' }); }
         for (let i = 0; i < 5; i++) P_({ x: x + rnd(-12, 12), y: y + rnd(-12, 12), vy: rnd(-30, -10), k: 'glow', r: rnd(4, 7), dr: -3, life: rnd(0.6, 1), c: f.c });
@@ -231,13 +236,14 @@
         for (let i = 0; i < n; i++) P_({ x: x + rnd(-18, 18), y: y + rnd(-6, 16), vx: rnd(-6, 6), vy: rnd(-45, -20), k: 'mote', life: rnd(0.7, 1.3), c: Math.random() < 0.4 ? f.c2 : f.c });
         P_({ x, y, k: 'ring', r: 4, dr: 70, life: 0.45, c: f.c2 }); P_({ x, y, k: 'glow', r: 12, dr: 30, life: 0.5, c: f.c });
     }
-    if (!soft && G.B) G.B.shake = Math.max(G.B.shake || 0, st === 'Stein' || st === 'Kampf' ? 4.5 : st === 'Nebel' ? 1.5 : 2.5);
+    if (!soft && G.B) G.B.shake = Math.max(G.B.shake || 0, st === 'Stein' || st === 'Kampf' ? 4.5 : st === 'Neutral' ? 3 : st === 'Nebel' ? 1.5 : 2.5);
   }
   // Anflug vom Angreifer zum Ziel (ca. 0.4 s), danach Einschlag
   async function travel(type, from, to) {
     const [x0, y0] = center(from), [x1, y1] = center(to), f = TYPE_FX[type] || TYPE_FX.Seele, B = G.B, st = f.s;
     if (st === 'Schatten') B.dim = 0.45;
     if (st === 'Elektro') B.dim = 0.3;
+    if (st === 'Neutral') { await G.animate(160, p => { if (Math.random() < 0.5) P_({ x: x0 + (x1 - x0) * p, y: y0 + (y1 - y0) * p, life: 0.12, c: f.c, s: 1.5, k: 'spark' }); }); return; }
     if (st === 'Kampf') { await G.animate(200, p => { P_({ x: x0 + (x1 - x0) * p + rnd(-3, 3), y: y0 + (y1 - y0) * p + rnd(-3, 3), life: 0.18, c: f.c2, s: 2, k: 'spark' }); }); return; }
     if (st === 'Stein') { for (let i = 0; i < 4; i++) P_({ x: x1 + rnd(-14, 14), y: y1 - 70 - i * 14, vy: 60, g: 520, floor: y1 + rnd(-4, 6), life: 0.55 + i * 0.05, c: i % 2 ? f.c : '#7a6e60', s: rnd(3, 5), k: 'chunk' }); await G.wait(360); return; }
     let last = 0;
