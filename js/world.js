@@ -9,7 +9,8 @@
   }
   const SOLID = { outdoor: new Set('T~fgShDrwxkuBAHY'.split(''))   // v15: H Höhlenwand, Y Tropfstein/Kristall
    // Laternen (L, e) sind begehbar
-  , interior: new Set('WnotbkcauyzjlFAKQZMPXVG'.split(''))   // v15: X Kratzbaum, V Topfpflanze, G Sofa
+  , interior: new Set('WnotbkcauyzjlFAKQZMPXVGNUO'.split(''))   // v18: N Warenregal, U Ladentheke, O Kiste/Korb
+   // v15: X Kratzbaum, V Topfpflanze, G Sofa
  };
   const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle', j: 'hoehle' };
   const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240', hoehle: '150,140,130' };
@@ -68,7 +69,7 @@
       { x: 21, y: 3, roof: '#5e3c4e', id: 'oda' }, { x: 22, y: 9, roof: '#40505e', id: 'jorin' },
       // neu: Wassermühle am Dorfteich (Rad im Mühlgraben) und Schmiede am Ostweg (Gebäude im Comic-Pixelstil, siehe BUILD)
       { x: 2, y: 7, id: 'muehle', art: 'muehle' }, { x: 26, y: 12, id: 'schmiede', art: 'schmiede' },
-      { x: 38, y: 3, roof: '#3e5a5a', id: 'piet' },   // v16: Fischer Piet am Anger
+      { x: 38, y: 3, id: 'markt', art: 'markt' },   // v18: Marktstube am Anger (früher Piets verschlossenes Haus – Piet ist ohnehin lieber am Teich)
       ...(G.FEAT.cats ? [{ x: 10, y: 11, roof: '#6a4a3a', id: 'katzen' }] : [])   // v16: Kevin & Cassandra mit Filou und Mira
     ];
     for (const h of D.houses) { rect(D, h.x, h.y, h.x + 3, h.y + 2, 'h'); set(D, h.x + 1, h.y + 2, 'D'); }
@@ -104,9 +105,10 @@
     [[38, 18], [42, 23], [37, 29], [44, 28]].forEach(([x, y]) => set(D, x, y, '*')); set(D, 33, 25, 'r'); set(D, 38, 25, 'r');
     // Ostweg zur Nebelküste (an den Gräbern vorbei) mit Wegweiser
     rect(D, 17, 24, W - 1, 24, ','); set(D, 45, 23, 'S');
+    set(D, 42, 5, 'S');   // v18: Schild der Marktstube
     D.doors = {
       '5,5': { to: 'home' }, '12,5': { to: 'hedda' }, ...(G.FEAT.cats ? { '11,13': { to: 'katzen' } } : {}), '22,5': { to: 'oda' }, '3,9': { to: 'muehle' }, '27,14': { to: 'schmiede' },
-      '39,5': { to: 'piet', cond: () => false, locked: () => G.UI.say(G.flag('pietTalk') ? 'Piets Tür ist zu. Drinnen riecht es nach Teer und Räucherfisch.' : 'Die Tür ist zu. Ein Schild: «Bin draussen am Teich. – Piet»') },
+      '39,5': { to: 'markt' },
       '23,11': { to: 'jorin', cond: () => q1() >= 7, locked: async () => {
         if (!G.flag('note')) {
           await G.UI.sayAll(['An der Tür hängt ein Zettel: «Bin im Moor. Zurück, wenn der Nebel geht. – Jorin»', 'Das Papier ist feucht. Seit Tagen hat ihn niemand abgenommen.']);
@@ -120,6 +122,7 @@
     D.warps['47,24'] = { to: 'kueste', x: 1, y: 11, dir: 'right', cond: () => story() >= 4,
       msg: () => [story() < 2 ? 'Ilse (ruft dir nach): Halt! Ohne einen Geist an deiner Seite gehst du nicht in den Nebel!' : 'Der Küstenpfad verschwindet im Nebel. Ilse wollte vorher noch mit dir sprechen.'] };
     D.signs = {
+      '42,5': () => ['Schild: «Fridas Marktstube – Laternen, Tee, Salben und Allerlei.»', 'Darunter, kleiner: «Offen, solange die Lampe brennt.» Die Lampe brennt.'],
       '45,23': () => ['Wegweiser: «Nach Osten: Nebelküste – Leuchtturm und Hafen.»', 'Darunter, frisch eingeritzt: «Vorsicht, Küstennebel!»'],
       '17,15': () => ['Wegweiser: «Nach Süden: Nebelgras.»', 'Darunter, in krakeliger Schrift: «Im Nebel wohnen wilde Geister. Nimm Licht mit!»'],
       '17,29': () => {
@@ -148,6 +151,8 @@
   room('leuchtturm', ['WWWnWWnWWW', 'Wkj____k_W', 'W___ZZ___W', 'W________W', 'Wc______cW', 'W________W', 'W________W', 'WWWWxWWWWW'], { outX: 22, outY: 7, name: 'Leuchtturm – Lampenraum', plight: 36 });
   G.MAPS.leuchtturm.warps['4,7'].to = 'kueste';
   room('schmiede', ['WWWnWWWWnW', 'WFF__A_kkW', 'W________W', 'W________W', 'Wt_______W', 'W______K_W', 'W________W', 'WWWWxWWWWW'], { outX: 27, outY: 15, name: 'Branns Schmiede', plight: 36 });
+  // v18: Marktstube – Regale voller Waren, Ladentheke mit Waage (Frida dahinter), Kisten und Körbe
+  room('markt', ['WWnWWWWnWW', 'WNNNNNNNNW', 'W_______OW', 'WUUUU____W', 'W________W', 'WO______VW', 'Wc______cW', 'WWWWxWWWWW'], { outX: 39, outY: 6, name: 'Fridas Marktstube', plight: 38 });
   room('muehle', ['WWnWWWWnWW', 'WQQ___KKkW', 'W________W', 'W___t____W', 'W________W', 'WK_______W', 'W______K_W', 'WWWWxWWWWW'], { outX: 3, outY: 10, name: 'Die Mühle' });
 
   // ================= TIEFES MOOR =================
@@ -503,6 +508,9 @@
   G.MAPS.jorin.npcs = [{ id: 'jorin', spr: 'jorin', x: 5, y: 3, dir: 'down', talk: talkJorinHome }];
   G.MAPS.schmiede.npcs = [{ id: 'brann', spr: 'brann', x: 5, y: 2, dir: 'up', talk: talkBrann }];
   G.MAPS.muehle.npcs = [{ id: 'mathis', spr: 'mahlen', x: 6, y: 3, dir: 'down', talk: talkMathis }];
+  // v18: Marktstube – Krämerin Frida hinter der Theke, Anselm vor dem Teeregal
+  G.MAPS.markt.npcs = [{ id: 'frida', spr: 'frida', x: 2, y: 2, dir: 'down', talk: talkFrida },
+    { id: 'anselm', spr: 'anselm', x: 6, y: 2, dir: 'up', talk: talkAnselm }];
   M.npcs = [
     { id: 'selma', spr: 'selma', x: 16, y: 36, dir: 'down', trainer: 'selma', sight: 0, after: [17, 36] }, // nur auf Ansprache
     { id: 'kaspar', spr: 'kaspar', x: 16, y: 10, dir: 'down', trainer: 'kaspar', sight: 4, after: [17, 10] },
@@ -1036,6 +1044,31 @@
     await G.UI.say(['Mathis: Das Wasser kommt vom Moor herunter. Manchmal schwimmt ein Licht darin, dann bleibt das Rad kurz stehen.',
       'Mathis: Brann in der Schmiede schärft mir die Mühlsteine. Er redet nicht viel, aber er hört gut zu.'][G.rnd(0, 1)]);
   }
+  // v18: Krämerin Frida – Kaufen gegen Münzen
+  async function talkFrida() {
+    const S = G.state;
+    if (!S.flags.frida) {
+      S.flags.frida = 1;
+      await G.UI.sayAll(['Frida: Komm rein, der Nebel bleibt draussen. Meistens jedenfalls.',
+        'Frida: Laternen, Tee, Salben – alles, was man für eine lange Nacht braucht. Ich nehme Münzen, keine Versprechen.',
+        'Frida: Und wundere dich nicht: Geister, die du im Nebel besiegst, lassen oft ein paar Münzen fallen. Keiner weiss, woher sie die haben.']);
+    } else await G.UI.say(['Frida: Da bist du ja wieder. Was darf es sein?', 'Frida: Die Regale sind voll, die Kasse leer. Das kann man ändern.', 'Frida: Nimm dir Zeit. Der Nebel wartet auch.'][G.rnd(0, 2)]);
+    const bought = await G.Menu.shop();
+    G.UI.hideText();
+    await G.UI.say(bought ? 'Frida: Gute Wahl. Pass auf dich auf da draussen.' : 'Frida: Schon gut. Schauen kostet nichts.');
+  }
+  // v18: Anselm sucht starken Kräutertee – nur ein Gespräch, keine Aufgabe
+  async function talkAnselm() {
+    const S = G.state, n = S.flags.anselm || 0; S.flags.anselm = n + 1;
+    const L = [
+      ['Anselm: Ich suche starken Kräutertee. Nicht den für die Geister – den, bei dem der Löffel von allein stehen bleibt.',
+        'Anselm: Frida sagt, ihrer sei stark genug. Ich sage, dann hat sie noch keine Nacht am Moor gewacht.'],
+      ['Anselm: Früher hat man ihn mit Heidehonig gezogen, bis er fast schwarz war. Seit dem Nebel schmeckt alles nur noch nach Wasser mit Farbe.'],
+      ['Anselm: Ich stehe gern hier vor dem Regal. Die Dosen riechen nach Sommer. Das reicht manchmal schon.'],
+      ['Anselm: Wenn du irgendwo einen Kessel riechst, der nach Wacholder und Geduld duftet … ach, lass nur. Ich finde ihn schon. Irgendwann.']
+    ];
+    await G.UI.sayAll(L[n % L.length]);
+  }
   async function talkOda() {
     if (q1() >= 7) return G.UI.say('Oda: Hörst du? Fenn singt wieder mit. Jorin hat ihm das Lied beigebracht, weisst du.');
     await G.UI.sayAll(['Oda: Er singt nicht mehr mit, seit Jorin weg ist. Fenn, meine ich. Jorin hat ihm das Lied beigebracht.', 'Oda: Die Wiege dort … die bleibt stehen. Manche Dinge räumt man nicht weg.']);
@@ -1118,6 +1151,22 @@
         case 'G': { floor(); const top = at(m, x, y - 1) !== 'G'; d.r(2, 0, 13, 16, '#5a6a8a'); d.r(2, 0, 3, 16, '#4a5a7a'); d.r(5, 1, 10, 14, '#6a7a9a');
           if (top) { d.r(2, 0, 13, 2, '#4a5a7a'); d.r(7, 3, 5, 4, '#e8c870'); } else d.r(2, 14, 13, 2, '#3a4a6a'); break; }
         case 'K': floor(); if (m.id === 'muehle') g.drawImage(SACK(), 0, 0); else g.drawImage(propArt('K'), 0, 0); break;
+        case 'N': { floor(); d.r(0, 0, 16, 15, '#3e2a20'); d.r(0, 0, 16, 1, '#5a3e2c'); d.r(0, 5, 16, 1, '#2a1c14'); d.r(0, 10, 16, 1, '#2a1c14'); d.r(0, 14, 16, 1, '#2a1c14');
+          const v = (x * 7 + y * 3) % 4;   // je Regalbrett andere Waren: Gläser, Teedosen, Laternen, Kräuterbündel, Kerzen
+          if (v === 0) { for (let i = 0; i < 4; i++) { d.r(1 + i * 4, 1, 3, 4, ['#8ab0a0', '#c8a86a', '#b8a8f0', '#e0c080'][i]); d.r(1 + i * 4, 1, 3, 1, '#e8e0d0'); } for (let i = 0; i < 3; i++) { d.r(2 + i * 5, 7, 3, 3, '#6a4a2e'); d.r(3 + i * 5, 6, 1, 1, '#ffd27a'); } }
+          else if (v === 1) { for (let i = 0; i < 3; i++) { d.r(1 + i * 5, 2, 4, 3, ['#8a2e36', '#2e5a4a', '#4a4a7a'][i]); d.r(1 + i * 5, 3, 4, 1, '#d8c070'); } for (let i = 0; i < 5; i++) d.r(1 + i * 3, 6, 2, 4, i % 2 ? '#5a8a4a' : '#7aa85a'); }
+          else if (v === 2) { for (let i = 0; i < 3; i++) { d.r(2 + i * 5, 1, 3, 4, '#2e2634'); d.r(3 + i * 5, 2, 1, 2, '#ffd27a'); } for (let i = 0; i < 4; i++) d.r(1 + i * 4, 7, 3, 3, ['#e8e0c8', '#d8c8a8', '#e8e0c8', '#c8b890'][i]); }
+          else { for (let i = 0; i < 4; i++) d.e(2.5 + i * 3.8, 3.2, 1.6, 1.6, ['#c83a34', '#d8782e', '#c83a34', '#e8c058'][i]); for (let i = 0; i < 3; i++) { d.r(1 + i * 5, 6, 4, 4, '#b8a888'); d.r(1 + i * 5, 7, 4, 1, '#8a6a4a'); } }
+          d.r(0, 11, 16, 3, '#34241a'); for (let i = 0; i < 4; i++) d.r(1 + i * 4, 11, 3, 3, ['#5a4a3a', '#6a5a4a', '#4a3a2a', '#6a4a3a'][(i + x) % 4]); break; }
+        case 'U': { floor(); const l = at(m, x - 1, y) !== 'U', r = at(m, x + 1, y) !== 'U';
+          d.r(0, 4, 16, 11, '#5a3a26'); d.r(0, 4, 16, 2, '#8a6040'); d.r(0, 13, 16, 2, '#3a2618'); if (l) d.r(0, 4, 1, 11, '#3a2618'); if (r) d.r(15, 4, 1, 11, '#3a2618');
+          for (let i = 2; i < 16; i += 5) d.r(i, 7, 1, 6, '#4a3020');
+          if (x === 1) { d.r(3, 1, 1, 4, '#8a8a98'); d.r(1, 1, 5, 1, '#8a8a98'); d.e(2, 3, 1.4, 0.8, '#c8a050'); d.e(5, 3, 1.4, 0.8, '#c8a050'); }   // Waage
+          if (x === 3) { d.e(8, 3.6, 3, 1.2, '#6a6a78'); d.p(7, 3, '#e8c058'); d.p(9, 3, '#e8c058'); d.p(8, 2, '#f0d070'); }                           // Münzschale
+          if (x === 4) { d.r(5, 1, 6, 4, '#e8dcc0'); d.r(6, 2, 4, 1, '#8a7a6a'); d.r(6, 3.5, 3, 0.6, '#8a7a6a'); }                                           // Preisbuch
+          break; }
+        case 'O': floor(); d.r(2, 7, 12, 8, '#7a5234'); d.r(2, 7, 12, 1, '#9a7048'); d.r(2, 11, 12, 1, '#5a3a22'); d.r(7, 7, 1, 8, '#5a3a22');
+          if (y < 4) { for (const [a, b] of [[4, 5], [7, 4], [10, 5], [5.5, 3], [8.5, 3]]) d.e(a, b, 1.6, 1.6, '#c83a34'); } else { for (let i = 0; i < 4; i++) d.r(3 + i * 3, 2, 1, 5, '#5a8a4a'); d.r(3, 5, 10, 1, '#c8a060'); } break;
         case 'j': floor(); d.r(0, 5, 16, 6, '#5a4030'); d.r(0, 5, 16, 1, '#7a5a40'); d.r(2, 3, 5, 2, '#8a8a98'); d.r(10, 2, 1, 3, '#b8905a'); d.r(1, 11, 2, 4, '#3a2a1e'); d.r(13, 11, 2, 4, '#3a2a1e'); break;
         default: floor();
       }
@@ -1275,6 +1324,47 @@
       S.R(9, 27, 30, 4, '#3a3444');
       for (let x = 10; x <= 38; x += 4) S.R(x, 22, 1, 5, '#3a3444', { flat: true, line: false });
       S.R(9, 21.5, 30, 1, '#3a3444', { flat: true });
+    } else if (kind === 'markt') {
+      // v18: Marktstube 64×60 (2× gerastert): Schindeldach, Fachwerk, rot-weiss gestreifte Markise, Aushängeschild mit Laterne und Münze,
+      // Auslage mit Kisten voller Äpfel, Kohl und Kräuter, gestapelte Kürbisse, eine Hängelaterne
+      S.R(8, 6, 7, 16, '#5a5060', { name: 'chim' }).R(7, 5, 9, 3, '#4a4250');
+      S.P([[0, 34], [8, 9], [56, 9], [64, 34]], '#2e4a4c', { name: 'roof' });
+      for (const y of [14, 19, 24, 29]) S.R(0, y, 64, 0.8, '#223a3c', { clip: 'roof', flat: true, line: false });
+      for (let x = 3; x < 62; x += 4) S.R(x + (x % 8 ? 1 : 0), 9, 0.6, 25, '#3a5a5c', { clip: 'roof', flat: true, line: false, alpha: 0.45 });
+      S.R(3, 33, 58, 26, '#b4a084', { name: 'wall' });
+      for (const x of [3, 16, 31, 60]) S.R(x, 33, 2, 26, '#4a3222', { clip: 'wall', flat: true, line: false });
+      S.R(3, 48, 58, 1.6, '#4a3222', { clip: 'wall', flat: true, line: false });
+      // Schaufenster mit Regalen (Gläser, Teedosen, Laternen)
+      S.R(34, 40, 24, 10, '#241810', { name: 'win' }).R(35, 41, 22, 8, '#ffc868', { glow: true, clip: 'win' });
+      S.R(35, 44.6, 22, 0.8, '#5a3a22', { clip: 'win', flat: true, line: false });
+      for (const [x, c] of [[36.5, '#8ab0a0'], [39.5, '#c86a4a'], [42.5, '#e8d8a8'], [46, '#6a8a5a'], [49.5, '#b8a8f0'], [53, '#c89a5a']]) { S.R(x, 42, 2, 2.6, c, { clip: 'win', flat: true, line: false }); S.R(x + 0.5, 45.8, 1.6, 2.8, c, { clip: 'win', flat: true, line: false, alpha: 0.8 }); }
+      S.R(45.4, 41, 0.8, 8, '#4a3222', { clip: 'win', flat: true, line: false });
+      // Tür mit kleinem Fenster
+      S.R(18, 40, 12, 19, '#4a2e1e', { name: 'door' }).R(23.6, 41, 0.8, 18, '#2e1a12', { clip: 'door', flat: true, line: false });
+      S.R(20, 42, 8, 5, '#ffc868', { glow: true, clip: 'door' }).R(23.6, 42, 0.8, 5, '#4a2e1e', { clip: 'door', flat: true, line: false });
+      S.E(27.4, 51, 0.9, 0.9, '#e0b060', { flat: true });
+      // gestreifte Markise über der ganzen Front, gewellte Unterkante
+      S.P([[0, 40], [2, 33], [62, 33], [64, 40]], '#e8dcc0', { name: 'awn' });
+      for (let x = 0; x < 64; x += 8) S.R(x, 32, 4, 9, '#8a2a34', { clip: 'awn', flat: true, line: false });
+      for (let x = 2; x < 64; x += 4) S.E(x, 40, 2, 1.4, (x / 4 | 0) % 2 ? '#e8dcc0' : '#8a2a34', { line: false });
+      S.R(0, 32.4, 64, 1, '#5a1c24', { flat: true, line: false });
+      // Aushängeschild am Giebel: Laterne und Münze
+      S.C(24, 18, 24, 22, 0.5, '#2a2020').C(40, 18, 40, 22, 0.5, '#2a2020');
+      S.R(21, 21, 22, 9, '#6a4a30', { name: 'sign' }).R(21, 21, 22, 1, '#8a6440', { clip: 'sign', flat: true, line: false });
+      S.R(25, 23, 4, 5, '#ffd27a', { glow: true }).R(24.5, 22.5, 5, 1, '#2e2634', { flat: true }).R(24.5, 27.6, 5, 1, '#2e2634', { flat: true });
+      S.E(36, 25.6, 3, 3, '#e8c058').E(36, 25.6, 1.6, 1.6, '#b88a30', { flat: true, line: false });
+      // Auslage: Tisch mit Kisten (Äpfel, Kohl, Kräuterbündel) unter dem Fenster
+      S.R(33, 50, 29, 2.4, '#7a5234').R(34, 52, 1.6, 7, '#4a3222').R(59.5, 52, 1.6, 7, '#4a3222');
+      S.R(34, 46.6, 9, 3.6, '#8a6038', { name: 'c1' }); for (const [x, y] of [[35.6, 46.4], [38, 46], [40.4, 46.4], [36.8, 45], [39.2, 44.8]]) S.E(x, y, 1.4, 1.4, '#c83a34');
+      S.R(44, 46.6, 8, 3.6, '#8a6038'); for (const [x, y] of [[46, 45.6], [49.6, 45.6]]) S.E(x, y, 2.2, 1.8, '#7aa85a').E(x, y - 0.4, 1, 0.8, '#a8d080', { flat: true, line: false });
+      S.R(53, 46.6, 8, 3.6, '#8a6038'); for (const x of [54.6, 57, 59.4]) S.C(x, 46.6, x - 0.6, 43, 1.2, '#5a8a4a');
+      S.R(36, 54, 10, 5, '#6a4a2e').R(48, 54, 10, 5, '#6a4a2e'); S.R(36, 56, 10, 0.6, '#4a3222', { flat: true, line: false }).R(48, 56, 10, 0.6, '#4a3222', { flat: true, line: false });
+      // links: Kürbisse, Sack, Korb
+      S.R(4, 53, 11, 6, '#6a4a2e'); S.E(7, 51.4, 2.6, 2.2, '#d8782e').E(12, 51.6, 2.4, 2, '#e8943a').E(7, 50, 0.5, 1, '#4a6a3a', { flat: true }).E(12, 50.2, 0.5, 1, '#4a6a3a', { flat: true });
+      S.E(9.4, 47.6, 2.2, 2, '#c86a2a');
+      // Hängelaterne an der Markise
+      S.C(16.5, 40.6, 16.5, 43, 0.5, '#2a2020').R(15, 43, 3, 4, '#ffd27a', { glow: true }).R(14.6, 42.6, 3.8, 0.8, '#2e2634', { flat: true }).R(14.6, 46.8, 3.8, 0.8, '#2e2634', { flat: true });
+      return (BUILD[kind] = hiArt(G.Art.raster(S, 128, 120, 2, { bold: true }), 2));
     } else {
       S.P([[1, 36], [16, 7], [48, 7], [63, 36]], '#7c5c3c', { name: 'roof' });
       for (const y of [13, 19, 25, 31]) S.C(4, y, 60, y, 1, '#5e4428', { clip: 'roof', flat: true, line: false });
@@ -1635,6 +1725,7 @@
       if (h.art === 'kirche') { // warme Spitzbogenfenster, violett-kühle Rosette, Türlicht, Mond auf der Turmspitze
         L.push({ x: h.x * T + 9, y: h.y * T + 28, r: 30, warm: 1, fl: h.x, win: 1 }, { x: h.x * T + 55, y: h.y * T + 28, r: 30, warm: 1, fl: h.y, win: 1 },
           { x: h.x * T + 24, y: h.y * T + 40, r: 26, warm: 1, fl: 3 }, { x: h.x * T + 32, y: h.y * T - 3, r: 26, warm: 0, fl: 5 }, { x: h.x * T + 32, y: h.y * T - 33, r: 18, warm: 0, fl: 7 }); return; }
+      if (h.art === 'markt') { L.push({ x: h.x * T + 46, y: h.y * T + 33, r: 38, warm: 1, fl: h.x, win: 1 }, { x: h.x * T + 16, y: h.y * T + 33, r: 22, warm: 1, fl: 5 }, { x: h.x * T + 24, y: h.y * T + 32, r: 16, warm: 1, fl: h.y }); return; }
       if (h.art === 'muehle') { L.push({ x: h.x * T + 40, y: h.y * T + 41, r: 38, warm: 1, fl: h.x }, { x: h.x * T + 32, y: h.y * T + 10, r: 18, warm: 1, fl: 2 }); return; }
       if (!h.hut) L.push({ x: h.x * T + 47, y: h.y * T + 38, r: 40, warm: 1, fl: h.x, win: 1 }, { x: h.x * T + 24, y: h.y * T + 48, r: 16, warm: 1, fl: h.y }); });
     return (m.lights = L);
@@ -1936,12 +2027,17 @@
       n: ['Draussen: Nebel, und darunter das Rauschen der Brandung.'], c: ['Eine Sturmkerze in einem Glas. Sie flackert nicht, auch wenn es zieht.'] },
     kueste: { '~': ['Das Meer ist schwarz und ruhig. Irgendwo dort draussen, hinter dem Nebel, sollen die Nebelinseln liegen.'], r: ['Ein nasser Uferstein, bewachsen mit Seepocken.'],
       L: ['Die Hafenlaterne brennt. Jemand hat sie mit Wachstuch gegen den Wind umwickelt.'], T: ['Eine windschiefe Kiefer. Ihre Äste zeigen alle nach Westen, weg vom Meer.'] },
+    markt: { N: ['Regale bis unter die Decke: Teedosen, Salbentöpfe, Laternen, Kräuterbündel. Alles mit kleinen Zetteln in Fridas Handschrift.', 'Ein Glas mit getrockneten Mondblumen. Der Zettel sagt: «Nicht zum Essen. Wirklich nicht.»'],
+      O: ['Eine Kiste mit Moor-Äpfeln. Klein, schrumpelig und erstaunlich süss.', 'Ein Korb mit frischen Kräutern. Es riecht nach Minze und Regen.'], c: ['Eine dicke Kerze in einem Blechteller. Sie brennt schon lange, aber ruhig.'],
+      V: ['Ein Topf mit Heidekraut. Jemand giesst es regelmässig.'], U: ['Die Ladentheke. Eine Messingwaage, ein Preisbuch und eine Schale mit ein paar Münzen.'] },
     huette: { k: ['Kisten mit Torf und ein Paar alte Stiefel, zu klein für Jorin.'], o: ['Ein Torfofen. Kalt. Neben ihm liegt Zunder, ordentlich aufgeschichtet.'], c: ['Eine Kerze, fast heruntergebrannt.'] }
   };
   G.World.interact = async () => {
     let [dx, dy] = DXY[P.dir], fx = P.x + dx, fy = P.y + dy; const m = G.map, S = G.state;
     // auf einer Moorlaterne stehend: A zündet diese an (sofern vorne nichts anderes wartet)
     if (at(m, P.x, P.y) === 'e' && !npcAt(fx, fy) && !m.signs[fx + ',' + fy] && at(m, fx, fy) !== 'e' && at(m, fx, fy) !== 'D') { fx = P.x; fy = P.y; }
+    // v18: über die Ladentheke hinweg mit der Händlerin sprechen
+    if (at(m, fx, fy) === 'U' && npcAt(fx + dx, fy + dy)) { fx += dx; fy += dy; }
     const c = at(m, fx, fy), key = fx + ',' + fy;
     const npc = npcAt(fx, fy), pet = !npc && petAt(fx, fy);
     if (pet) { G.lock++; if (G.Snd) G.Snd.sfx('blip'); await G.UI.say(PET_TALK[pet.sp] ? PET_TALK[pet.sp](pet.name) : `${pet.name} schaut dich neugierig an.`); G.UI.hideText(); G.lock--; return; }

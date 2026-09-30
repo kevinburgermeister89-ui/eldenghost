@@ -707,6 +707,13 @@ window.G = window.G || {};
       desc: 'Ein glimmendes Bündel. Der Rauch vertreibt die Moorkälte.' },
     klarblick:    { name: 'Klarblick-Tropfen', kind: 'cure', cures: ['verirrt'], battle: true, field: false,
       desc: 'Tau aus Mondblumen. Wer ihn schmeckt, findet den Weg zurück.' },
+    // v18: Salben und Tropfen aus Fridas Marktstube gegen die übrigen Zustände
+    brandsalbe:   { name: 'Brandsalbe', kind: 'cure', cures: ['brand'], battle: true, field: false,
+      desc: 'Kühlende Salbe aus Moos und Gänsefett. Lindert Verbrennungen sofort.' },
+    bitterwurz:   { name: 'Bitterwurz-Tropfen', kind: 'cure', cures: ['gift'], battle: true, field: false,
+      desc: 'Schmecken furchtbar, treiben aber jedes Gift aus. Frida schwört darauf.' },
+    wachkraut:    { name: 'Wachkraut', kind: 'cure', cures: ['schlaf'], battle: true, field: false,
+      desc: 'Ein scharf duftendes Blatt. Einmal daran gerochen, und kein Geist schläft weiter.' },
     nachtkerze:   { name: 'Nachtkerze', kind: 'revive', hpFrac: 0.5, battle: true, field: true,
       desc: 'Eine Kerze, die nie ganz ausgeht. Holt einen erschöpften Geist mit halber Kraft zurück.' },
     moorminze:    { name: 'Moorminze', kind: 'key', battle: false, field: false,
@@ -719,6 +726,16 @@ window.G = window.G || {};
       desc: 'Eine verbeulte Laterne mit einem eingeritzten «M». Sie ist kalt, aber nicht leer.' }
   };
 
+  // ---------- v18: Münzen & Marktstube ----------
+  G.CURRENCY = 'Münzen';
+  // Fridas Preise (Wildkampf bringt früh ~10–20, später ~25–40 Münzen; Beschwörer deutlich mehr)
+  G.SHOP = [['laterne', 40], ['mondlaterne', 150], ['kraeutertee', 20], ['starktee', 60], ['wacholder', 25], ['klarblick', 25],
+    ['brandsalbe', 25], ['bitterwurz', 25], ['wachkraut', 25], ['nachtkerze', 120]];
+  // Belohnung: wild 5 + 2×Level (Sondergeist ×3); Beschwörer je Geist 10 + 3×Level, Boss/Team Quantum ×1,5
+  G.battleMoney = (team, tr, rare) => {
+    if (tr) { const n = team.reduce((a, m) => a + 10 + 3 * m.lvl, 0); return Math.round(n * (tr.boss || tr.music ? 1.5 : 1)); }
+    const m = team[0]; return Math.round((5 + 2 * m.lvl) * (rare ? 3 : 1));
+  };
   // Team eines Beschwörers; teamFor ersetzt den zweiten Geist je nach Starter des Spielers
   G.trainerTeam = id => {
     const tr = G.TRAINERS[id]; if (!tr.teamFor) return tr.team;

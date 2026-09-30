@@ -225,3 +225,6 @@ body.touch.landscape #btn-snd{right:auto;bottom:auto;left:max(18px,env(safe-area
 .role{display:inline-block;font-size:calc(var(--u)*6.5);padding:0 calc(var(--u)*3);border-radius:calc(var(--u)*2);border:1px solid var(--rc);color:var(--rc);font-weight:bold;vertical-align:middle}
 .roled{font-size:calc(var(--u)*6.5);color:#9a8cc0}
 .mi1 .eh.se{color:#7aea6a}.mi1 .eh.nv{color:#a8a4b8}.mi1 .eh.im{color:#8a86a0}
+/* v18: Münzen-Anzeige */
+.ch-title .money{display:inline-flex;align-items:center;gap:calc(var(--u)*2);font-size:calc(var(--u)*7);color:#f0d890;margin:calc(var(--u)*1) 0 calc(var(--u)*2)}
+.ch-title .money .coin{width:calc(var(--u)*6);height:calc(var(--u)*6);border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff0b0,#e0b040 55%,#9a7020);box-shadow:0 0 calc(var(--u)*3) rgba(240,200,90,.45)}

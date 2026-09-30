@@ -22,7 +22,7 @@
   // ---------- Speichern ----------
   const newItems = () => { const o = {}; for (const k in G.ITEMS) o[k] = 0; return o; };
   // Neues Spiel: Aufwachen im Elternhaus, ohne Geist und ohne Seelenfänger (die gibt Ilse nach der Wahl am Laternenstein)
-  const newState = () => ({ v: G.SAVE_VERSION, map: 'home', player: { x: 7, y: 2, dir: 'down' }, team: [], box: [], items: newItems(), flags: { q1: 0, story: 0, tour: 0 }, seen: {}, caught: {}, respawn: null, playtime: 0 });
+  const newState = () => ({ v: G.SAVE_VERSION, map: 'home', player: { x: 7, y: 2, dir: 'down' }, team: [], box: [], items: newItems(), flags: { q1: 0, story: 0, tour: 0 }, seen: {}, caught: {}, respawn: null, playtime: 0, money: 0 });
   // v1 -> v2: Karten, AP, Status, neue Gegenstände, Quest-Flags
   G.migrate = s => {
     const n = Object.assign(newState(), s);
@@ -42,6 +42,8 @@
       if (s.flags && s.flags.ilse && !n.flags.q1) n.flags.q1 = 1;
     }
     n.team = (n.team || []).map(G.migrateMon); n.box = (n.box || []).map(G.migrateMon);
+    // v18: Münzen – ältere Spielstände mit Geist starten mit einem kleinen Ersparten
+    if (s.money == null) n.money = (s.team && s.team.length) ? 80 : 0;
     // v6 (v17): neue, eigenständige Lernlisten – Attacken aller Geister einmalig für ihr Level neu ableiten (AP voll)
     if ((s.v || 1) < 6) for (const m of n.team.concat(n.box)) { const f = G.makeMon(m.sp, m.lvl); m.moves = f.moves; m.pp = {}; G.fillPP(m); m.hp = Math.min(m.hp, G.stats(m).hp); }
     // v3: Mühle und Schmiede im Dorf – stand man auf einer jetzt bebauten Kachel, geht es auf den Dorfplatz
@@ -89,7 +91,29 @@
     });
   };
   // Tasche: im Kampf gibt sie die Gegenstands-ID zurück; im Feld wird direkt benutzt
-  const BAG_ORDER = ['laterne', 'mondlaterne', 'kraeutertee', 'starktee', 'wacholder', 'klarblick', 'nachtkerze'];
+  const BAG_ORDER = ['laterne', 'mondlaterne', 'kraeutertee', 'starktee', 'wacholder', 'klarblick', 'brandsalbe', 'bitterwurz', 'wachkraut', 'nachtkerze'];
+  // v18: Münzen-Anzeige (Menü, Tasche, Laden)
+  G.moneyHtml = () => `<div class="money"><span class="coin"></span>${(G.state && G.state.money) || 0} ${G.CURRENCY}</div>`;
+  // v18: Fridas Laden – Ware wählen, dann Menge (1/3/5); gibt true zurück, wenn etwas gekauft wurde
+  G.Menu.shop = async () => {
+    const S = G.state; let sel = 0, any = false;
+    while (true) {
+      const opts = G.SHOP.map(([k, p]) => { const I = G.ITEMS[k]; return { label: `${I.name} – ${p} ${G.CURRENCY}`, sub: `${I.desc} (Du hast ${S.items[k] || 0})`, disabled: (S.money || 0) < p, cls: 'item' }; });
+      const c = await UI.choose(opts, { area: 'full', cancel: true, start: sel, backLabel: '✕ Nichts mehr', title: `<h2>Fridas Marktstube</h2>${G.moneyHtml()}<div class="hint">Was möchtest du kaufen?</div>` });
+      if (c < 0) return any;
+      sel = c;
+      const [k, p] = G.SHOP[c], I = G.ITEMS[k], max = Math.floor((S.money || 0) / p);
+      const qs = [1, 3, 5].filter(q => q === 1 || q <= max);
+      UI.setText(`${I.name}: Wie viele? (je ${p} ${G.CURRENCY})`, true);
+      const q = await UI.choose(qs.map(n => ({ label: `${n}× – ${n * p}` })), { area: 'battle', cols: qs.length, cancel: true });
+      UI.hideText();
+      if (q < 0) continue;
+      const n = qs[q], cost = n * p;
+      if ((S.money || 0) < cost) { await UI.say('Frida: Da fehlt noch ein bisschen. Komm wieder, wenn der Beutel schwerer ist.'); UI.hideText(); continue; }
+      S.money -= cost; S.items[k] = (S.items[k] || 0) + n; any = true; Snd.sfx('pickup');
+      await UI.say(`Du kaufst ${n > 1 ? n + '× ' : ''}${I.name} für ${cost} ${G.CURRENCY}.`); UI.hideText();
+    }
+  };
   G.Menu.bag = async ({ battle } = {}) => {
     const S = G.state;
     let sel = 0;
@@ -99,7 +123,7 @@
       if (!battle) keys.push(...keyItems);
       if (!keys.length) { await UI.say('Deine Tasche ist leer.'); UI.hideText(); return null; }
       const opts = keys.map(k => { const I = G.ITEMS[k], usable = battle ? I.battle : I.field; return { label: `${I.name} ×${S.items[k]}`, sub: I.desc, disabled: !usable, cls: 'item' }; });
-      const c = await UI.choose(opts, { area: 'full', cancel: true, start: Math.min(sel, keys.length - 1), title: `<h2>Tasche</h2><div class="hint">${battle ? 'Was möchtest du benutzen?' : 'Wähle einen Gegenstand.'}</div>` });
+      const c = await UI.choose(opts, { area: 'full', cancel: true, start: Math.min(sel, keys.length - 1), title: `<h2>Tasche</h2>${G.moneyHtml()}<div class="hint">${battle ? 'Was möchtest du benutzen?' : 'Wähle einen Gegenstand.'}</div>` });
       if (c < 0) return null;
       sel = c;
       const k = keys[c];
@@ -184,7 +208,7 @@
       const c = await UI.choose([
         { label: 'Team' }, { label: 'Tasche' }, { label: 'Chronik' }, { label: 'Speichern' },
         { label: 'Ton: ' + (Snd.on ? 'An' : 'Aus') }, { label: 'Effekte: ' + FX_LABEL[G.fxMode] + (G.fxMode === 'auto' && G.lowFx ? ' (niedrig)' : '') }, { label: 'Schliessen' }
-      ], { area: 'menu', cancel: true, start: menuSel, title: `<div class="goal"><b>Ziel</b>${G.Story.goal()}</div>` });
+      ], { area: 'menu', cancel: true, start: menuSel, title: `<div class="goal"><b>Ziel</b>${G.Story.goal()}</div>${G.moneyHtml()}` });
       if (c < 0 || c === 6) break;
       menuSel = c;
       if (c === 0) await G.Menu.team();

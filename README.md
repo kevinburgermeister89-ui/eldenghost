@@ -181,6 +181,18 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v18: Münzen & Fridas Marktstube
+- **Münzen:** Jeder gewonnene Kampf (auch mit Fang) bringt Münzen – wild 5 + 2× Level des Geists (Sondergeist ×3),
+  Beschwörer je Geist 10 + 3× Level (Boss/Team Quantum ×1,5). Nach dem Kampf: «Du erhältst X Münzen.» Die Kasse steht im
+  START-Menü, in der Tasche und im Laden. Ältere Spielstände mit Geist starten mit 80 Münzen Erspartem.
+- **Fridas Marktstube** (am Anger, früher Piets verschlossenes Haus – Piet bleibt am Teich): Markise, Aushängeschild mit Laterne
+  und Münze, Schild davor, Auslage mit Äpfeln, Kohl, Kräutern und Kürbissen, Hängelaterne. Drinnen Regale voller Waren, Theke mit
+  Waage und Preisbuch; Frida verkauft über die Theke (Ware wählen, dann 1×/3×/5×):
+  Seelenfänger 40, Mondglas-Fänger 150, Kräutertee 20, Starker Kräutertee 60, Wacholderrauch 25, Klarblick-Tropfen 25,
+  **Brandsalbe** 25 (Verbrennung), **Bitterwurz-Tropfen** 25 (Vergiftung), **Wachkraut** 25 (Schlaf), Nachtkerze 120.
+- **Anselm** steht vor dem Teeregal und sucht starken Kräutertee – nur Gespräch (wechselnde Sätze), kein Auftrag.
+- Cache `eldenghost-v18`. Tests: `tests/test_v18.py`, Screenshots in `/workspace/shots_v18`.
+
 ## v17: Attacken-Rework, Attacken-Info, Kampfrollen, Sondergeister
 - **Attacken:** gemeinsamer Pool (Rempler, Kratzer, Rammbock, Härten … teilen sich viele Linien) plus 1–2 Signatur-Attacken je Linie
   (z. B. Kristallbohrer, Otterpfoten, Pechfeder, Totenläuten, Mondklee). Stärke und Genauigkeit variieren deutlich (sicher treffend,

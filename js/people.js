@@ -178,6 +178,9 @@
     // v15: Höhlen-Beschwörer
     ruedi:     { hair: '#6a5040', skin: '#dcb89c', body: '#7a6a3a', legs: '#3a3428', boot: '#2a2218', cap: '#c8a030', beard: '#6a5040', strap: '#4a3a24', item: 'lamp' },
     nele:      { hair: '#e0c070', skin: '#f2dcc8', body: '#4a6a8a', legs: '#2e3a4a', tail: true, item: 'lamp', scarf: '#c86a4a', belt: '#4a3424' },
+    // v18: Krämerin Frida (Marktstube) – Kopftuch, Schürze mit Taschen, Wollschal; Anselm, ein alter Flösser mit Hut und Pfeife
+    frida:     { hair: '#7a4a2e', skin: '#f0d4bc', body: '#6a3a4a', skirt: '#3a2e3e', apron: '#d8c8a0', scarf: '#c8a040', bun: true, cheek: true, belt: '#4a3424', brows: '#6a3a24' },
+    anselm:    { hair: '#a8a8b0', skin: '#dcbca4', body: '#4a4638', coat: '#4a4638', buttons: '#8a7a5a', legs: '#2e2c26', boot: '#1e1c18', beard: '#c0c0c8', hat: '#2e2a24', hatBand: '#6a5a3a', pipe: true, cheek: false, brows: '#c0c0c8' },
     alwine: { hair: '#d8d0e8', skin: '#f0dccc', body: '#dcd8ec', robe: '#c4bedc', veil: '#eeeaf8', pendant: '#bfe8ff', cheek: true, item: 'book', legs: '#8a84a4', boot: '#6a6488' }
   };
   const DIRS3 = ['down', 'up', 'left'];

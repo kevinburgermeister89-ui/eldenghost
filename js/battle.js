@@ -603,6 +603,11 @@
       if (B.boss) { Snd().music('none'); Snd().sfx('bell'); Snd().jingle('bosswin'); }
       await UI().sayAll(tr.lose);
     }
+    // v18: Münzen für jeden gewonnenen Kampf (auch wenn der Geist gefangen wurde)
+    if ((result === 'won' || result === 'caught') && G.battleMoney) {
+      const n = G.battleMoney(B.team, tr, B.rare); S.money = (S.money || 0) + n; G.lastMoney = n;
+      Snd().sfx('pickup'); await UI().say(`Du erhältst ${n} ${G.CURRENCY}.`);
+    }
     if (result === 'lost') await UI().sayAll(['Alle deine Geister sind erschöpft …', S.respawn && S.respawn.church && G.CHURCHES && G.CHURCHES[S.respawn.church] ? `Du erwachst in der ${G.CHURCHES[S.respawn.church].name}. ${G.CHURCHES[S.respawn.church].healer.name} hat deine Geister im Mondlicht gepflegt.` : S.respawn ? 'Du taumelst zurück zur letzten Laterne, die du entzündet hast.' : 'Mit letzter Kraft taumelst du zurück nach Hause.']);
     await G.animate(420, p => G.fx = { kind: 'wipe', p });
     UI().hud(false); UI().hideText(); G.B = null; G.mode = 'world';
