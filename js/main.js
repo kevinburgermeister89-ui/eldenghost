@@ -79,7 +79,7 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'world') G.save(true); });
 
   // ---------- Menü ----------
-  G.Menu = {};
+  G.Menu = { map: () => G.Map && G.Map.open() };   // v18.1: Übersichtskarte (js/map.js) – noch ohne Menüeintrag
   G.Menu.teamPicker = async ({ battle, forced, item } = {}) => {
     const S = G.state;
     const opts = S.team.map((m, i) => ({ html: UI.monRow(m, battle && G.B && i === G.B.allyIdx ? ' – im Kampf' : ''),

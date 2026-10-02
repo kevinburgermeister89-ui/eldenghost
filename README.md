@@ -181,6 +181,14 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v18.1: Anselm erzählt lebendiger, Markt besser erkennbar
+
+- Anselm in Fridas Marktstube nickt beim Erzählen leicht mit dem Kopf und hält eine Tasse starken Kräutertee, aus der Dampf aufsteigt (3-Frame-Loop, nur solange sein Dialog offen ist).
+- Die Marktstube hat ein großes Schild mit der Aufschrift „MARKT“ (Laterne + Münze), damit man den Laden sofort erkennt.
+- Neu: Übersichtskarte (`js/map.js`, `G.Menu.map()`): alle Gebiete im Pixelstil, roter Standort-Pin, unbesuchte Gebiete abgedunkelt, versperrte mit Schloss und «???». Goldenes «!» = Nebenquest kann angenommen werden, türkises ◆ = aktuelles Ziel (Hauptgeschichte und «Das Licht im Moor»), abgeschlossene Quests ausgegraut in der Liste. Legende und Liste offener Aufgaben darunter; D-Pad blättert, B oder «✕ Karte schliessen» schliesst. Noch ohne Menüeintrag (es gibt kein separates Pausenmenü).
+- Neu: Einblendung «✦ Neue Nebenquest verfügbar: …» oben im Bild (halbtransparent, dünner Goldrand, 0,3 s ein, 3,5 s sichtbar, 0,5 s aus), einmal pro Quest, ohne Ton, blockiert nichts und wartet, bis kein Kampf/Dialog läuft.
+- Laden bei Frida im Live-Build geprüft: Kaufen mit Münzen, Mengen, gesperrte zu teure Waren. Test: `tests/test_v181.py`.
+
 ## v18: Münzen & Fridas Marktstube
 - **Münzen:** Jeder gewonnene Kampf (auch mit Fang) bringt Münzen – wild 5 + 2× Level des Geists (Sondergeist ×3),
   Beschwörer je Geist 10 + 3× Level (Boss/Team Quantum ×1,5). Nach dem Kampf: «Du erhältst X Münzen.» Die Kasse steht im

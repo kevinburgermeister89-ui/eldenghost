@@ -510,7 +510,7 @@
   G.MAPS.muehle.npcs = [{ id: 'mathis', spr: 'mahlen', x: 6, y: 3, dir: 'down', talk: talkMathis }];
   // v18: Marktstube – Krämerin Frida hinter der Theke, Anselm vor dem Teeregal
   G.MAPS.markt.npcs = [{ id: 'frida', spr: 'frida', x: 2, y: 2, dir: 'down', talk: talkFrida },
-    { id: 'anselm', spr: 'anselm', x: 6, y: 2, dir: 'up', talk: talkAnselm }];
+    { id: 'anselm', spr: 'anselm', x: 6, y: 2, dir: 'up', talk: talkAnselm, talkAnim: 'tea' }];
   M.npcs = [
     { id: 'selma', spr: 'selma', x: 16, y: 36, dir: 'down', trainer: 'selma', sight: 0, after: [17, 36] }, // nur auf Ansprache
     { id: 'kaspar', spr: 'kaspar', x: 16, y: 10, dir: 'down', trainer: 'kaspar', sight: 4, after: [17, 10] },
@@ -1348,11 +1348,13 @@
       for (let x = 0; x < 64; x += 8) S.R(x, 32, 4, 9, '#8a2a34', { clip: 'awn', flat: true, line: false });
       for (let x = 2; x < 64; x += 4) S.E(x, 40, 2, 1.4, (x / 4 | 0) % 2 ? '#e8dcc0' : '#8a2a34', { line: false });
       S.R(0, 32.4, 64, 1, '#5a1c24', { flat: true, line: false });
-      // Aushängeschild am Giebel: Laterne und Münze
-      S.C(24, 18, 24, 22, 0.5, '#2a2020').C(40, 18, 40, 22, 0.5, '#2a2020');
-      S.R(21, 21, 22, 9, '#6a4a30', { name: 'sign' }).R(21, 21, 22, 1, '#8a6440', { clip: 'sign', flat: true, line: false });
-      S.R(25, 23, 4, 5, '#ffd27a', { glow: true }).R(24.5, 22.5, 5, 1, '#2e2634', { flat: true }).R(24.5, 27.6, 5, 1, '#2e2634', { flat: true });
-      S.E(36, 25.6, 3, 3, '#e8c058').E(36, 25.6, 1.6, 1.6, '#b88a30', { flat: true, line: false });
+      // Aushängeschild am Giebel (v18.1 grösser): Laterne, Schriftzug «MARKT», Münze
+      S.C(20, 13, 20, 18, 0.5, '#2a2020').C(44, 13, 44, 18, 0.5, '#2a2020');
+      S.R(13, 17, 38, 12, '#5a3c26', { name: 'sign' }).R(13, 17, 38, 1.2, '#8a6440', { clip: 'sign', flat: true, line: false }).R(13, 27.6, 38, 1.4, '#3a2618', { clip: 'sign', flat: true, line: false });
+      S.R(15.6, 20.4, 3.6, 4.6, '#ffd27a', { glow: true }).R(15.2, 19.8, 4.4, 0.9, '#2e2634', { flat: true }).R(15.2, 25, 4.4, 0.9, '#2e2634', { flat: true }).R(16.9, 19, 1, 0.9, '#2e2634', { flat: true });
+      { const F = { M: ['101', '111', '101', '101', '101'], A: ['010', '101', '111', '101', '101'], R: ['110', '101', '110', '101', '101'], K: ['101', '101', '110', '101', '101'], T: ['111', '010', '010', '010', '010'] }, u = 1.2;
+        let x0 = 21.4; for (const ch of 'MARKT') { F[ch].forEach((row, ry) => [...row].forEach((v, rx) => { if (v === '1') S.R(x0 + rx * u, 20 + ry * u, u, u, '#f4e4b0', { flat: true, line: false }); })); x0 += 4 * u; } }
+      S.E(47.4, 23, 2.2, 2.2, '#e8c058').E(47.4, 23, 1.1, 1.1, '#b88a30', { flat: true, line: false });
       // Auslage: Tisch mit Kisten (Äpfel, Kohl, Kräuterbündel) unter dem Fenster
       S.R(33, 50, 29, 2.4, '#7a5234').R(34, 52, 1.6, 7, '#4a3222').R(59.5, 52, 1.6, 7, '#4a3222');
       S.R(34, 46.6, 9, 3.6, '#8a6038', { name: 'c1' }); for (const [x, y] of [[35.6, 46.4], [38, 46], [40.4, 46.4], [36.8, 45], [39.2, 44.8]]) S.E(x, y, 1.4, 1.4, '#c83a34');
@@ -2053,7 +2055,9 @@
         await G.UI.sayAll(tr.intro); G.UI.hideText(); G.lock--; return G.Battle.trainer(npc.trainer);
       }
       if (npc.trainer) return G.World.talk(G.TRAINERS[npc.trainer].after);
-      G.lock++; await npc.talk(); G.UI.hideText(); G.lock--; return;
+      G.lock++; if (npc.talkAnim) npc.talking = true;   // v18.1: Sprech-Animation, solange der Dialog offen ist
+      try { await npc.talk(); } finally { npc.talking = false; }
+      G.UI.hideText(); G.lock--; return;
     }
     { const cat = catAt(fx, fy); if (cat) { G.lock++; await petCat(cat); G.UI.hideText(); G.lock--; return; } }
     if (m.signs[key]) return G.World.talk(m.signs[key]);
@@ -2280,6 +2284,20 @@
     } };
   }
   G.World.village = { updateVillage, wanderOk, petAt, WSTEP };
+  // v18.1: Anselms Teetasse (vor dem Körper, auf Handhöhe); Dampfwölkchen nur, solange er spricht
+  function drawTeaCup(ctx, n, sx, sy, t) {
+    if (n.cdir === 'up') return;   // mit dem Rücken zu dir: Tasse verdeckt
+    const hx = sx + (n.cdir === 'left' ? 2 : n.cdir === 'right' ? 12 : 10), hy = sy + 6;
+    ctx.fillStyle = '#2a2020'; ctx.fillRect(hx - 0.5, hy - 0.5, 5, 4);
+    ctx.fillStyle = '#e8dcc8'; ctx.fillRect(hx, hy, 4, 3); ctx.fillStyle = '#b8a890'; ctx.fillRect(hx, hy + 2, 4, 1);
+    ctx.fillStyle = '#6a3a1e'; ctx.fillRect(hx + 0.5, hy, 3, 0.8);
+    ctx.fillStyle = '#e8dcc8'; ctx.fillRect(n.cdir === 'left' ? hx - 1.2 : hx + 4, hy + 0.6, 1.2, 1.4);
+    if (!n.talking) return;
+    for (let i = 0; i < 3; i++) {
+      const q = (t * 0.7 + i / 3) % 1, x = hx + 2 + Math.sin(t * 2.4 + i * 2.1) * 1.6, y = hy - 1 - q * 9;
+      ctx.fillStyle = `rgba(240,236,248,${0.65 * (1 - q)})`; ctx.beginPath(); ctx.arc(x, y, 1 + q * 2, 0, 6.3); ctx.fill();
+    }
+  }
   function npcFrame(n) {
     const spr = G.SPR[n.spr]; if (!spr) return null;
     if ((n.ox || n.oy) && spr.walk) { const d = Math.abs(n.ox) + Math.abs(n.oy), ph = (Math.floor(d / 8) + ((n.cx + n.cy) % 2) * 2) % 4;
@@ -2357,7 +2375,11 @@
           }
           return;
         }
-        const nf = npcFrame(n); shadow(ctx, sx, sy); drawChar(ctx, nf ? nf.img : G.SPR[n.spr].down, sx, sy - (nf ? nf.lift : 0));
+        const nf = npcFrame(n);
+        // v18.1: Sprech-Animation – 3 Bilder im Wechsel (leichtes Nicken), Teetasse in der Hand, beim Reden steigt Dampf auf
+        const tf = n.talking ? Math.floor(t * 5) % 3 : -1, bob = tf < 0 ? 0 : [0, 1, 0.5][tf]; n.talkFrame = tf;
+        shadow(ctx, sx, sy); drawChar(ctx, nf ? nf.img : G.SPR[n.spr].down, sx, sy - (nf ? nf.lift : 0) - bob);
+        if (n.talkAnim === 'tea') drawTeaCup(ctx, n, sx, sy - bob * 0.5, t);
         if (n.alert) { ctx.fillStyle = '#0a0814'; ctx.fillRect(sx + 3, sy - 23, 10, 13); ctx.fillStyle = '#f4ecff'; ctx.fillRect(sx + 4, sy - 22, 8, 11); ctx.fillStyle = '#c83a4a'; ctx.fillRect(sx + 7, sy - 20, 2, 5); ctx.fillRect(sx + 7, sy - 14, 2, 2); }
       } });
     }
