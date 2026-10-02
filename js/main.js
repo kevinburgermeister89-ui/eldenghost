@@ -79,7 +79,7 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'world') G.save(true); });
 
   // ---------- Menü ----------
-  G.Menu = { map: () => G.Map && G.Map.open() };   // v18.1: Übersichtskarte (js/map.js) – noch ohne Menüeintrag
+  G.Menu = { map: () => G.Map && G.Map.open() };   // v18.1: Übersichtskarte (js/map.js), Eintrag «Karte» im START-Menü
   G.Menu.teamPicker = async ({ battle, forced, item } = {}) => {
     const S = G.state;
     const opts = S.team.map((m, i) => ({ html: UI.monRow(m, battle && G.B && i === G.B.allyIdx ? ' – im Kampf' : ''),
@@ -206,17 +206,18 @@
     const te = document.getElementById('toast'); if (te) te.classList.add('hidden');   // Ziel steht im Menü selbst
     while (true) {
       const c = await UI.choose([
-        { label: 'Team' }, { label: 'Tasche' }, { label: 'Chronik' }, { label: 'Speichern' },
+        { label: 'Team' }, { label: 'Tasche' }, { label: 'Chronik' }, { label: 'Karte' }, { label: 'Speichern' },
         { label: 'Ton: ' + (Snd.on ? 'An' : 'Aus') }, { label: 'Effekte: ' + FX_LABEL[G.fxMode] + (G.fxMode === 'auto' && G.lowFx ? ' (niedrig)' : '') }, { label: 'Schliessen' }
       ], { area: 'menu', cancel: true, start: menuSel, title: `<div class="goal"><b>Ziel</b>${G.Story.goal()}</div>${G.moneyHtml()}` });
-      if (c < 0 || c === 6) break;
+      if (c < 0 || c === 7) break;
       menuSel = c;
       if (c === 0) await G.Menu.team();
       else if (c === 1) await G.Menu.bag();
       else if (c === 2) await G.Menu.chronik();
-      else if (c === 3) { UI.toast(G.save() ? 'Spiel gespeichert.' : 'Speichern nicht möglich.'); }
-      else if (c === 4) { Snd.init(); Snd.toggle(); UI.syncSound(); }
-      else if (c === 5) { const nx = { auto: 'hoch', hoch: 'niedrig', niedrig: 'auto' }[G.fxMode]; G.setFx(nx); UI.toast('Effekte: ' + FX_LABEL[nx]); }
+      else if (c === 3) await G.Menu.map();
+      else if (c === 4) { UI.toast(G.save() ? 'Spiel gespeichert.' : 'Speichern nicht möglich.'); }
+      else if (c === 5) { Snd.init(); Snd.toggle(); UI.syncSound(); }
+      else if (c === 6) { const nx = { auto: 'hoch', hoch: 'niedrig', niedrig: 'auto' }[G.fxMode]; G.setFx(nx); UI.toast('Effekte: ' + FX_LABEL[nx]); }
     }
     G.lock--;
   };

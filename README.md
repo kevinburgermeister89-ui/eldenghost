@@ -185,7 +185,7 @@ schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
 - Anselm in Fridas Marktstube nickt beim Erzählen leicht mit dem Kopf und hält eine Tasse starken Kräutertee, aus der Dampf aufsteigt (3-Frame-Loop, nur solange sein Dialog offen ist).
 - Die Marktstube hat ein großes Schild mit der Aufschrift „MARKT“ (Laterne + Münze), damit man den Laden sofort erkennt.
-- Neu: Übersichtskarte (`js/map.js`, `G.Menu.map()`): alle Gebiete im Pixelstil, roter Standort-Pin, unbesuchte Gebiete abgedunkelt, versperrte mit Schloss und «???». Goldenes «!» = Nebenquest kann angenommen werden, türkises ◆ = aktuelles Ziel (Hauptgeschichte und «Das Licht im Moor»), abgeschlossene Quests ausgegraut in der Liste. Legende und Liste offener Aufgaben darunter; D-Pad blättert, B oder «✕ Karte schliessen» schliesst. Noch ohne Menüeintrag (es gibt kein separates Pausenmenü).
+- Neu: Übersichtskarte (`js/map.js`, `G.Menu.map()`): alle Gebiete im Pixelstil, roter Standort-Pin, unbesuchte Gebiete abgedunkelt, versperrte mit Schloss und «???». Goldenes «!» = Nebenquest kann angenommen werden, türkises ◆ = aktuelles Ziel (Hauptgeschichte und «Das Licht im Moor»), abgeschlossene Quests ausgegraut in der Liste. Legende und Liste offener Aufgaben darunter; D-Pad blättert, B oder «✕ Karte schliessen» schliesst. Geöffnet über START (bzw. B) → «Karte» – das START-Menü ist das einzige Pausenmenü.
 - Neu: Einblendung «✦ Neue Nebenquest verfügbar: …» oben im Bild (halbtransparent, dünner Goldrand, 0,3 s ein, 3,5 s sichtbar, 0,5 s aus), einmal pro Quest, ohne Ton, blockiert nichts und wartet, bis kein Kampf/Dialog läuft.
 - Laden bei Frida im Live-Build geprüft: Kaufen mit Münzen, Mengen, gesperrte zu teure Waren. Test: `tests/test_v181.py`.
 
