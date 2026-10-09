@@ -7,13 +7,13 @@
     h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
     return (h >>> 0) / 4294967296;
   }
-  const SOLID = { outdoor: new Set('T~fgShDrwxkuBAHY'.split(''))   // v15: H Höhlenwand, Y Tropfstein/Kristall
+  const SOLID = { outdoor: new Set('T~fgShDrwxkuBAHYZICKQ'.split(''))   // v15: H Höhlenwand, Y Tropfstein/Kristall · v20: Z I C K Q (Aschehang)
    // Laternen (L, e) sind begehbar
   , interior: new Set('WnotbkcauyzjlFAKQZMPXVGNUO'.split(''))   // v18: N Warenregal, U Ladentheke, O Kiste/Korb
    // v15: X Kratzbaum, V Topfpflanze, G Sofa
  };
-  const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle', j: 'hoehle' };
-  const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240', hoehle: '150,140,130' };
+  const ZONE_OF = { '"': 'nebelgras', q: 'schilfrand', m: 'torfstich', c: 'kapelle', j: 'hoehle', a: 'aschehang' };
+  const ZONE_TINT = { nebelgras: '206,216,240', schilfrand: '198,224,212', torfstich: '222,212,204', kapelle: '218,206,240', hoehle: '150,140,130', aschehang: '96,80,76' };
   G.MAPS = {};
   G.flag = k => (G.state && G.state.flags[k]) || 0;
   const q1 = () => G.flag('q1');
@@ -30,14 +30,20 @@
     5: G.FEAT.cave ? 'Such den Leuchtturmwärter Onno – sein Platz hinter dem Leuchtturm ist nur durch die Klippenhöhle erreichbar (Eingang am Küstenpfad).' : 'Such den Leuchtturmwärter Onno – er kann nicht weit vom Turm sein.',
     6: 'Geh nach Hause und verabschiede dich von Mutter und Vater.',
     7: 'Geh zum Hafen an der Nebelküste – das Nebelhorn hat gerufen.',
-    8: 'An Bord der «Nebelschwalbe» gehen – Fortsetzung folgt!'
+    8: 'Sprich am Hafen mit Kapitänin Wenke. An Bord der «Nebelschwalbe» geht es zur Nebelinsel.',
+    // v20: Das Schwarze Dojo (Aschehang auf der Nebelinsel)
+    9: 'Steig von der Rauchbucht die Laternenstiege hinauf.',
+    10: 'Durchquere den Glutgarten nach Norden.',
+    11: 'Am Kettenhof versperrt ein Kettenwächter das Haupttor des Dojos.',
+    12: 'Betritt das brennende Dojo.',
+    13: 'Die Glut am Aschehang ist zur Ruhe gekommen. Erkunde die Insel – die Reise geht bald weiter.'
   };
   const setStory = (n, quiet) => {
     if (!G.state || story() >= n) return;
     G.state.flags.story = n; G.save(true);
     if (!quiet) G.UI.toast('Neues Ziel: ' + GOALS[n], 3600, true);
   };
-  G.Story = { get: story, set: setStory, goal: () => GOALS[Math.min(8, story())], GOALS };
+  G.Story = { get: story, set: setStory, goal: () => GOALS[Math.min(13, story())], GOALS };
   const setQ = n => { if (q1() < n) G.state.flags.q1 = n; };
   const give = async (id, n) => {
     G.state.items[id] = (G.state.items[id] || 0) + n; G.Snd.sfx('pickup');
@@ -265,6 +271,89 @@
   HC.warps['6,16'] = { to: 'kueste', x: 13, y: 7, dir: 'down' };
   HC.warps['19,1'] = { to: 'kueste', x: 17, y: 2, dir: 'down', cond: () => !!G.flag('quantum'),
     msg: ['Vor dem Ausgang wabert schwarzer Rauch. Dutzende Augen öffnen sich darin und folgen dir. Ein leises Zischen – hier kommst du nicht vorbei.'] };
+  // ================= v20: ASCHEHANG (Nebelinsel) – Rauchbucht, Laternenstiege, Glutgarten, Kettenhof, Brennendes Dojo =================
+  // Legende: a verkohltes Bambusgras (Begegnungen) · E Glutnest (kostet dem ersten Geist etwas KP) · Z umgestürzte Steinlaterne · I Torii im Wasser
+  // C brennender Kirschbaum · K gerissene Kettenpfosten · u verkohlte Mauer · p Dojo-Dielen · Q Schrein mit zerbrochener Maske
+  const AH = newMap('aschehang', 30, 64, 'outdoor', { theme: 'asche', dark: 0.04, fogA: 0.05, plight: 46, music: 'none', name: 'Aschehang' });
+  [
+    'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
+    'TTTTuuuuuuuuuuuuuuuuuuuuuuTTTT',
+    'TTTTupppppppppQQpppppppppuTTTT',
+    'TTTTuprpppppppppppppEppppuTTTT',
+    'TTTTupppEpppppppppppppprpuTTTT',
+    'TTTTuppppprppppppppppppppuTTTT',
+    'TTTTupEpppppppppppprpppppuTTTT',
+    'TTTTupppppppppppppppppEppuTTTT',
+    'TTTTupprppppppppppEppppppuTTTT',
+    'TTTTuppppppEppppppppprpppuTTTT',
+    'TTTTuppppppppppppppppppppuTTTT',
+    'TTTTuuuuuuuuuuu,uuuuuuuuuuTTTT',
+    'TTT...........,,,........r.TTT',
+    'TTTr....E..K..,,,..........TTT',
+    'TTT..K........,,,...K......TTT',
+    'TTT...........,,,.........rTTT',
+    'TTT......K....,,,..........TTT',
+    'TTT...........,,,.......K..TTT',
+    'TTT...........,,,..K.......TTT',
+    'TTT...K.......,,,......E...TTT',
+    'TTT.r.........,,,.....K....TTT',
+    'TTT...........,,,..........TTT',
+    'TT...,,,,,,,,,,,,,,,,,,.....TT',
+    'TTr..,..C.aaaa...aaa..,..C..TT',
+    'TT...,....aaaa...aaaE.,....rTT',
+    'TT..u,u...............,.....TT',
+    'TT~~u,u~~~~~~~~~~~~~~~bb~~~~TT',
+    'TT~~u,u~~~~~~~~~~~~~~~bb~~~~TT',
+    'TT..u,u..E............,.....TT',
+    'TT...,.....~~~~~~..E..,...E.TT',
+    'TT.E.,....~~~~~~~~....,.....TT',
+    'TT.aa,aaa..~~~~~~....C,.....TT',
+    'TT.aa,,,,,,,,,,,,,,,,,,aaaa.TT',
+    'TT.aaaaaa......,...aaaaaaaa.TT',
+    'TTuuuuuuuuuuuuu,uuuuuuuuuuuuTT',
+    'TT.............,............TT',
+    'TTTaaaaaaaaaaaZ,ZaaaaaaaaaaTTT',
+    'TTTaaaaaaaaTaaa,aaaaaaaaaaaTTT',
+    'TTTaTaaaaaaaaZa,ZaaaaaaaaaaTTT',
+    'TTTaaaaaaaaaaa,,LaaaaaTaaaaTTT',
+    'TTTaaaaaaaaaar,raaaaaaaaaaaTTT',
+    'TTTaaaaaaaaarr,rraaaaaaaaaaTTT',
+    'TTTaaaaaaaaaar,raaaaaaaaTaaTTT',
+    'TTTaaaaaaaaaaL,,,aaaaaaaaaaTTT',
+    'TTTaaaaaTaaaaZaa,aaaaaaaaaaTTT',
+    'TTTaaaaaaaaaaaaa,ZaaaaaaaaaTTT',
+    'TTTaaaaaaaaaaaaa,LaaaaaaaTaTTT',
+    'TTTaaaaaaaaaaaL,,aaaTaaaaaaTTT',
+    'TTTaaaTaaaaaaaZ,aZaaaaaaaaaTTT',
+    'TTTaaaaaaaaaaaa,aaaaaaaaaaaTTT',
+    'TTTTTT.........,........TTTTTT',
+    'T..hhhh........,.S..hhhh.....T',
+    'T..hhhh........,....hhhh.....T',
+    'T..hDhh.....L..,....hDhh.r...T',
+    'T...,..........,.....,.......T',
+    'T......,,,,,,,,,,,,,,,,......T',
+    'T..~...........,.......r..~..T',
+    'T~~.........r..b....r......~~T',
+    'T~~~~~~~~~~~~~~b~~~~~~~~~~~~~T',
+    'T~~~~~~~~~~~~~~b~~~~~~~~~~~~~T',
+    'T~~~~~~~III~~~~b~~~~~~~~~~~~~T',
+    'T~~~~~~~~~~~~~~b~~~~~~~~~~~~~T',
+    'T~~~~~~~~~~~~~~b~~~~~~~~~~~~~T',
+    'T~~~~~~~~~~~~~~b~~~~~~~~~~~~~T'
+  ].forEach((r, y) => r.split('').forEach((c, x) => set(AH, x, y, c)));
+  AH.houses = [{ x: 3, y: 51, roof: '#3a3030', id: 'ah_huette1', hut: true }, { x: 20, y: 51, roof: '#34302e', id: 'ah_huette2', hut: true }];
+  const ahLocked = async () => G.UI.sayAll(['Die Tür ist verkohlt und verzogen. Durch die Ritzen siehst du nur Asche auf dem Boden.', 'Wer hier gewohnt hat, ist in grosser Eile gegangen.']);
+  AH.doors = { '4,53': { to: 'aschehang', cond: () => false, locked: ahLocked }, '21,53': { to: 'aschehang', cond: () => false, locked: ahLocked } };
+  AH.signs = {
+    '17,51': () => ['Ein verkohltes Brett: «Laternenstiege – zum Dojo des Schwarzen Berges».', 'Darunter, frisch in die Asche gekratzt: «NICHT HINAUF».'],
+    '9,11': () => ['Tiefe Krallenspuren im verkohlten Holz. Vier Furchen, jede breiter als deine Hand.', 'Zu gross für jeden Geist, den du kennst. Und sie führen von innen nach aussen.'],
+    '20,11': () => ['In den Balken ist ein Zeichen eingebrannt: ein Kreis aus Ketten, in der Mitte zerrissen.']
+  };
+  AH.pickups = [
+    { x: 6, y: 15, flag: 'p_rolle', item: 'schriftrolle', n: 1, msg: ['Die Schriftrolle ist an den Rändern verbrannt. Nur eine Zeile ist noch lesbar:', '«… er hat die Ketten selbst gelöst.»'] },
+    { x: 24, y: 44, flag: 'p_ahtee', item: 'kraeutertee', n: 2 }, { x: 3, y: 23, flag: 'p_ahsalbe', item: 'brandsalbe', n: 1 },
+    { x: 25, y: 13, flag: 'p_ahstark', item: 'starktee', n: 1 }, { x: 7, y: 52, flag: 'p_ahlat', item: 'laterne', n: 2 }
+  ];
   // Glimmende Funde auch im Dorf
   D.pickups = [{ x: 4, y: 26, flag: 'p_dtee', item: 'kraeutertee', n: 1 }, { x: 29, y: 18, flag: 'p_dlat', item: 'laterne', n: 2 }];
 
@@ -358,10 +447,10 @@
   const lamp = { p: null, onno: false };      // Lampen-Szene im Leuchtturm (p: 0..1 beim Anzünden)
   const lampLevel = () => lamp.p != null ? lamp.p : story() >= 6 ? 1 : 0;
   const arrive = { off: null, wenke: false }; // Ankunft der «Nebelschwalbe» (off: 1 = weit draussen, 0 = angelegt)
-  const shipShown = () => arrive.off != null || story() >= 8;
+  const shipShown = () => arrive.off != null || (story() >= 8 && shipAt() === 'kueste');
   K.npcs = [
     { id: 'onnoS', spr: 'onnoSleep', x: 18, y: 4, dir: 'down', show: () => story() < 6, talk: talkOnnoSleep },
-    { id: 'wenke', spr: 'wenke', x: 15, y: 18, dir: 'up', show: () => story() >= 8 || arrive.wenke, talk: talkWenke }
+    { id: 'wenke', spr: 'wenke', x: 15, y: 18, dir: 'up', show: () => (story() >= 8 && shipAt() === 'kueste') || arrive.wenke, talk: talkWenke }
   ];
   // v16 Klippenhöhle: zwei Beschwörer, Team Quantum (Mandy, Hans und ihr Alptraum-Geist, der Nachtmahr)
   const qShow = () => !G.flag('quantum');
@@ -926,10 +1015,16 @@
   // Kapitänin Wenke von der «Nebelschwalbe»
   async function talkWenke() {
     G.state.flags.wenke = 1;
-    if (await G.UI.yesNo('Wenke: Na, Landratte? Bereit, an Bord zu gehen?')) {
+    // v20: Überfahrt zur Nebelinsel (Rauchbucht am Aschehang)
+    if (story() >= 9) {
+      if (await G.UI.yesNo('Wenke: Wieder rüber zur Nebelinsel? Der Rauch zieht immer noch über die Bucht.')) { G.UI.hideText(); return sailTo('aschehang'); }
+      G.UI.hideText(); return G.UI.say('Wenke: Gut. Die Schwalbe läuft dir nicht weg.');
+    }
+    if (await G.UI.yesNo('Wenke: Na, Landratte? Die Ladung ist an Bord. Bereit zum Ablegen?')) {
       G.UI.hideText();
-      return G.UI.sayAll(['Wenke: Ha! Der Wille ist da. Aber die Ladung noch nicht – Torf, Laternenöl und Heddas Tee für drei Wochen.',
-        '(Die Reise über das Nebelmeer geht im nächsten Kapitel weiter – Fortsetzung folgt!)']);
+      await G.UI.sayAll(['Wenke: Ha! So gefällt mir das. Torf, Laternenöl, Heddas Tee – und ein Geisterbeschwörer.',
+        'Wenke: Aber hör zu: In der Nacht kam Rauch über das Wasser. Er riecht nach verbranntem Holz … und nach etwas anderem.', 'Wenke: Wir fahren zuerst zur Rauchbucht. Dort lebt eine alte Fischerin – Hanne. Sie wird wissen, was los ist.']);
+      G.UI.hideText(); return sailTo('aschehang');
     }
     G.UI.hideText();
     return G.UI.say(['Wenke: Lass dir Zeit. Das Meer läuft nicht weg – und im Dorf gibt es sicher noch einiges zu erledigen.',
@@ -963,6 +1058,134 @@
       G.UI.hideText();
       G.UI.toast('Neues Ziel: ' + GOALS[8], 4200, true);
     } finally { arrive.wenke = false; arrive.off = null; w.cx = w.x; w.cy = w.y; G.World.camFocus = null; G.lock--; }
+  }
+  // ================= v20: Das Schwarze Dojo (Aschehang) =================
+  // Überfahrt mit der «Nebelschwalbe», Fischerin Hanne (Rast am Feuer), Kuroganes Gefolge als Wegsperren, Glutnester, Finale mit Silhouette.
+  const dojoEnd = () => !!G.flag('dojoEnd');
+  const beaten = id => !!G.flag('t_' + id);
+  const shipAt = () => G.flag('shipAt') || 'kueste';          // die Schwalbe liegt dort, wohin du zuletzt gesegelt bist
+  const AH_SPAWN = { map: 'aschehang', x: 11, y: 55 };
+  const ah = { shake: 0, fin: null, ash: [], sparks: [], bellT: 9, fallT: 5, debris: [], hurt: 0 };
+  AH.npcs = [
+    { id: 'hanne', spr: 'hanne', x: 11, y: 54, dir: 'down', talk: talkHanne },
+    { id: 'wenkeAH', spr: 'wenke', x: 16, y: 56, dir: 'left', show: () => shipAt() === 'aschehang', talk: talkWenkeAH },
+    // Wegsperren: solange unbesiegt, stehen sie mitten im Weg; danach treten sie beiseite (gleicher Beschwörer, nur noch Gespräch)
+    { id: 'ronin', spr: 'ronin', x: 14, y: 41, dir: 'down', trainer: 'ronin', sight: 3, show: () => !beaten('ronin') },
+    { id: 'roninB', spr: 'ronin', x: 13, y: 39, dir: 'right', trainer: 'ronin', show: () => beaten('ronin') && !dojoEnd() },
+    { id: 'schattenklinge', spr: 'schattenklinge', x: 15, y: 33, dir: 'down', trainer: 'schattenklinge', sight: 3, show: () => !beaten('schattenklinge') },
+    { id: 'schattenklingeB', spr: 'schattenklinge', x: 17, y: 33, dir: 'left', trainer: 'schattenklinge', show: () => beaten('schattenklinge') && !dojoEnd() },
+    { id: 'kettenwaechter', spr: 'kettenwaechter', x: 15, y: 11, dir: 'down', trainer: 'kettenwaechter', show: () => !beaten('kettenwaechter') },
+    { id: 'kettenwaechterB', spr: 'kettenwaechter', x: 17, y: 12, dir: 'left', trainer: 'kettenwaechter', show: () => beaten('kettenwaechter') },
+    { id: 'klingenmeister', spr: 'klingenmeister', x: 15, y: 4, dir: 'down', trainer: 'klingenmeister', show: () => !dojoEnd() }
+  ];
+  G.TRAINERS.ronin.onWin = async () => setStory(10);
+  G.TRAINERS.schattenklinge.onWin = async () => setStory(11);
+  G.TRAINERS.kettenwaechter.onWin = async () => setStory(12);
+  G.TRAINERS.klingenmeister.onWin = () => dojoFinale();
+  async function talkHanne() {
+    const S = G.state;
+    if (!S.flags.hanne) {
+      S.flags.hanne = 1;
+      await G.UI.sayAll(['Hanne: Ein Schiff? Hierher? Dann hat euch der Rauch nicht abgeschreckt.',
+        'Hanne: Ich bin Hanne. Ich flicke Netze in der Rauchbucht, seit ich denken kann. Alle anderen sind fort.',
+        'Hanne: Letzte Nacht hat der Berg geschrien.', 'Hanne: Kein Wind, kein Tier. Ein Schrei – und danach haben die Glocken im Dojo von allein geläutet.']);
+    } else {
+      const L = dojoEnd() ? ['Hanne: Der Berg ist still. Zum ersten Mal seit Tagen höre ich wieder das Meer.', 'Hanne: Die Glut oben wird noch lange warm bleiben. Die Geister mögen das, glaube ich.']
+        : story() >= 12 ? ['Hanne: Du warst am Kettenhof? Dann hast du die Ketten gesehen. Sie sind nicht zerschlagen worden … sie sind aufgegangen.']
+        : ['Hanne: Pass auf die Glutnester auf. Wer barfuss hineintritt, lernt schnell.', 'Hanne: Die Leute vom Dojo kamen früher zum Fischkaufen. Höflich. Still. Jetzt kommen nur noch die Ronin – und die kaufen nichts.'];
+      S.flags.hanneT = (S.flags.hanneT || 0) + 1; await G.UI.say(L[S.flags.hanneT % L.length]);
+    }
+    const yes = await G.UI.yesNo('Hanne: Willst du dich an meinem Feuer ausruhen? Deine Geister sehen müde aus.');
+    G.UI.hideText();
+    if (!yes) return G.UI.say('Hanne: Das Feuer brennt, wenn du es brauchst.');
+    G.Snd.jingle('heal');
+    await G.animate(1200, p => { G.World.healFx = p; });
+    G.World.healFx = null; healTeam(); S.respawn = Object.assign({}, AH_SPAWN); G.save(true);
+    await G.UI.say('Deine Geister wärmen sich am Feuer und sind wieder bei Kräften. Wenn dich die Kräfte verlassen, wachst du hier auf.');
+  }
+  async function talkWenkeAH() {
+    const yes = await G.UI.yesNo(dojoEnd() ? 'Wenke: Die Insel hat sich beruhigt. Zurück nach Eldenghost?' : 'Wenke: Ich halte die Schwalbe bereit. Willst du zurück nach Eldenghost?');
+    G.UI.hideText();
+    if (yes) return sailTo('kueste');
+    return G.UI.say(['Wenke: Gut. Ich bleibe hier am Steg – falls es da oben zu heiss wird.', 'Wenke: Die Ladung ist gelöscht. Hanne bekommt Heddas Tee, ich bekomme Fisch. So geht Handel.'][G.rnd(0, 1)]);
+  }
+  // Überfahrt (beide Richtungen) – Schwarzblende, kurze Erzählung, Ankunft am Steg
+  async function sailTo(dest) {
+    G.lock++;
+    const first = dest === 'aschehang' && story() < 9;
+    try {
+      G.Snd.sfx('creak'); G.Snd.music('none');
+      await G.animate(700, p => G.fx = { kind: 'wipe', p });
+      G.Snd.sfx('splash');
+      await G.UI.sayAll(first ? ['Die «Nebelschwalbe» legt ab. Hinter dir wird der Leuchtturm kleiner, bis nur noch sein Strahl durch den Nebel wandert.',
+        'Zwei Nächte gleitet das Schiff durch grauen Nebel. Dann riecht die Luft plötzlich nach Rauch.',
+        'Wenke: Da vorne – die Nebelinsel. Und … der Berg. Er brennt.']
+        : dest === 'aschehang' ? ['Die «Nebelschwalbe» gleitet durch den Nebel. Bald riecht die Luft wieder nach Rauch.']
+        : ['Die «Nebelschwalbe» legt ab. Der Rauch hinter dir wird zu einem dünnen Strich am Horizont – dann siehst du den Leuchtturm.']);
+      G.UI.hideText();
+      G.state.flags.shipAt = dest;
+      if (dest === 'aschehang') { G.World.setMap('aschehang', 15, 58, 'up'); G.state.respawn = Object.assign({}, AH_SPAWN); }
+      else G.World.setMap('kueste', 15, 16, 'up');
+      await G.animate(700, p => G.fx = { kind: 'wipe', p: 1 - p }); G.fx = null;
+      if (G.map.name) G.UI.toast(dest === 'aschehang' ? 'Rauchbucht – Aschehang' : G.map.name, 1800);
+      if (first) {
+        await G.UI.sayAll(['Asche rieselt wie grauer Schnee. Ein umgestürztes Torii liegt halb im Wasser, die Hütten am Steg stehen leer.',
+          'Wenke: Ich gehe nicht weiter als bis zum Steg. Wenn du zurück willst – ich warte hier.',
+          'Hoch über der Bucht glimmt der Hang. Eine Steintreppe führt hinauf, gesäumt von umgestürzten Laternen.']);
+        G.UI.hideText(); setStory(9);
+      }
+      G.save(true);
+    } finally { G.fx = null; G.lock--; }
+  }
+  // Glutnest: kostet dem ersten kampffähigen Geist 4 % KP (nie unter 1); nach dem Finale nur noch warm
+  async function emberStep() {
+    if (dojoEnd()) return;
+    const mon = G.state.team.find(x => x.hp > 1); if (!mon) return;
+    const d = Math.max(1, Math.round(G.stats(mon).hp * 0.04)); mon.hp = Math.max(1, mon.hp - d);
+    G.Snd.sfx('hit_Feuer', null, 0.3); ah.hurt = 0.35;
+    for (let i = 0; i < 8; i++) spark(P.px + 4 + Math.random() * 8, P.py + 12, (Math.random() - 0.5) * 20, -20 - Math.random() * 30, 0.6);
+    if (!G.flag('emberHint')) { G.state.flags.emberHint = 1; G.lock++; await G.UI.say(`Autsch! Die Glut versengt ${G.nm(mon)} (−${d} KP). Glutnester besser umgehen.`); G.UI.hideText(); G.lock--; }
+  }
+  // Betreten des Dojos (Ziel 12)
+  async function dojoEnter() {
+    G.state.flags.dojoIn = 1; G.lock++;
+    G.Snd.sfx('creak'); ah.shake = 0.25;
+    await G.UI.sayAll(['Hitze schlägt dir entgegen. Das Dach ist zur Hälfte eingestürzt, brennende Papierfetzen tanzen durch die Luft.',
+      'Vor dem Schrein kniet jemand in Schwarz und Gold – reglos, als hätte er auf dich gewartet.']);
+    G.UI.hideText(); G.lock--;
+  }
+  // Finale: Dach stürzt ein, eine riesige gehörnte Gestalt im Rauch – danach ruhige, freie Erkundung
+  async function dojoFinale() {
+    G.lock++;
+    try {
+      G.Snd.music('none');
+      await G.UI.sayAll(['Klingenmeister: … So kämpft niemand, der nur neugierig ist. Dann höre.',
+        'Klingenmeister: Vierzig Jahre hat Meister Kurogane dieses Dojo geführt. Ruhig. Höflich. Er hat nie die Stimme erhoben.',
+        'Klingenmeister: In jener Nacht hat er etwas gerufen – tief unter dem Schrein. Wir haben die Ketten gehalten, so lange wir konnten.',
+        'Klingenmeister: Er war es nicht … es war das, was er gerufen hat.']);
+      G.UI.hideText();
+      G.Snd.sfx('creak'); G.Snd.sfx('hit_Stein', null, 0.8); ah.shake = 1.4;
+      ah.fin = { t: 0 };
+      for (let i = 0; i < 14; i++) ah.debris.push({ x: (6 + Math.random() * 18) * T, y: (2 + Math.random() * 8) * T - 120 - Math.random() * 80, vy: 40 + Math.random() * 60, s: 3 + Math.random() * 5, land: (2 + Math.random() * 8) * T });
+      await G.animate(1600, p => { ah.fin.t = p * 0.4; });
+      G.Snd.sfx('roar', null, 0.9);
+      await G.animate(2600, p => { ah.fin.t = 0.4 + p * 0.45; });
+      await G.UI.sayAll(['Mit einem Donnern bricht das Dach über dem Schrein ein. Rauch und Funken schiessen in den Himmel.',
+        'Und im Rauch – nur einen Atemzug lang – steht eine riesige gehörnte Gestalt. Zwei glühende Punkte, wo Augen sein müssten.',
+        'Dann ist sie fort. Als du den Rauch aus den Augen blinzelst, ist auch der Klingenmeister verschwunden.']);
+      G.UI.hideText();
+      await G.animate(1400, p => { ah.fin.t = 0.85 + p * 0.15; });
+      G.state.flags.dojoEnd = 1; ah.fin = null; ah.debris.length = 0; resetNPCs(AH);
+      if (!G.state.items.maskensplitter) { await give('maskensplitter', 1); await G.UI.say('Zwischen den Trümmern lag ein Splitter der schwarzen Maske vom Schrein. Er ist noch warm.'); G.UI.hideText(); }
+      setStory(13);
+      await G.UI.say('– Hier endet «Das Schwarze Dojo». Die Glut am Aschehang ist zur Ruhe gekommen – die Reise geht bald weiter! –');
+      G.UI.hideText(); G.save(true);
+    } finally { ah.fin = null; G.lock--; }
+  }
+  // Schrein: Maskensplitter und Hinweis
+  async function shrineTalk() {
+    if (dojoEnd()) return G.World.talk(['Der Schrein liegt unter Trümmern. Wo die schwarze Maske hing, ist nur noch ein heller Fleck im Holz.']);
+    return G.World.talk(['Ein kleiner Schrein. Darauf eine schwarze Lackmaske – in der Mitte gespalten, als wäre sie von innen zerbrochen.', 'Die Bruchkanten glänzen wie geschmolzenes Glas.']);
   }
   // Ereignisse beim Betreten einer Karte
   async function storyEnter() {
@@ -1419,11 +1642,12 @@
   }
   const WATER_PAL = {
     dorf: { sh: [46, 72, 102], dp: [12, 20, 44], edge: [96, 128, 160], mud: [70, 62, 46], reed: '#35523e', reedTip: '#7a6040', pad: '#2f5a3a', padHi: '#4a7a4a', flower: '#e8b8d0', stone: '#5a5a62', stoneHi: '#7a7a84', shim: '170,200,255' },
+    asche: { sh: [44, 52, 60], dp: [14, 16, 22], edge: [110, 104, 100], mud: [58, 50, 46], reed: '#3a3030', reedTip: '#6a4a30', pad: '#3a3434', padHi: '#4a4442', flower: '#ff9a5a', stone: '#3a3434', stoneHi: '#5a5250', shim: '230,170,130' },
     moor: { sh: [36, 62, 74], dp: [16, 26, 40], edge: [96, 130, 130], mud: [56, 46, 32], reed: '#3e4c30', reedTip: '#6a4a2a', pad: '#2c4a2e', padHi: '#46663e', flower: '#e8e4f4', stone: '#4a4a4e', stoneHi: '#66666c', shim: '150,220,190' }
   };
   function buildWater(m, g) {
     if (m.kind !== 'outdoor') return;
-    const isWc = c => c === '~' || c === 'w';
+    const isWc = c => c === '~' || c === 'w' || (c === 'I' && m.theme === 'asche');   // v20: Torii liegt im Wasser
     const wt = (x, y) => { const c = at(m, x, y); if (isWc(c)) return 1;
       if (c === 'b') return [at(m, x - 1, y), at(m, x + 1, y), at(m, x, y - 1), at(m, x, y + 1)].some(isWc) ? 1 : 0; return 0; };
     let any = false; const V = [], Dd = [];
@@ -1616,7 +1840,7 @@
     m.zoneFog = any ? z : null;
     // atmosphärische Nebelschwaden & Glühwürmchen
     m.fog = []; m.flies = [];
-    const n = m.kind === 'outdoor' ? (m.theme === 'moor' ? 30 : 16) : 0;
+    const n = m.kind === 'outdoor' ? (m.theme === 'moor' ? 30 : m.theme === 'asche' ? 0 : 16) : 0;
     for (let i = 0; i < n; i++) m.fog.push({ x: Math.random() * m.w * T, y: Math.random() * m.h * T, r: 36 + Math.random() * 50, vx: 3 + Math.random() * 6, ph: Math.random() * 9 });
     const nf = m.kind === 'outdoor' ? 50 : 6;
     for (let i = 0; i < nf; i++) m.flies.push({ x: Math.random() * m.w * T, y: Math.random() * m.h * T, ph: Math.random() * 99, c: Math.random() < 0.6 ? '216,255,150' : '140,240,224' });
@@ -1718,6 +1942,11 @@
       if (c === 'e') L.push({ x: x * T + 8, y: y * T + 4, r: 52, warm: 1, fl: hash(x, y, 1) * 10, cond: () => G.flag(`lit_${m.id}_${x}_${y}`) });
       if (c === '*') L.push({ x: x * T + 8, y: y * T + 8, r: 14, warm: 0, fl: hash(x, y, 2) * 10 });
       if (c === 'Y' && m.theme === 'cave') L.push({ x: x * T + 5, y: y * T + 11, r: 26, warm: 0, fl: hash(x, y, 2) * 10, ghost: 1 });
+      if (m.theme === 'asche') {   // v20: Glutnester, brennende Kirschbäume, schwach glimmender Schrein
+        if (c === 'E') L.push({ x: x * T + 8, y: y * T + 9, r: 30, warm: 1, fl: hash(x, y, 3) * 10 });
+        if (c === 'C') L.push({ x: x * T + 8, y: y * T - 4, r: 64, warm: 1, fl: hash(x, y, 3) * 10 });
+        if (c === 'Q' && at(m, x - 1, y) !== 'Q') L.push({ x: x * T + 16, y: y * T + 6, r: 26, warm: 1, fl: 2, cond: () => !G.flag('dojoEnd') });
+      }
       if (c === 'g' || c === 'B') L.push({ x: x * T + 8, y: y * T + 6, r: 22, warm: 0, fl: hash(x, y, 2) * 10, ghost: 1 });
     }
     if (m === K) L.push({ x: 16 * T + 6, y: 17 * T + 16, r: 34, warm: 1, fl: 6, cond: () => story() >= 8 }, { x: 16 * T + 90, y: 17 * T + 8, r: 30, warm: 1, fl: 8, cond: () => story() >= 8 });
@@ -1755,6 +1984,7 @@
   const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
   G.World = { addChurch, healAt, healFx: null, tourState, skipTour, giftStone, legendState: legend, quantumWon, quantumScene, legendScene,
     catGift: { GIFT_MS, GIFT_POOL, giftReady, giftLeft, takeGift, rollGift }, cats: CATS };
+  Object.assign(G.World, { ah, sailTo, emberStep, dojoFinale });   // v20
   G.map = D;
   const npcVisible = n => !n.show || n.show();
   function resetNPCs(m) {
@@ -1808,7 +2038,7 @@
   // Am Schrittende wird sofort der nächste Schritt gestartet (gehaltene Richtung oder gepufferte Eingabe) – ohne Pause.
   // ---- Positionsabhängige Umgebungsgeräusche: Wasser (Nähe + Richtung), Wind (offene Flächen, Küste), Ofen-/Essenknistern ----
   // pro Karte einmal vorberechnet: Distanzkarte (BFS, Kacheln) zum nächsten Wasser/Feuer + x-Lage der nächsten Wasserkachel, Offenheit für Wind
-  const AMB_WIND = { kueste: 1, dorf: 0.45, tiefesmoor: 0.6, hoehle: 0.12 };
+  const AMB_WIND = { kueste: 1, dorf: 0.45, tiefesmoor: 0.6, hoehle: 0.12, aschehang: 0.3 };
   function ambField(m) {
     if (m._amb) return m._amb;
     const W = m.w, H = m.h, N = W * H, dw = new Uint8Array(N).fill(255), sx = new Int16Array(N), dh = new Uint8Array(N).fill(255), open = new Float32Array(N);
@@ -1817,6 +2047,7 @@
         const j = ny * W + nx; if (d[j] > d[i] + 1 && d[i] < 30) { d[j] = d[i] + 1; if (srcX) srcX[j] = srcX[i]; q.push(j); } } } };
     if (m.kind === 'outdoor') bfs(dw, c => c === '~' || c === 'w', sx);
     else bfs(dh, c => c === 'F' || (c === 'o' && m.id !== 'huette'));
+    if (m.theme === 'asche') bfs(dh, c => c === 'E' || c === 'C');   // v20: Knistern der Glut
     if (m.kind === 'outdoor') for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let n = 0, o = 0; for (let yy = y - 3; yy <= y + 3; yy++) for (let xx = x - 3; xx <= x + 3; xx++) { if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue; n++; if (!'TfhDx'.includes(m.tiles[yy][xx])) o++; } open[y * W + x] = n ? o / n : 0; }
     return (m._amb = { dw, sx, dh, open, W });
   }
@@ -1825,7 +2056,7 @@
     const A = ambField(m), x = Math.max(0, Math.min(m.w - 1, Math.round(fx))), y = Math.max(0, Math.min(m.h - 1, Math.round(fy))), i = y * A.W + x;
     const w = A.dw[i] === 255 ? 0 : Math.pow(Math.max(0, 1 - A.dw[i] / 9), 1.6), hh = A.dh[i] === 255 ? 0 : Math.pow(Math.max(0, 1 - A.dh[i] / 7), 1.3);
     const pan = A.dw[i] === 255 ? 0 : Math.max(-1, Math.min(1, (A.sx[i] - fx) / 5)) * 0.6;
-    return { water: w, pan, wind: m.kind === 'outdoor' ? (AMB_WIND[m.id] || 0.4) * (0.35 + 0.65 * A.open[i]) : 0, hearth: hh, surf: m.id === 'kueste' };
+    return { water: w, pan, wind: m.kind === 'outdoor' ? (AMB_WIND[m.id] || 0.4) * (0.35 + 0.65 * A.open[i]) : 0, hearth: m.theme === 'asche' ? Math.max(hh, G.flag('dojoEnd') ? 0.1 : 0.18) : hh, surf: m.id === 'kueste' };
   }
   G.World.ambAt = (id, x, y) => ambAt(G.MAPS[id], x, y);
   let ambT = 0;
@@ -1907,7 +2138,9 @@
     // Feld-Klamm: alle 8 Schritte −1 LP, nie unter 1
     if (P.steps % 8 === 0) for (const mon of S.team) if (mon.status && mon.status.id === 'klamm' && mon.hp > 1) mon.hp--;
     const pk = pickupAt(P.x, P.y);
-    if (pk) { S.flags[pk.flag] = 1; G.lock++; await give(pk.item, pk.n); G.UI.hideText(); G.lock--; }
+    if (pk) { S.flags[pk.flag] = 1; G.lock++; await give(pk.item, pk.n); if (pk.msg) await G.UI.sayAll(pk.msg); G.UI.hideText(); G.lock--; }
+    if (m === AH && at(m, P.x, P.y) === 'E') await emberStep();   // v20: Glutnest
+    if (m === AH && P.y <= 10 && !S.flags.dojoIn) { await dojoEnter(); return; }
     const w = m.warps[key];
     if (w) { await G.World.warp(w.to, w.x, w.y, w.dir); return; }
     if (m === K && story() === 7 && P.y >= 13 && P.x >= 10) { await arrivalScene(); return; }
@@ -1936,6 +2169,8 @@
     // v17: Glimmerwurm neben einem leuchtenden Tropfstein, Schilfotter mitten im Schilf, Glockenrabe bei der versunkenen Glocke
     crystal: (m, x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) === 'Y') return true; return false; },
     reeds: (m, x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) !== 'q') return false; return true; },
+    // v20: Klingengeist nach dem Finale im hohen Gras direkt neben einem Glutnest
+    ember: (m, x, y) => { if (!G.flag('dojoEnd')) return false; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) === 'E') return true; return false; },
     bell: (m, x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === 'B') return true; return false; }
   };
   // Gebiet einer Kachel (wie in onStep)
@@ -2032,6 +2267,11 @@
     markt: { N: ['Regale bis unter die Decke: Teedosen, Salbentöpfe, Laternen, Kräuterbündel. Alles mit kleinen Zetteln in Fridas Handschrift.', 'Ein Glas mit getrockneten Mondblumen. Der Zettel sagt: «Nicht zum Essen. Wirklich nicht.»'],
       O: ['Eine Kiste mit Moor-Äpfeln. Klein, schrumpelig und erstaunlich süss.', 'Ein Korb mit frischen Kräutern. Es riecht nach Minze und Regen.'], c: ['Eine dicke Kerze in einem Blechteller. Sie brennt schon lange, aber ruhig.'],
       V: ['Ein Topf mit Heidekraut. Jemand giesst es regelmässig.'], U: ['Die Ladentheke. Eine Messingwaage, ein Preisbuch und eine Schale mit ein paar Münzen.'] },
+    aschehang: { '~': ['Das Wasser ist grau von Asche. Kleine Glutstücke zischen, wenn sie hineinfallen.'], I: ['Ein umgestürztes Torii. Die rote Farbe ist verkohlt, die Inschrift nicht mehr lesbar.'],
+      L: ['Eine Steinlaterne. Jemand hat sie wieder aufgerichtet – Hanne vielleicht.'], Z: ['Eine umgestürzte Steinlaterne. Im Moos daneben: Stiefelabdrücke, gross und schwer.'],
+      C: ['Ein Kirschbaum brennt. Seine Blüten fallen als Funken – und doch verbrennt er nicht.'], K: ['Zerbrochene Ketten, so dick wie dein Arm. Die Glieder sind nicht zerschlagen – sie sind aufgebogen. Von innen.'],
+      E: ['Ein Glutnest. Es knistert und atmet wie ein schlafendes Tier.'], T: ['Ein verkohlter Baum. Die Rinde ist noch warm.'], u: ['Die Dojo-Mauer. Lange Kratzspuren ziehen sich durch den Putz – fünf Krallen breit.'],
+      r: ['Ein schwarzer Felsbrocken. In den Rissen glimmt es.'] },
     huette: { k: ['Kisten mit Torf und ein Paar alte Stiefel, zu klein für Jorin.'], o: ['Ein Torfofen. Kalt. Neben ihm liegt Zunder, ordentlich aufgeschichtet.'], c: ['Eine Kerze, fast heruntergebrannt.'] }
   };
   G.World.interact = async () => {
@@ -2080,7 +2320,9 @@
       if (story() === 4) setStory(5);
       G.UI.hideText(); G.lock--; return;
     }
-    if (m === K && c === '~' && story() >= 8 && fx >= 16 && fx <= 21 && fy >= 17 && fy <= 20) { G.lock++; await talkWenke(); G.UI.hideText(); G.lock--; return; }
+    if (m === AH && c === 'Q') return shrineTalk();
+    if (m === AH && c === '~' && shipAt() === 'aschehang' && fx >= 16 && fx <= 22 && fy >= 58 && fy <= 62) { G.lock++; await talkWenkeAH(); G.UI.hideText(); G.lock--; return; }
+    if (m === K && c === '~' && story() >= 8 && shipAt() === 'kueste' && fx >= 16 && fx <= 21 && fy >= 17 && fy <= 20) { G.lock++; await talkWenke(); G.UI.hideText(); G.lock--; return; }
     // Innenräume
     if (m.id === 'home' && c === 'b') return restHome();
     if (m.id === 'home' && c === 'a') return G.Menu.archive();
@@ -2325,7 +2567,8 @@
   G.World.render = (ctx, dt, opt = {}) => {
     const m = opt.hidePlayer ? D : G.map; if (opt.hidePlayer && G.map !== D) { /* Titelbild zeigt immer das Dorf */ }
     const saved = G.map; G.map = m; prerender(m);
-    const t = G.time, [cx, cy] = G.World.camera(opt.hidePlayer, dt);
+    const t = G.time; let [cx, cy] = G.World.camera(opt.hidePlayer, dt);
+    if (m === AH && ah.shake > 0 && !opt.hidePlayer) { const k = Math.min(1, ah.shake) * 4; cx += Math.round((Math.random() - 0.5) * k); cy += Math.round((Math.random() - 0.5) * k); }
     ctx.fillStyle = '#07060f'; ctx.fillRect(0, 0, VW, VH);
     ctx.drawImage(m.canvas, -cx, -cy);
     const x0 = Math.max(0, Math.floor(cx / T)), y0 = Math.max(0, Math.floor(cy / T));
@@ -2413,11 +2656,11 @@
       // im Nebel bleibt die Spielfigur lesbar: sie wird über den Schwaden erneut gezeichnet
       if (drawPlayer && (ZONE_OF[at(m, P.x, P.y)] || ZONE_OF[at(m, P.tx, P.ty)])) drawPlayer();
     }
-    const FL = m.kind === 'outdoor' && m.theme !== 'cave' && !G.lowFx && !G.fxOff.fog ? FOGLAYERS[m.theme === 'moor' ? 'moor' : m === K ? 'kueste' : 'dorf'] : null;
+    const FL = m.kind === 'outdoor' && m.theme !== 'cave' && m.theme !== 'asche' && !G.lowFx && !G.fxOff.fog ? FOGLAYERS[m.theme === 'moor' ? 'moor' : m === K ? 'kueste' : 'dorf'] : null;
     // Dunkelheit + Lichter (vorgerechnete, weich auslaufende Licht-Sprites)
     const dusk = G.dusk(), dark = Math.max(0.12, 0.34 + 0.28 * dusk + m.dark), night = Math.max(0, Math.min(1, (dark - 0.3) / 0.5));
     lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, VW, VH);
-    lg.fillStyle = `rgba(12,8,32,${dark})`; lg.fillRect(0, 0, VW, VH);
+    lg.fillStyle = m.theme === 'asche' ? `rgba(26,10,8,${dark})` : `rgba(12,8,32,${dark})`; lg.fillRect(0, 0, VW, VH);
     lg.globalCompositeOperation = 'destination-out'; lg.imageSmoothingEnabled = true;
     const vis = [];
     for (const L of lightsFor(m)) {
@@ -2465,6 +2708,7 @@
       ctx.fillStyle = gr; ctx.fillRect(x - f.r, y - f.r, f.r * 2, f.r * 2);
     }
     if (FL) fogLayers(ctx, cx, cy, t, FL);   // ferne (Parallaxe 0.55) und nahe (1.25) Nebelschicht
+    if (m === AH) renderAsche(ctx, cx, cy, t, dt, opt);
     renderEvents(ctx, m, cx, cy, t, dt, opt);
     ctx.drawImage(vign, 0, 0);
     renderLegend(ctx, cx, cy, t);
@@ -2479,6 +2723,90 @@
     }
     G.map = saved;
   };
+  // ---------- v20: Aschehang – Flackerlicht, Asche, aufsteigende Funken, Hitzeflimmern, einstürzende Dachteile, Glocken ----------
+  let AH_SRC = null;
+  function ahSources() {   // Glutnester und brennende Kirschbäume (Funkenquellen)
+    if (AH_SRC) return AH_SRC; AH_SRC = [];
+    for (let y = 0; y < AH.h; y++) for (let x = 0; x < AH.w; x++) { const c = AH.tiles[y][x]; if (c === 'E' || c === 'C') AH_SRC.push([x, y, c]); }
+    return AH_SRC;
+  }
+  function renderAsche(ctx, cx, cy, t, dt, opt) {
+    const calm = dojoEnd(), low = G.lowFx || G.fxOff.fog, py = opt.hidePlayer ? 50 : P.y;
+    const h = (0.25 + 0.75 * Math.max(0, Math.min(1, (50 - py) / 45))) * (calm ? 0.5 : 1);   // Hitze nimmt bergauf zu
+    const inDojo = py <= 10;
+    // aufsteigende Funken aus Glutnestern / brennenden Bäumen in Sichtweite
+    for (const [x, y, c] of ahSources()) {
+      const sx = x * T - cx, sy = y * T - cy; if (sx < -20 || sy < -40 || sx > VW + 20 || sy > VH + 20) continue;
+      const rate = (c === 'C' ? 5 : 1.6) * (calm ? 0.4 : 1) * (0.5 + h);
+      if (Math.random() < rate * dt && ah.sparks.length < (low ? 30 : 80)) ah.sparks.push({ x: x * T + 3 + Math.random() * 10, y: y * T + (c === 'C' ? -6 : 10), vx: (Math.random() - 0.5) * 8, vy: -14 - Math.random() * 18, life: 1.4 + Math.random() * 1.6, ph: Math.random() * 6 });
+    }
+    if (inDojo && !calm && Math.random() < 3 * dt) ah.sparks.push({ x: cx + Math.random() * VW, y: cy + VH * (0.3 + Math.random() * 0.7), vx: (Math.random() - 0.5) * 12, vy: -10 - Math.random() * 12, life: 2 + Math.random() * 1.5, ph: Math.random() * 6, paper: 1 });
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = ah.sparks.length - 1; i >= 0; i--) {
+      const s = ah.sparks[i]; s.life -= dt; if (s.life <= 0) { ah.sparks.splice(i, 1); continue; }
+      s.x += (s.vx + Math.sin(t * 3 + s.ph) * 6) * dt; s.y += s.vy * dt;
+      const k = Math.min(1, s.life / 1.2), x = Math.round(s.x - cx), y = Math.round(s.y - cy);
+      if (s.paper) { ctx.fillStyle = `rgba(255,${120 + 60 * k | 0},50,${0.8 * k})`; ctx.fillRect(x, y, 2 + (Math.sin(t * 9 + s.ph) > 0 ? 1 : 0), 1); ctx.fillStyle = `rgba(255,230,160,${k})`; ctx.fillRect(x, y, 1, 1); }
+      else { ctx.fillStyle = `rgba(255,${140 + 90 * k | 0},${50 + 60 * k | 0},${k})`; ctx.fillRect(x, y, 1, 1); }
+    }
+    // flackerndes Orange über allem, stärker bergauf
+    const fl = 0.75 + 0.15 * Math.sin(t * 7.3) + 0.1 * Math.sin(t * 17.9 + 1.3);
+    ctx.fillStyle = `rgba(255,96,32,${(0.04 + 0.1 * h) * fl})`; ctx.fillRect(0, 0, VW, VH);
+    const gr = ctx.createLinearGradient(0, 0, 0, VH); gr.addColorStop(0, `rgba(255,110,40,${0.07 * h * fl})`); gr.addColorStop(1, 'rgba(255,110,40,0)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH);
+    ctx.globalCompositeOperation = 'source-over';
+    // Hitzeflimmern: waagrechte Streifen des fertigen Bildes leicht verschieben (nur mit vollen Effekten)
+    if (!low && h > 0.25 && ctx.canvas && ctx.canvas.width) {
+      const cv = ctx.canvas, sc = cv.width / VW, amp = 0.6 + 1.2 * h;
+      for (let y = 0; y < VH; y += 6) { const o = Math.sin(t * 5 + y * 0.35) * amp; if (Math.abs(o) < 0.3) continue;
+        ctx.drawImage(cv, 0, y * sc, cv.width, 6 * sc, o, y, VW, 6); }
+    }
+    // Ascheregen (grau, langsam, leicht seitlich)
+    const N = low ? 26 : 60;
+    while (ah.ash.length < N) ah.ash.push({ x: Math.random() * VW, y: Math.random() * VH, v: 6 + Math.random() * 10, ph: Math.random() * 6, s: Math.random() < 0.25 ? 2 : 1 });
+    for (const a of ah.ash) {
+      a.y += a.v * dt * (calm ? 0.6 : 1); a.x += (Math.sin(t * 0.8 + a.ph) * 4 - 2) * dt;
+      if (a.y > VH) { a.y = -2; a.x = Math.random() * VW; } if (a.x < -2) a.x = VW;
+      ctx.fillStyle = `rgba(${a.s > 1 ? '150,140,136' : '210,200,194'},${calm ? 0.4 : 0.7})`; ctx.fillRect(Math.round(a.x), Math.round(a.y), a.s, a.s);
+    }
+    // einstürzende Dachteile im Dojo (zufällig, mit kurzem Wackeln) – nicht nach dem Finale
+    if (!calm && !opt.hidePlayer && G.mode === 'world' && inDojo && !ah.fin) {
+      ah.fallT -= dt;
+      if (ah.fallT <= 0) {
+        ah.fallT = 7 + Math.random() * 8; const tx = 5 + Math.random() * 19, ty = 2 + Math.random() * 8;
+        if (Math.hypot(tx - P.x, ty - P.y) > 2) { for (let i = 0; i < 4; i++) ah.debris.push({ x: tx * T + Math.random() * 12, y: ty * T - 110 - Math.random() * 30, vy: 60 + Math.random() * 40, s: 2 + Math.random() * 4, land: ty * T + 8 }); G.Snd.sfx('creak', null, 0.5); }
+      }
+    }
+    for (let i = ah.debris.length - 1; i >= 0; i--) {
+      const d = ah.debris[i]; d.vy += 220 * dt; d.y += d.vy * dt;
+      if (d.y >= d.land) { ah.debris.splice(i, 1); ah.shake = Math.max(ah.shake, 0.18); if (G.mode === 'world') G.Snd.sfx('hit_Stein', null, 0.25);
+        for (let k = 0; k < 6; k++) spark(d.x, d.land, (Math.random() - 0.5) * 50, -20 - Math.random() * 40, 0.5); continue; }
+      const x = Math.round(d.x - cx), y = Math.round(d.y - cy);
+      ctx.fillStyle = '#1a1210'; ctx.fillRect(x - 1, y - 1, d.s + 2, d.s * 0.6 + 2); ctx.fillStyle = '#3a2a22'; ctx.fillRect(x, y, d.s, d.s * 0.6); ctx.fillStyle = '#ff8a3a'; ctx.fillRect(x, y, 1, 1);
+    }
+    // Glutschaden: kurzer roter Rand
+    if (ah.hurt > 0) { ah.hurt -= dt; ctx.fillStyle = `rgba(255,60,20,${Math.max(0, ah.hurt) * 0.5})`; ctx.fillRect(0, 0, VW, 3); ctx.fillRect(0, VH - 3, VW, 3); ctx.fillRect(0, 0, 3, VH); ctx.fillRect(VW - 3, 0, 3, VH); }
+    // dumpfe Glocken in der Ferne (keine Musik bis zum Bosskampf)
+    if (G.mode === 'world' && !opt.hidePlayer) { ah.bellT -= dt; if (ah.bellT <= 0) { ah.bellT = 25 + Math.random() * 20; G.Snd.sfx('bell', null, calm ? 0.12 : 0.22); } }
+    // Finale: Rauch und die riesige gehörnte Silhouette über dem Schrein
+    if (ah.fin) {
+      const p = ah.fin.t, a = p < 0.4 ? p / 0.4 * 0.6 : p < 0.85 ? 0.6 + (p - 0.4) / 0.45 * 0.3 : 0.9 * (1 - (p - 0.85) / 0.15);
+      ctx.fillStyle = `rgba(20,14,16,${0.55 * a})`; ctx.fillRect(0, 0, VW, VH);
+      for (let i = 0; i < 9; i++) { const sx = (i * 37 + t * 9) % (VW + 60) - 30, sy = 20 + Math.sin(i * 1.7 + t * 0.5) * 18; const g2 = ctx.createRadialGradient(sx, sy, 0, sx, sy, 44); g2.addColorStop(0, `rgba(60,50,52,${0.5 * a})`); g2.addColorStop(1, 'rgba(60,50,52,0)'); ctx.fillStyle = g2; ctx.fillRect(sx - 44, sy - 44, 88, 88); }
+      const sa = p < 0.4 ? 0 : p < 0.55 ? (p - 0.4) / 0.15 : p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15;
+      if (sa > 0) {
+        const X = Math.max(70, Math.min(VW - 70, 15 * T + 8 - cx)), Y = 88, s = 1 + 0.04 * Math.sin(t * 2);   // Vision: fest im Bild, Hörner sichtbar
+        ctx.save(); ctx.translate(X, Y); ctx.scale(s, s); ctx.globalAlpha = 0.85 * sa; ctx.fillStyle = '#060406';
+        ctx.beginPath();   // Schultern, Kopf, zwei geschwungene Hörner
+        ctx.moveTo(-70, 60); ctx.quadraticCurveTo(-60, 10, -30, 0); ctx.lineTo(-18, -26); ctx.quadraticCurveTo(-34, -46, -40, -78); ctx.quadraticCurveTo(-22, -54, -10, -40);
+        ctx.quadraticCurveTo(0, -46, 10, -40); ctx.quadraticCurveTo(22, -54, 40, -78); ctx.quadraticCurveTo(34, -46, 18, -26); ctx.lineTo(30, 0); ctx.quadraticCurveTo(60, 10, 70, 60); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = sa; ctx.globalCompositeOperation = 'lighter'; const eye = 0.7 + 0.3 * Math.sin(t * 6);
+        for (const ex of [-7, 7]) { const g3 = ctx.createRadialGradient(ex, -24, 0, ex, -24, 7); g3.addColorStop(0, `rgba(255,70,40,${eye})`); g3.addColorStop(1, 'rgba(255,40,20,0)'); ctx.fillStyle = g3; ctx.fillRect(ex - 7, -31, 14, 14); ctx.fillStyle = '#ffd0a0'; ctx.fillRect(ex - 1, -25, 2, 1); }
+        ctx.restore(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      }
+    }
+    if (ah.shake > 0) ah.shake = Math.max(0, ah.shake - dt);
+  }
   // ---------- v15: seltene Umgebungs-Ereignisse ----------
   // Blätterwirbel (Dorf/Küste), Schilfflaum (Moor), Krähen, Fischsprung, Sternschnuppe – je nach Ort, Tageszeit und Nebel.
   // Selten: pro Art zufällige Abklingzeit 60–180 s, dazu mindestens 75 s zwischen zwei beliebigen Ereignissen; nie mehrere gleichzeitig.
@@ -2600,6 +2928,15 @@
           if (arrive.off > 0.02 && Math.random() < 0.6) spark(16 * T + 2 + off + 2, 17 * T + 38, -10 - Math.random() * 20, -12 - Math.random() * 10, 0.5).water = 1;
         }
       }
+    } else if (m === AH) {
+      if (shipAt() === 'aschehang') {
+        const bob = Math.round(Math.sin(t * 1.3) * 1.2), x = 16 * T + 2 - cx, y = 58 * T - 14 + bob - cy;
+        if (x > -100 && x < VW + 10 && y > -70 && y < VH + 10) {
+          ctx.fillStyle = 'rgba(4,6,14,0.45)'; ctx.beginPath(); ctx.ellipse(x + 48, y + 54, 46, 5, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.drawImage(shipArt(), x, y);
+          ctx.fillStyle = 'rgba(200,170,150,0.3)'; for (let i = 0; i < 5; i++) ctx.fillRect(Math.round(x + 8 + i * 18 + Math.sin(t * 2 + i) * 2), y + 55, 7, 1);
+        }
+      }
     } else if (m.id === 'leuchtturm') {
       const p = lampLevel(), x = 4 * T - cx, y = 2 * T - 14 - cy;
       ctx.drawImage(lampArt(false), x, y);
@@ -2677,6 +3014,8 @@
         const off = (arrive.off || 0) * 230, x = 16 * T + 2 + off - cx, y = 17 * T - 16 - cy, f = 0.85 + 0.15 * Math.sin(t * 8);
         glow(x + 5, y + 30, 12, 0.45 * f); glow(x + 91, y + 20, 11, 0.4 * f); glow(x + 77, y + 29, 14, 0.18 * f);
       }
+    } else if (m === AH) {
+      if (shipAt() === 'aschehang') { const x = 16 * T + 2 - cx, y = 58 * T - 14 - cy, f = 0.85 + 0.15 * Math.sin(t * 8); glow(x + 5, y + 30, 12, 0.45 * f); glow(x + 91, y + 20, 11, 0.4 * f); glow(x + 77, y + 29, 14, 0.18 * f); }
     } else if (m.id === 'leuchtturm') {
       const p = lampLevel(); if (p > 0) glow(4 * T + 16 - cx, 2 * T - 2 - cy, 40, 0.42 * p * (0.9 + 0.1 * Math.sin(t * 6)));
     }
@@ -2718,7 +3057,8 @@
     home: [{ id: 'mutter', m: () => story() === 6 ? '!' : null }, { id: 'vater', m: () => story() === 6 ? '!' : null }],
     hoehle: [{ id: 'mandy', m: () => story() >= 4 && !G.flag('quantum') ? '!' : null }],
     katzen: [{ id: 'cassandra', m: () => !G.flag('kc') || giftReady() ? '!' : null }],
-    kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 && (!G.FEAT.cave || G.flag('quantum')) ? '!' : null }, { id: 'wenke', m: () => story() >= 8 && !G.flag('wenke') ? '!' : null }],
+    kueste: [{ id: 'onnoS', m: () => story() >= 4 && story() < 6 && (!G.FEAT.cave || G.flag('quantum')) ? '!' : null }, { id: 'wenke', m: () => story() === 8 && !G.flag('wenke') && shipAt() === 'kueste' ? '!' : null }],
+    aschehang: [{ id: 'hanne', m: () => !G.flag('hanne') ? '!' : null }],
     tiefesmoor: [{ id: 'kaspar', m: () => q1() === 4 ? '!' : null }]
   };
   // aktuelle Markierungen einer Karte: [{ id, kind, x, y }]

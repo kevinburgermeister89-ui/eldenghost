@@ -1266,6 +1266,66 @@
       for (let i = 0; i < 4; i++) S.P([[8 + i * 3, 47], [7 + i * 3, 53], [10 + i * 3, 48]], cl, { g: 'arm' });
       for (const [x, y] of [[58, 30], [6, 58]]) S.E(x, y, 1.2, 1.2, '#a88a5a', { alpha: 0.8 });
     },
+    // ================= v20: Geister des Schwarzen Dojos =================
+    klingengeist(S) { // Klingengeist: schwebende Rüstungsseele ohne Körper – leerer Helm, gesprungene weisse Halbmaske, Seelenflamme als Haarknoten, kreisendes Geisterschwert
+      const sp = '#b8a8e0', sp2 = '#8a78c0', arm = '#2a2434', arm2 = '#3e3650', gold = '#c8a050', mask = '#f0ece4', blade = '#d8e0f0', vio = '#c070ff';
+      S.P([[22, 40], [16, 54], [22, 50], [26, 60], [32, 52], [38, 60], [42, 50], [48, 54], [44, 40]], sp, { name: 'wisp', g: 'body', alpha: 0.85 });
+      S.C(24, 48, 30, 56, 1, sp2, { clip: 'wisp', flat: true, line: false }).C(38, 48, 36, 56, 1, sp2, { clip: 'wisp', flat: true, line: false });
+      S.P([[18, 28], [46, 28], [48, 44], [16, 44]], arm, { name: 'chest', g: 'body' });
+      for (let i = 0; i < 3; i++) S.R(17, 31 + i * 4, 30, 1.2, arm2, { clip: 'chest', flat: true, line: false });
+      S.R(17, 30, 30, 0.8, gold, { clip: 'chest', flat: true, line: false });
+      S.E(13, 30, 6, 4, arm, { g: 'body' }).E(51, 30, 6, 4, arm, { g: 'body' });
+      S.E(32, 18, 10, 9, arm, { name: 'helm', g: 'head' });
+      S.P([[20, 20], [32, 16], [44, 20], [46, 24], [18, 24]], arm2, { g: 'head' });
+      S.P([[26, 10], [32, 2], [38, 10]], gold, { g: 'head' });
+      S.E(32, 8, 3, 4, vio, { glow: true, g: 'head' }).E(32, 5, 1.6, 2.4, '#f0d8ff', { glow: true, g: 'head' });
+      S.P([[23, 20], [36, 19], [37, 27], [30, 31], [24, 28]], mask, X(F, { name: 'mask', g: 'head' }));
+      S.C(31, 19, 28, 31, 0.6, '#5a5060', X(F, { clip: 'mask', flat: true, line: false }));
+      S.eye(27, 23.4, 2.4, 1.2, vio, X(F, { white: 0.2 }));
+      S.E(40, 22, 2.4, 1.6, '#1a1422', X(F, { flat: true }));
+      S.C(4, 50, 30, 12, 1.6, blade, { name: 'blade', g: 'sword' }).C(4, 50, 8, 44, 1.6, '#ffffff', { clip: 'blade', flat: true, line: false });
+      S.C(30, 12, 34, 7, 2.4, '#4a3a2a', { g: 'sword' }).R(28, 11, 5, 2, gold, { g: 'sword', rot: -0.9 });
+      for (const [x, y] of [[54, 46], [10, 18], [56, 16]]) S.E(x, y, 1.2, 1.2, vio, { glow: true, alpha: 0.8 });
+    },
+    oniasche(S) { // Oni-Asche: kleiner Aschekobold – ein stumpfes Horn, glühender Bauchriss, viel zu grosse Fäuste, ein schiefer Hauer
+      const ash = '#6a6060', ash2 = '#4a4242', ash3 = '#8a807c', ember = '#ff8a3a', hot = '#ffd070', horn = '#e8dcc0';
+      S.E(26, 58, 6, 3, ash2, { g: 'legF' }).E(40, 58, 6, 3, ash2, { g: 'legF' });
+      S.E(33, 46, 13, 12, ash, { name: 'body', g: 'body' });
+      S.P([[28, 40], [34, 44], [31, 48], [37, 52], [33, 54]], ember, { clip: 'body', glow: true, flat: true });
+      S.C(30, 46, 35, 50, 0.6, hot, { clip: 'body', glow: true, flat: true, line: false });
+      S.C(42, 40, 50, 48, 4, ash, { g: 'armB' }).E(51, 50, 6, 5.4, ash2, { g: 'armB' });
+      S.E(30, 26, 12, 11, ash, { name: 'head', g: 'head' });
+      S.E(30, 30, 10, 6, ash3, X(F, { clip: 'head', line: false }));
+      S.P([[33, 16], [37, 4], [40, 16]], horn, { g: 'head' }).C(34, 13, 39, 13, 0.6, '#a89880', { flat: true, line: false, g: 'head' });
+      S.E(24, 17, 2.6, 1.6, ash2, { g: 'head' });
+      S.eye(24, 25, 2.6, 2.8, ember, X(F, { white: 0.3, dark: '#5a1a0a' })).eye(33, 25, 2.8, 3, ember, X(F, { white: 0.3, dark: '#5a1a0a' }));
+      S.C(21, 21, 27, 22.6, 1.1, ash2, X(F, { flat: true, line: false })).C(31, 22.6, 37, 21, 1.1, ash2, X(F, { flat: true, line: false }));
+      S.C(23, 32, 33, 32, 0.9, '#2a1a1a', X(F, { flat: true, line: false })).P([[30, 31.6], [32, 31.6], [31.4, 28]], horn, X(F, {}));
+      S.C(24, 40, 14, 44, 4.4, ash, { g: 'arm' }).E(12, 46, 7, 6.4, ash2, { name: 'fist', g: 'arm' });
+      S.C(8, 44, 15, 44, 0.6, ash3, { clip: 'fist', flat: true, line: false }).C(8, 47, 15, 47, 0.6, ash3, { clip: 'fist', flat: true, line: false });
+      for (const [x, y] of [[44, 18], [50, 28], [18, 12]]) S.E(x, y, 1, 1, ember, { glow: true, alpha: 0.85 });
+    },
+    onigluetfuerst(S) { // Oni-Glutfürst: hünenhafter Oni, zwei geschwungene Hörner, Krone aus erkalteter Schlacke, Lava-Risse, eisenbeschlagene Unterarme, Glutmähne
+      const sk = '#8a2a24', sk2 = '#5a1a18', sk3 = '#a8443a', lava = '#ff7a2a', hot = '#ffd070', horn = '#efe2c4', iron = '#4a4650', slag = '#2e2828', mane = '#ff9a3a';
+      S.E(24, 60, 8, 3.4, sk2, { g: 'legF' }).E(44, 60, 8, 3.4, sk2, { g: 'legF' });
+      S.P([[14, 30], [52, 30], [56, 46], [48, 60], [18, 60], [10, 46]], sk, { name: 'body', g: 'body' });
+      S.E(32, 46, 13, 10, sk3, { clip: 'body', line: false });
+      for (const [x0, y0, x1, y1] of [[22, 38, 28, 48], [28, 48, 24, 56], [40, 36, 36, 46], [36, 46, 42, 54]]) S.C(x0, y0, x1, y1, 1, lava, { clip: 'body', glow: true, flat: true, line: false });
+      S.R(14, 52, 40, 4, slag, { clip: 'body', flat: true, line: false }).R(30, 52, 6, 4, '#c8a050', { clip: 'body', flat: true, line: false });
+      S.C(48, 34, 56, 44, 6, sk, { g: 'armB' }).R(51, 42, 9, 7, iron, { g: 'armB' }).E(56, 52, 6.4, 5.4, sk2, { g: 'armB' });
+      for (let i = 0; i < 7; i++) { const a = -2.6 + i * 0.5; S.P([[30 + Math.cos(a) * 10, 22 + Math.sin(a) * 9], [30 + Math.cos(a) * 19, 20 + Math.sin(a) * 15], [30 + Math.cos(a + 0.25) * 10, 22 + Math.sin(a + 0.25) * 9]], mane, { glow: true, g: 'mane', alpha: 0.9 }); }
+      S.E(30, 24, 12, 11, sk, { name: 'head', g: 'head' });
+      S.C(22, 16, 12, 6, 2.6, horn, { g: 'head' }).C(12, 6, 10, 1, 1.6, horn, { g: 'head' });
+      S.C(38, 16, 48, 6, 2.6, horn, { g: 'head' }).C(48, 6, 50, 1, 1.6, horn, { g: 'head' });
+      S.P([[22, 15], [25, 10], [28, 14], [31, 9], [34, 14], [37, 10], [39, 15]], slag, { g: 'head' }).E(31, 12, 1.4, 1.4, lava, { glow: true, g: 'head' });
+      S.C(20, 20, 27, 22, 1.6, sk2, X(F, { flat: true, line: false })).C(33, 22, 40, 20, 1.6, sk2, X(F, { flat: true, line: false }));
+      S.eye(24, 24, 2.6, 2.4, hot, X(F, { white: 0.2, dark: '#7a1a0a' })).eye(35, 24, 2.8, 2.6, hot, X(F, { white: 0.2, dark: '#7a1a0a' }));
+      S.C(23, 31, 37, 31, 1.2, '#1a0c0c', X(F, { flat: true, line: false }));
+      S.P([[24, 31], [25.4, 27], [27, 31]], horn, X(F, {})).P([[33, 31], [34.6, 27], [36, 31]], horn, X(F, {}));
+      S.C(16, 34, 8, 44, 6.4, sk, { g: 'arm' }).R(3, 42, 10, 8, iron, { name: 'cuff', g: 'arm' }).R(3, 45, 10, 1, '#6a6670', { clip: 'cuff', flat: true, line: false });
+      S.E(8, 53, 7.4, 6.4, sk2, { g: 'arm' }).C(4, 52, 12, 52, 0.7, sk3, { flat: true, line: false, g: 'arm' });
+      for (const [x, y] of [[58, 18], [6, 20], [54, 6]]) S.E(x, y, 1.2, 1.2, lava, { glow: true, alpha: 0.9 });
+    },
     // ================= v15: Team Quantum & Legende =================
     nachtmahr(S, back) { // Nachtmahr: Alptraum-Geist von Team Quantum – Rauchleib ohne feste Form, übersät mit Augen, gezackter Schlund
       const sm0 = '#0e0a16', sm1 = '#1e1628', sm2 = '#30243e', sm3 = '#463456', red = '#ff3a5a', vio = '#c070ff';
@@ -1321,7 +1381,8 @@
     nebelwal: 'dots', funkenkueken: 'fuzz', aschephoenix: 'feather', farnkitz: 'fur', hainhirsch: 'fur', kronenhirsch: 'fur', nachtmahr: 'wisp', fyrlumen: 'wisp',
     glimmerwurm: 'dots', drusenlindwurm: 'dots', schilfotter: 'fur', wogenotter: 'fur', glockenrabe: 'feather', seelenrabe: 'feather',
     aschmotte: 'fuzz', kohlenbaer: 'fur', essenbaer: 'fur', funkenfalke: 'feather', nebelqualle: null, strudelhecht: 'dots', gewitterkauz: 'feather', surrlibelle: null,
-    moosschnecke: 'dots', pilzhexe: 'dots', kieselkroete: 'stone', geodenwidder: 'fuzz', drusenbock: 'fuzz', traumfalter: 'fuzz', schlickaal: 'dots', faustbiber: 'fur', grabmaulwurf: 'fur' };
+    moosschnecke: 'dots', pilzhexe: 'dots', kieselkroete: 'stone', geodenwidder: 'fuzz', drusenbock: 'fuzz', traumfalter: 'fuzz', schlickaal: 'dots', faustbiber: 'fur', grabmaulwurf: 'fur',
+    klingengeist: 'wisp', oniasche: 'stone', onigluetfuerst: 'fur' };
   const hh = (x, y) => { let v = (x * 374761393 + y * 668265263) | 0; v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
   function texture(c, kind) {
     if (!kind) return;

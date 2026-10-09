@@ -656,6 +656,26 @@ window.G = window.G || {};
   for (const [id, s] of Object.entries(SP19)) { const [hp, atk, def, spd] = s.base; G.SPECIES[id] = Object.assign({}, s, { type: s.types[0], base: { hp, atk, def, spd } }); }
   G.NEW19 = Object.keys(SP19);
 
+  // ---------- v20: Das Schwarze Dojo – zwei Dojo-Geister (Kurogane selbst kommt später) ----------
+  Object.assign(G.MOVES, {
+    geisterklinge: { name: 'Geisterklinge',  type: 'Kampf',  power: 70, acc: 95,  pp: 10, crit: 0.25, d: 'Ein Schnitt aus kaltem Licht – hohe Volltreffer-Chance.' },
+    onifaust:      { name: 'Onifaust',       type: 'Feuer',  power: 75, acc: 90,  pp: 10, status: { id: 'brand', chance: 20 }, d: 'Eine glühende Faust aus Asche. 20 %: verbrennt.' }
+  });
+  const SP20 = {
+    klingengeist: { name: 'Klingengeist', g: 'm', types: ['Kampf', 'Psycho'], base: [52, 74, 44, 70], catch: 0.2, xp: 110, rare: true,
+      learn: [[1, 'kratzer'], [1, 'starren'], [5, 'stachelstoss'], [8, 'prankenhieb'], [10, 'geisterklinge'], [13, 'geistesblitz'], [16, 'kampfschrei'], [19, 'schattenschwinge']],
+      desc: 'Eine leere Klinge, die von selbst durch den Rauch schwebt. Der Griff ist warm, als hätte ihn eben noch jemand gehalten. Man sagt, sie suche ihren Meister.' },
+    oniasche: { name: 'Oni-Asche', g: 'm', types: ['Feuer', 'Kampf'], base: [52, 56, 44, 36], catch: 0.3, xp: 64,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [5, 'rammbock'], [8, 'glutstoss'], [10, 'onifaust'], [13, 'prankenhieb'], [16, 'kampfschrei'], [20, 'grimmstoss']],
+      evo: { to: 'onigluetfuerst', lvl: 22 },
+      desc: 'Ein kleiner Oni aus warmer Asche mit zwei glimmenden Hörnchen. Wenn er wütend wird, rieselt er – und darunter glüht es rot.' },
+    onigluetfuerst: { name: 'Oni-Glutfürst', g: 'm', types: ['Feuer', 'Kampf'], base: [76, 80, 58, 46], catch: 0.12, xp: 130,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'glutstoss'], [10, 'onifaust'], [13, 'prankenhieb'], [16, 'kampfschrei'], [20, 'grimmstoss'], [24, 'seelenbrand']],
+      desc: 'Ein riesiger Oni mit Hörnern aus Glut und einem Mantel aus Rauch. Er bewacht verlassene Dojos, als warte er noch immer auf den Gong zum Training.' }
+  };
+  for (const [id, s] of Object.entries(SP20)) { const [hp, atk, def, spd] = s.base; G.SPECIES[id] = Object.assign({}, s, { type: s.types[0], base: { hp, atk, def, spd } }); }
+  G.NEW20 = Object.keys(SP20);
+
   // ---------- v17: Kampfrollen (nur Tendenzen, keine Extreme; Anzeige in Chronik und Team-Übersicht) ----------
   // Tank: viel LP/Verteidigung, langsam · Sweeper: hoher Angriff + schnell, dünn · Speedster: sehr schnell · Bruiser: LP + Angriff, eher langsam
   // Support: robust, schwächerer Angriff, heilt/stärkt sich · Status: setzt Zustände und senkt Werte
@@ -674,6 +694,7 @@ window.G = window.G || {};
     sumpfnatter: 'Status', grubenkaefer: 'Tank', keilerling: 'Bruiser', mondluchs: 'Speedster', tiefenkalb: 'Tank', funkenkueken: 'Sweeper', farnkitz: 'Support',
     glimmerwurm: 'Bruiser', schilfotter: 'Sweeper', glockenrabe: 'Status'
   };
+  Object.assign(ROLE_OF, { klingengeist: 'Sweeper', oniasche: 'Bruiser' });   // v20
   Object.assign(ROLE_OF, { aschmotte: 'Status', kohlenbaer: 'Tank', funkenfalke: 'Speedster', nebelqualle: 'Support', strudelhecht: 'Sweeper', gewitterkauz: 'Sweeper',
     surrlibelle: 'Speedster', moosschnecke: 'Tank', pilzhexe: 'Status', kieselkroete: 'Tank', geodenwidder: 'Bruiser', traumfalter: 'Support', schlickaal: 'Status',
     faustbiber: 'Bruiser', grabmaulwurf: 'Bruiser' });
@@ -710,12 +731,14 @@ window.G = window.G || {};
     // v19
     'aschmotte', 'kohlenbaer', 'essenbaer', 'funkenfalke', 'nebelqualle', 'strudelhecht', 'gewitterkauz', 'surrlibelle', 'moosschnecke', 'pilzhexe',
     'kieselkroete', 'geodenwidder', 'drusenbock', 'traumfalter', 'schlickaal', 'faustbiber', 'grabmaulwurf',
+    // v20: Dojo-Geister vom Aschehang
+    'oniasche', 'onigluetfuerst', 'klingengeist',
     'nebelahn', 'nachtmahr', 'fyrlumen'];
   // v15: neue Tier- und Naturgeister (15) und seltene Sondergeister (4 Linien)
   G.NEW15 = ['tauhase', 'funkmaus', 'moosigel', 'farnigel', 'gischtkrebs', 'glimmfuchs', 'glutfaehe', 'tropfsteinmolch', 'kristallmolch', 'flatterhauch',
     'blitzreiher', 'sumpfnatter', 'grubenkaefer', 'keilerling', 'moorkeiler'];
   G.RARE = ['mondluchs', 'sternenluchs', 'tiefenkalb', 'nebelwal', 'funkenkueken', 'aschephoenix', 'farnkitz', 'hainhirsch', 'kronenhirsch',
-    'glimmerwurm', 'drusenlindwurm', 'schilfotter', 'wogenotter', 'glockenrabe', 'seelenrabe'];
+    'glimmerwurm', 'drusenlindwurm', 'schilfotter', 'wogenotter', 'glockenrabe', 'seelenrabe', 'klingengeist'];
   // Stufenweise: noch nicht freigeschaltete Geister erscheinen nicht in der Chronik
   G.SPECIES_ORDER = G.SPECIES_ORDER.filter(sp => (G.FEAT.rare || !G.RARE.includes(sp)) && (G.FEAT.cave || sp !== 'nachtmahr') && (G.FEAT.legend || sp !== 'fyrlumen'));
   // Starter-Dreieck: Feuer schlägt Pflanze, Pflanze schlägt Wasser, Wasser schlägt Feuer
@@ -734,7 +757,7 @@ window.G = window.G || {};
   // Starter-Linien (Flackerling, Pfützling, Blattling + Entwicklungen) kommen nirgends wild vor – nur bei Beschwörern.
   G.WILD = [['tauhase', 28], ['schattenmotte', 26], ['moosigel', 22], ['laternchen', 18], ['moosschnecke', 16], ['aschmotte', 14], ['kleeling', 6]];
   // Story-Reihenfolge der Wildgebiete; Level steigen monoton (siehe README «Level-Kurve»)
-  G.ZONE_ORDER = ['nebelgras', 'kuestengras', 'hoehle', 'schilfrand', 'torfstich', 'kapelle', 'moorherz'];
+  G.ZONE_ORDER = ['nebelgras', 'kuestengras', 'hoehle', 'schilfrand', 'torfstich', 'kapelle', 'moorherz', 'aschehang'];   // v20: Aschehang (Nebelinsel)
   G.WILD_AREAS = {
     // Dorf-Nebelgras: Wiesen- und Feldgeister
     nebelgras: { name: 'Nebelgras', tile: '"', rate: 0.055, lvl: [2, 6], table: G.WILD, rare: 'kleeling' },
@@ -755,7 +778,10 @@ window.G = window.G || {};
       table: [['hauchling', 28], ['grabfalter', 20], ['schleierkauz', 18], ['moorranke', 18], ['traumfalter', 16], ['pilzhexe', 14], ['totenleuchte', 8]] },
     // Moorherz (Tiefes Moor, Torffeld bei Jorins Hütte): die ältesten, stärksten Geister
     moorherz: { name: 'Moorherz', tile: 'm', map: 'tiefesmoor', region: [2, 21, 7, 27], rate: 0.06, lvl: [13, 16], rare: 'kristallmolch',
-      table: [['moderhut', 26], ['grimmdachs', 22], ['farnigel', 22], ['strudelhecht', 18], ['gewitterkauz', 16, 'night'], ['kristallmolch', 8]] }
+      table: [['moderhut', 26], ['grimmdachs', 22], ['farnigel', 22], ['strudelhecht', 18], ['gewitterkauz', 16, 'night'], ['kristallmolch', 8]] },
+    // v20: Aschehang (Nebelinsel) – verkohltes Bambusgras an der Laternenstiege und im Glutgarten
+    aschehang: { name: 'Aschehang', tile: 'a', map: 'aschehang', rate: 0.07, lvl: [14, 17], rare: 'oniasche',
+      table: [['aschmotte', 28], ['funkenfalke', 24], ['kohlenbaer', 22], ['faustbiber', 16], ['oniasche', 7]] }
   };
   // v15 ohne Klippenhöhle (kommt in v16): Höhlenbewohner vorerst an Küstenfelsen und Grabsteinen – der Molch an der Brandung, die Fledermaus bei der Kapelle
   if (!G.FEAT.cave) { G.WILD_AREAS.kuestengras.table.push(['tropfsteinmolch', 12]); G.WILD_AREAS.torfstich.table.push(['kieselgeist', 16]); G.WILD_AREAS.kapelle.table.push(['flatterhauch', 16]); delete G.WILD_AREAS.hoehle; G.ZONE_ORDER = G.ZONE_ORDER.filter(z => z !== 'hoehle'); }
@@ -774,7 +800,9 @@ window.G = window.G || {};
     { sp: 'schilfotter', zone: 'schilfrand', lvl: [10, 12], cond: 'reeds', hint: 'tief im Schilf, wo ringsum nur Schilf ist' },
     { sp: 'funkenkueken', zone: 'torfstich', lvl: [11, 13], cond: 'lantern', hint: 'neben einer entzündeten Moorlaterne' },
     { sp: 'glockenrabe', zone: 'kapelle', lvl: [13, 15], cond: 'bell', hint: 'nahe der versunkenen Glocke' },
-    { sp: 'farnkitz', zone: 'moorherz', lvl: [13, 15], cond: 'hidden', hint: 'in der verborgenen Ecke des Moorherzens' }
+    { sp: 'farnkitz', zone: 'moorherz', lvl: [13, 15], cond: 'hidden', hint: 'in der verborgenen Ecke des Moorherzens' },
+    // v20: erst wenn die Glut am Dojo zur Ruhe gekommen ist – im Bambusgras neben einem Glutnest
+    { sp: 'klingengeist', zone: 'aschehang', lvl: [15, 17], cond: 'ember', hint: 'im Bambusgras direkt neben einem Glutnest, nachdem das Dojo gefallen ist' }
   ];
 
   // ---------- Gegenstände ----------
@@ -808,7 +836,12 @@ window.G = window.G || {};
     kompass:      { name: 'Vaters Kompass', kind: 'key', battle: false, field: false,
       desc: 'Messing, mit einem Sprung im Glas. Vater hatte ihn auf jeder Fahrt dabei.' },
     marenslaterne:{ name: 'Marens Laterne', kind: 'key', battle: false, field: false,
-      desc: 'Eine verbeulte Laterne mit einem eingeritzten «M». Sie ist kalt, aber nicht leer.' }
+      desc: 'Eine verbeulte Laterne mit einem eingeritzten «M». Sie ist kalt, aber nicht leer.' },
+    // v20: Hinweise vom Aschehang (ungelöstes Rätsel)
+    schriftrolle: { name: 'Verkohlte Schriftrolle', kind: 'key', battle: false, field: false,
+      desc: 'Die Ränder sind verbrannt. Lesbar ist nur eine Zeile: «… er hat die Ketten selbst gelöst.»' },
+    maskensplitter:{ name: 'Maskensplitter', kind: 'key', battle: false, field: false,
+      desc: 'Ein Stück einer schwarzen Lackmaske vom Dojo-Schrein. Innen ist es warm – und es riecht nach geschmolzenem Glas.' }
   };
 
   // ---------- v18: Münzen & Marktstube ----------
@@ -886,6 +919,39 @@ window.G = window.G || {};
       intro: ['Mandy: Also gut. Hans, du nimmst links.', 'Hans: Ich nehme immer links. Links ist meine Schokoladenseite.'],
       lose: ['Der Nachtmahr zieht sich zischend in Mandys Glaslaterne zurück. Seine Augen glimmen noch einen Moment hinter dem Glas.', 'Mandy: Das war nur ein Aufwärmen. Nur damit das klar ist.',
         'Hans: Ich finde ja, wir haben gut ausgesehen.'],
+      after: [] },
+    // v20: Das Schwarze Dojo am Aschehang (Nebelinsel) – Kuroganes Gefolge; Kurogane selbst tritt noch nicht an
+    ronin: { name: 'Ronin der Asche', title: 'Schwarzes Dojo', area: 'aschehang', pos: [14, 41], sight: 3,
+      team: [['faustbiber', 13], ['aschmotte', 13], ['kohlenbaer', 14]],
+      reward: { kraeutertee: 2, brandsalbe: 1 },
+      intro: ['Unter dem Zähne-Mempo glimmen zwei rote Augen. Asche rieselt aus den Fugen seiner Rüstung.',
+        'Ronin: Noch ein Fremder auf der Stiege. Der Berg hat dich nicht gerufen. Kehr um – oder zeig mir deine Klinge.'],
+      lose: ['Die gesprungene Klinge des Ronin glimmt auf und erlischt. Er senkt den Kopf.', 'Ronin: … Dann geh. Aber oben wartet niemand mehr, der dir den Weg zeigt.'],
+      after: ['Ronin: Ich habe dem Dojo zwanzig Winter gedient. Seit jener Nacht weiss ich nicht mehr, wem.'] },
+    schattenklinge: { name: 'Schattenklinge', title: 'Schwarzes Dojo', area: 'aschehang', pos: [15, 33], sight: 3,
+      team: [['funkenfalke', 14], ['schlickaal', 14], ['surrlibelle', 15], ['pilzhexe', 15]],
+      reward: { starktee: 1, laterne: 2 },
+      intro: ['Aus dem Rauch tritt eine Gestalt in Dunkelviolett. Eine gesprungene weisse Fuchsmaske, zwei Kurzklingen.',
+        'Schattenklinge: Du hast den Ronin besiegt? Dann bist du entweder stark – oder hast Glück. Finden wir es heraus.'],
+      lose: ['Schattenklinge: Kein Glück. Gut.', 'Die Maske neigt sich. Im nächsten Moment ist da nur noch Rauch.'],
+      after: ['Schattenklinge: Die Mauer links ist kürzer, die Brücke rechts ist schöner. Beide führen zum Kettenhof.'] },
+    kettenwaechter: { name: 'Kettenwächter', title: 'Schwarzes Dojo', area: 'aschehang', pos: [15, 11], sight: 0,
+      ask: ['Ein Hüne aus Eisenplatten versperrt das Haupttor. Ketten laufen von seinen Armen zu einem Geist hinter ihm.',
+        'Kettenwächter: … Niemand geht durch dieses Tor. Nicht seit jener Nacht.'],
+      askQ: 'Kettenwächter: Willst du es trotzdem versuchen?',
+      decline: ['Die Ketten klirren. Der Wächter rührt sich nicht.'],
+      team: [['kieselkroete', 16], ['moorkeiler', 16], ['drusenbock', 17]],
+      reward: { starktee: 2, nachtkerze: 1 },
+      intro: ['Kettenwächter: Dann zieh.', 'Die Kettensichel schleift über den Stein. Funken springen.'],
+      lose: ['Die Ketten fallen klirrend zu Boden. Der Wächter tritt langsam beiseite.', 'Kettenwächter: Er hat uns gesagt, wir sollen das Tor halten. Er hat nicht gesagt, wie lange.'],
+      after: ['Kettenwächter: Geh hinein. Ich halte hier nichts mehr fest.'] },
+    klingenmeister: { name: 'Klingenmeister', title: 'Schwarzes Dojo', area: 'aschehang', pos: [15, 4], sight: 0, boss: true, noFlee: true, noCatch: true,
+      team: [['essenbaer', 17], ['glutfaehe', 17], ['gewitterkauz', 18], ['onigluetfuerst', 19]],
+      reward: { starktee: 2, mondlaterne: 2 },
+      intro: ['Vor dem Schrein kniet eine Gestalt in Schwarz und Gold. Ein Geweihhelm aus verbranntem Holz, ein Umhang aus Rauch.',
+        'Klingenmeister: Du hast den Wächter am Tor bezwungen. Dann bist du gekommen, um zu sehen, was hier geschehen ist.',
+        'Klingenmeister: Ich zeige es dir. Mit der Klinge – so wie es sich in diesem Dojo gehört.'],
+      lose: ['Der Klingenmeister lässt das Schwert sinken. Der Rauchumhang zerfasert.'],
       after: [] },
     kaspar: { name: 'Kaspar Graumantel', title: 'Geisterbeschwörer', area: 'tiefesmoor', pos: [18, 9], sight: 4,
       team: [['grabfalter', 12], ['raufdachs', 12], ['hauchling', 13]],

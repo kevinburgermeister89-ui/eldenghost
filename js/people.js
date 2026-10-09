@@ -90,6 +90,12 @@
     if (!up && c.item === 'hammer') { S.C(hx, by - 3 + hy2, hx, by + 3 + hy2, 1.2, '#6a4a30'); S.R(hx - 2, by - 5 + hy2, 4, 2.6, '#6a6c7a').R(hx - 2, by - 5 + hy2, 4, 0.7, '#9a9cac', { flat: true, line: false }); }
     if (!up && c.item === 'sack') { S.E(side ? cx + 4.5 : cx - 5.8, by + 2.5, 2.8, 3.2, '#d8c8a0', { name: 'sack' }); S.C(side ? cx + 3.6 : cx - 6.6, by + 0.6, side ? cx + 5.4 : cx - 5, by + 0.6, 0.6, '#8a7a5a', { clip: 'sack', flat: true, line: false }); }
     if (c.item === 'sword') S.C(up ? cx + 3 : cx - 3.4, by - 5, up ? cx - 2 : cx + 1.8, by + 3.2, 1, '#a07848', { g: up ? 'swordF' : 'swordB' });
+    // v20: Klingen des Schwarzen Dojos – gesprungene, glimmende Klinge (Ronin), zwei Kurzklingen (Schattenklinge), Kettensichel (Kettenwächter)
+    if (c.item === 'katana') { const bx = up ? cx + 4.6 : side ? cx - 3 : cx + 5.4; S.C(bx, by + 2, bx + (side ? -3.6 : 1.2), by - 7, 1.1, '#c8c4d0', { g: up ? 'bladeB' : 'blade', name: 'blade' }); S.C(bx + (side ? -1.6 : 0.5), by - 2, bx + (side ? -2.6 : 0.9), by - 5, 0.5, '#ff7a3a', { clip: 'blade', glow: true, flat: true, line: false }); S.R(bx - 1.2, by + 1.4, 2.4, 0.8, '#3a2a20'); }
+    if (c.item === 'twin' && !up) for (const sg of side ? [1] : [-1, 1]) { const bx = cx + sg * 5.6; S.C(bx, by + 2.2, bx + sg * 1.4, by - 2.8, 0.9, '#d8d4e4', { g: 'twin' + sg }); S.R(bx - 0.9, by + 1.8, 1.8, 0.7, '#4a2a5a'); }
+    if (c.item === 'sickle' && !up) { const bx = side ? cx - 3 : cx + 5.6; S.C(bx, by - 3, bx, by + 3.4, 1, '#5a4a3a'); S.P([[bx, by - 3.4], [bx + (side ? -4 : 4), by - 4.6], [bx + (side ? -3 : 3), by - 2.6]], '#b8b4c4'); }
+    if (c.chains) for (let i = 0; i < 4; i++) S.E(cx - 4 + i * 2.6, by + 3.4 + (i % 2) * 0.6, 1, 0.7, c.chains, { flat: true, g: 'chain' + i });
+    if (c.plates) { S.R(cx - 5.6, by - 3.8, 3.6, 2.4, c.plates, { g: 'plate' }); if (!side) S.R(cx + 2, by - 3.8, 3.6, 2.4, c.plates, { g: 'plate' }); S.R(cx - 3.6, by - 0.6, 7.2, 1, shade(c.plates, 0.7), { clip: 'body', flat: true, line: false }); }
     if (!up && c.item === 'book') S.R(side ? cx - 3.6 : cx + 3.4, by, 3, 3.6, '#5a3a6a', { name: 'book' }).R(side ? cx - 3.6 : cx + 3.4, by + 1.4, 3, 0.6, '#e8d890', { clip: 'book', flat: true, line: false });
     // ---- Kopf ----
     const hair = c.hood || c.hair;
@@ -140,6 +146,15 @@
     if (c.hood) { S.E(cx, hy - hr + 1.6, hr - 1.2, 1.6, c.hoodRim || c.hood, { clip: 'head', line: false }); S.C(cx - hr + 1, hy + 1, cx - hr + 1.6, hy + 4, 0.5, shade(c.hood, 0.7), { clip: 'head', flat: true, line: false }); }
     if (c.hat) { S.E(cx, hy - hr + 2.6, hr + 1.6, 1.4, c.hat, { g: 'hat' }); S.E(cx, hy - hr + 1, hr - 1.5, 2.4, c.hat, { g: 'hat', name: 'crown' }); if (c.hatBand) S.R(cx - hr, hy - hr + 1.8, hr * 2, 0.8, c.hatBand, { clip: 'crown', flat: true, line: false }); if (c.badge && !up) S.E(side ? cx - 2 : cx, hy - hr + 1, 0.9, 0.8, c.badge, { glow: true }); }
     if (c.cap) { S.E(cx, hy - hr + 2.2, hr - 0.3, 2.6, c.cap, { g: 'hat', name: 'cap' }); if (!up) S.E(side ? cx - hr + 1.6 : cx, hy - hr + 4, side ? 2.4 : 3.6, 0.8, shade(c.cap, 0.7), { g: 'hat' }); }
+    // v20: Helme und Masken (Schwarzes Dojo)
+    if (c.helm) { S.E(cx, hy - 2.4, hr + 0.4, hr - 2, c.helm, { g: 'helm', name: 'helm' }); S.R(cx - hr - 0.6, hy - 1.6, 2.2, 4.4, c.helm, { g: 'helm' }).R(cx + hr - 1.6, hy - 1.6, 2.2, 4.4, c.helm, { g: 'helm' }); S.R(cx - hr, hy - 1.4, hr * 2, 0.8, shade(c.helm, 0.6), { clip: 'helm', flat: true, line: false }); }
+    if (c.antlers) for (const sg of [-1, 1]) { const ax = cx + sg * 3.6, ay = hy - hr + 1; S.C(ax, ay, ax + sg * 2.6, ay - 4.4, 0.9, c.antlers, { g: 'ant' + sg }); S.C(ax + sg * 1.4, ay - 2.2, ax + sg * 3.6, ay - 2.6, 0.7, c.antlers, { g: 'ant' + sg }); S.C(ax + sg * 2.2, ay - 3.6, ax + sg * 1.6, ay - 6, 0.6, c.antlers, { g: 'ant' + sg }); }
+    if (c.mask && !up) {
+      const mx = side ? cx - 2.2 : cx, mw = side ? 3.2 : 4.4;
+      if (c.mask === 'mempo') { S.E(mx, hy + 3.4, mw, 2.4, '#1e1a22', { name: 'mempo' }); for (let i = -2; i <= 2; i++) if (!side || i <= 0) S.R(mx + i * 1.2 - 0.3, hy + 3.4, 0.6, 1, '#e8e0d0', { clip: 'mempo', flat: true, line: false }); }
+      if (c.mask === 'fox') { S.P([[mx - mw, hy - 0.6], [mx + mw, hy - 0.6], [mx + (side ? -1 : 0), hy + 5.6]], '#f4f0ea', { name: 'fox' }); S.C(mx - 1.6, hy + 0.8, mx - 0.6, hy + 1.4, 0.5, '#c83a4a', { clip: 'fox', flat: true, line: false }); if (!side) S.C(mx + 1.6, hy + 0.8, mx + 0.6, hy + 1.4, 0.5, '#c83a4a', { clip: 'fox', flat: true, line: false }); S.C(mx + 0.4, hy - 0.4, mx + 1.4, hy + 3.4, 0.35, '#5a5060', { clip: 'fox', flat: true, line: false }); }
+    }
+    if (c.redEyes && !up) { const ey2 = hy + 1.2; if (side) S.R(cx - 4.2, ey2, 1.2, 1.2, '#ff3a2a', { glow: true, flat: true, line: false }); else S.R(cx - 2.8, ey2, 1.3, 1.2, '#ff3a2a', { glow: true, flat: true, line: false }).R(cx + 1.5, ey2, 1.3, 1.2, '#ff3a2a', { glow: true, flat: true, line: false }); }
     if (c.veil) S.P(side ? [[cx - 2, hy - hr + 0.6], [cx + hr + 0.6, hy - 1], [cx + hr + 1.2, by + 1], [cx + 2, by - 1]] : [[cx - hr - 0.6, hy - 1], [cx + hr + 0.6, hy - 1], [cx + hr + 1.4, by], [cx - hr - 1.4, by]], c.veil, up ? { name: 'veil' } : { name: 'veil', g: 'veilB' });
     return A.raster(S, W * K, HH * K, K, { mirror: false, thin: false, bold: true });
   }
@@ -181,6 +196,12 @@
     // v18: Krämerin Frida (Marktstube) – Kopftuch, Schürze mit Taschen, Wollschal; Anselm, ein alter Flösser mit Hut und Pfeife
     frida:     { hair: '#7a4a2e', skin: '#f0d4bc', body: '#6a3a4a', skirt: '#3a2e3e', apron: '#d8c8a0', scarf: '#c8a040', bun: true, cheek: true, belt: '#4a3424', brows: '#6a3a24' },
     anselm:    { hair: '#a8a8b0', skin: '#dcbca4', body: '#4a4638', coat: '#4a4638', buttons: '#8a7a5a', legs: '#2e2c26', boot: '#1e1c18', beard: '#c0c0c8', hat: '#2e2a24', hatBand: '#6a5a3a', pipe: true, cheek: false, brows: '#c0c0c8' },
+    // v20: Aschehang – Fischerin Hanne (Rauchbucht) und das Gefolge des Schwarzen Dojos
+    hanne:          { hair: '#8a8a90', skin: '#e0c0a8', body: '#4a5a5a', legs: '#2e3434', boot: '#1e2222', scarf: '#a85a3a', cap: '#3a4a4a', cheek: false, brows: '#8a8a90', apron: '#6a6050' },
+    ronin:          { hair: '#141016', skin: '#5a4a4a', body: '#1e1a20', legs: '#16121a', boot: '#0e0c10', helm: '#2a2428', mask: 'mempo', redEyes: true, plates: '#34303a', item: 'katana', cheek: false, belt: '#5a2a1a' },
+    schattenklinge: { hair: '#1a1024', skin: '#d8c8d0', body: '#3a2050', legs: '#24143a', boot: '#140c1c', hood: '#2e1a42', hoodRim: '#4a2a66', mask: 'fox', item: 'twin', cheek: false, scarf: '#5a2a6a' },
+    kettenwaechter: { hair: '#2a2626', skin: '#8a7a70', body: '#3e3a40', legs: '#2a262c', boot: '#18161a', helm: '#4a464e', plates: '#6a6670', chains: '#8a8690', item: 'sickle', redEyes: true, cheek: false, belt: '#2a2024' },
+    klingenmeister: { hair: '#100c10', skin: '#4a3a3a', body: '#141014', legs: '#100c10', boot: '#080608', helm: '#1a1416', antlers: '#4a3426', mask: 'mempo', redEyes: true, plates: '#b8902a', cape: '#3a3640', item: 'katana', cheek: false, belt: '#b8902a' },
     alwine: { hair: '#d8d0e8', skin: '#f0dccc', body: '#dcd8ec', robe: '#c4bedc', veil: '#eeeaf8', pendant: '#bfe8ff', cheek: true, item: 'book', legs: '#8a84a4', boot: '#6a6488' }
   };
   const DIRS3 = ['down', 'up', 'left'];

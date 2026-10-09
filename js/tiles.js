@@ -19,7 +19,10 @@
       path: '#3e3a3c', pathD: '#322e32', pathL: '#4c4648', edge: '#161e1a', leaf: ['#2c4638', '#383a58'], trunk: '#3e302a' },
     // v15 Klippenhöhle: kühler, violettgrauer Fels, warmer Geröllboden
     cave: { g: '#2b2731', gD: '#221e28', gL: '#36313d', tip: '#433c4a', tall: '#3a3030', tallL: '#4a3e3c', tallT: '#5c4e48', tallD: '#231c1e',
-      path: '#34303a', pathD: '#2a2630', pathL: '#403a46', edge: '#1a1720', leaf: ['#2c4638', '#383a58'], trunk: '#3e302a' }
+      path: '#34303a', pathD: '#2a2630', pathL: '#403a46', edge: '#1a1720', leaf: ['#2c4638', '#383a58'], trunk: '#3e302a' },
+    // v20 Aschehang: Aschegrau, verkohltes Gras, schwarzer Stein, Glut
+    asche: { g: '#3a3434', gD: '#2c2727', gL: '#4a4342', tip: '#5e5450', tall: '#33292a', tallL: '#5e4a38', tallT: '#94704a', tallD: '#1a1514',
+      path: '#45403f', pathD: '#363131', pathL: '#58514f', edge: '#1c1818', leaf: ['#3a2e2a', '#463634'], trunk: '#2a2020' }
   };
   const pal = m => PAL[m.theme] || PAL.dorf;
   const isPath = c => c === ',' || c === 'D';
@@ -61,6 +64,7 @@
       }
       return;
     }
+    if (m.theme === 'asche' && ashGround(d, m, x, y, c, R, P, grass)) return;
     switch (c) {
       case ',': case 'D': {
         d.r(0, 0, 16, 16, P.path);
@@ -136,6 +140,40 @@
       case 'b': case '~': case 'w': if (m.theme === 'moor') { d.r(0, 0, 16, 16, P.g); break; } grass(1); break;
       default: grass(c === '.' ? 2 : 1);
     }
+  }
+  // v20: Aschehang-Böden – verbrannter Bambus (Begegnungsgras), Glutnest, Dojo-Dielen, verkohlte Mauer
+  function ashGround(d, m, x, y, c, R, P, grass) {
+    if (c === 'a') {
+      d.r(0, 0, 16, 16, P.tall);
+      for (let i = 0; i < 5; i++) { const bx = 1 + i * 3 + (R(i) * 2 | 0), top = 1 + (R(i + 9) * 5 | 0);
+        d.r(bx, top, 1, 14 - top, i % 2 ? P.tallL : '#3c3029'); d.p(bx, top, P.tallT); d.r(bx, top + 4 + (R(i + 3) * 3 | 0), 1, 1, P.tallD);
+        if (R(i + 20) < 0.5) d.p(bx + 1, top + 2, P.tallL); }
+      d.r(0, 14, 16, 2, P.tallD); if (R(40) < 0.3) d.p(3 + R(41) * 10 | 0, 13, '#ff7a30');
+      return true;
+    }
+    if (c === 'E') {
+      grass(0); d.r(2, 3, 12, 10, '#1e1614'); d.r(1, 5, 14, 6, '#1e1614'); d.r(3, 4, 10, 8, '#2e1c16');
+      for (const [a, b, w] of [[4, 6, 4], [7, 8, 5], [5, 10, 3], [9, 5, 3]]) { d.r(a, b, w, 1, '#c84a1a'); d.p(a + 1, b, '#ffb040'); }
+      d.p(7, 7, '#ffe08a'); d.p(10, 9, '#ffd060'); d.r(3, 12, 10, 1, '#141010');
+      return true;
+    }
+    if (c === 'p') {
+      d.r(0, 0, 16, 16, '#3a2a22');
+      for (let i = 0; i < 16; i += 4) { d.r(0, i, 16, 1, '#4a372c'); d.r(0, i + 3, 16, 1, '#221812'); }
+      d.r(((y % 2) * 8 + 5) % 16, 0, 1, 16, '#221812');
+      if (R(2) < 0.35) { const px = 2 + R(3) * 10 | 0, py = 2 + R(4) * 10 | 0; d.r(px, py, 4, 3, '#1a1210'); d.p(px + 1, py + 1, '#5a2a18'); }
+      if (R(5) < 0.12) d.p(3 + R(6) * 10 | 0, 3 + R(7) * 10 | 0, '#ff8a3a');
+      return true;
+    }
+    if (c === 'u') {
+      const isU = (a, b) => at(m, a, b) === 'u', dn = !isU(x, y + 1), up = !isU(x, y - 1), lf = !isU(x - 1, y), rt = !isU(x + 1, y), capH = dn ? 9 : 16;
+      d.r(0, 0, 16, capH, '#3a3232'); for (let k = 0; k < 16; k += 8) d.r(k + ((y % 2) * 4), 0, 1, capH, '#2a2424');
+      if (up) d.r(0, 0, 16, 1, '#5a4e4a'); if (lf) d.r(0, 0, 1, capH, '#100c0c'); if (rt) d.r(15, 0, 1, capH, '#100c0c');
+      if (dn) { d.r(0, 9, 16, 7, '#2a2222'); d.r(0, 9, 16, 1, '#100c0c'); d.r(0, 12, 16, 1, '#1e1818'); d.r(0, 15, 16, 1, '#100c0c'); }
+      if (R(3) < 0.4) { const px = R(4) * 12 | 0; d.r(px, 2, 3, 2, '#1a1414'); d.p(px + 1, 3, '#a8401a'); }
+      return true;
+    }
+    return false;
   }
   function caveFloor(d, R, P) {
     d.r(0, 0, 16, 16, P.g);
@@ -260,8 +298,58 @@
     return (OC[key] = G.Art.raster(S, 9, 6, 1, { thin: true }));
   }
   // alle Objekte einer Karte in Zeilenreihenfolge (weiter unten = davor)
+  // v20 Aschehang-Objekte: toter Baum, umgestürzte Steinlaterne, Torii im Wasser, brennender Kirschbaum, Kettenreste, Schrein
+  function deadTree(v) {
+    const key = 'dT' + v; if (OC[key]) return OC[key];
+    const S = S0(), bark = '#2a2020';
+    SH(S, 8, 20.5, 5.5, 1.6);
+    S.P([[5.5, 21], [6.8, 10], [4, 4], [5.5, 4], [8, 8.5], [10.5, 2.5], [12, 3], [9.4, 11], [10.5, 21]], bark, { g: 'trunk' });
+    if (v) S.C(8.6, 9, 13.5, 7, 0.9, bark, { g: 'br' });
+    S.E(8, 16, 0.8, 1.2, '#ff7a30', { glow: true, flat: true, line: false });
+    return (OC[key] = G.Art.raster(S, 16, 22, 1));
+  }
+  function ashObj(c, v) {
+    const key = 'A' + c + v; if (OC[key]) return OC[key];
+    const S = S0(); let w = 16, h = 16;
+    if (c === 'Z') {   // umgestürzte Steinlaterne
+      SH(S, 8, 13, 7, 1.4); S.R(1, 8, 9, 4, '#6a625e', { g: 'body' }).R(9, 7, 3, 6, '#5a524e', { g: 'cap' }).P([[12, 6], [15, 9.5], [12, 13]], '#4e4644', { g: 'roof' }); S.R(3, 9, 2, 2, '#1a1414', { flat: true, line: false });
+      if (v) S.E(4, 13, 1.6, 0.9, '#3a3432', { flat: true, line: false });
+    } else if (c === 'I') {   // Torii-Teilstück, halb im Wasser
+      h = 16; S.R(0, 5, 16, 2.4, '#8a2a20', { g: 'beam' }).R(0, 4, 16, 1.2, '#2a1a18', { g: 'top' });
+      if (v === 0) S.R(3, 7, 2.2, 7, '#7a2620', { g: 'post' }); if (v === 2) S.R(10, 7, 2.2, 7, '#7a2620', { g: 'post' });
+      S.R(0, 13, 16, 1, '#5a7a9a', { flat: true, line: false, alpha: 0.6 });
+    } else if (c === 'C') {   // brennender Kirschbaum (16×24)
+      h = 24; SH(S, 8, 22.5, 6.5, 1.6);
+      S.R(6.8, 13, 2.6, 10, '#3a2620', { g: 'trunk' }).C(8, 15, 3, 10, 1, '#3a2620', { g: 'br' }).C(8, 14, 13, 9, 1, '#3a2620', { g: 'br2' });
+      S.E(8, 8, 7.4, 5.6, '#a83a3a', { g: 'crown' }).E(4.5, 10, 3.6, 3, '#c84a3a', { g: 'lo' }).E(11.5, 10, 3.6, 3, '#c84a3a', { g: 'lo' });
+      S.E(7, 5.5, 3, 2.2, '#ff9a4a', { glow: true, g: 'fire' }).E(11, 8, 1.8, 1.4, '#ffb050', { glow: true }).E(4, 9, 1.6, 1.2, '#ff8a3a', { glow: true }).E(8, 3, 1.4, 1.6, '#ffe08a', { glow: true });
+    } else if (c === 'K') {   // zerbrochene Kettenglieder
+      SH(S, 8, 12, 6.5, 1.2);
+      for (let i = 0; i < 4; i++) S.E(3 + i * 3.4, 9 + (i % 2 ? -1 : 1) * (v ? 1 : 0.4), 2, 1.3, '#5a5a62', { g: 'l' + i });
+      S.E(14, 6, 1.6, 1.1, '#4a4a52', { g: 'l9' });
+    } else if (c === 'Q') {   // Schrein (32×24) mit gespaltener schwarzer Maske
+      w = 32; h = 24; SH(S, 16, 22.5, 14, 1.6);
+      S.R(3, 12, 26, 10, '#3a2a22', { g: 'base' }).P([[0, 13], [6, 4], [26, 4], [32, 13]], '#241a18', { g: 'roof' }).R(5, 13, 22, 1.2, '#7a2a20', { flat: true, line: false });
+      S.E(16, 17, 3.6, 4, '#0e0a0c', { g: 'mask' }).R(15.6, 13, 0.8, 8, '#ff7a3a', { glow: true, flat: true, line: false }).E(14.4, 16, 0.8, 0.6, '#ff5a3a', { glow: true, flat: true, line: false }).E(17.6, 16, 0.8, 0.6, '#ff5a3a', { glow: true, flat: true, line: false });
+    }
+    return (OC[key] = G.Art.raster(S, w, h, 1));
+  }
   function objects(g, m) {
     const th = m.theme === 'moor' ? 'moor' : 'dorf';
+    if (m.theme === 'asche') {
+      for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
+        const c = m.tiles[y][x], X = x * T, Y = y * T, R = hash(x, y, 5);
+        if (c === 'T') g.drawImage(deadTree(R < 0.5 ? 1 : 0), X, Y - 6);
+        else if (c === 'Z' || c === 'K') g.drawImage(ashObj(c, R < 0.5 ? 1 : 0), X, Y);
+        else if (c === 'I') g.drawImage(ashObj('I', at(m, x - 1, y) !== 'I' ? 0 : at(m, x + 1, y) !== 'I' ? 2 : 1), X, Y);
+        else if (c === 'C') g.drawImage(ashObj('C', 0), X, Y - 8);
+        else if (c === 'Q' && at(m, x - 1, y) !== 'Q') g.drawImage(ashObj('Q', 0), X, Y - 8);
+        else if (c === 'S') g.drawImage(sign(), X, Y);
+        else if (c === 'r') g.drawImage(rock(R < 0.5 ? 1 : 0), X, Y);
+        else if (c === 'b') { const v = at(m, x, y - 1) === 'b' || at(m, x, y + 1) === 'b', hh = at(m, x - 1, y) === 'b' || at(m, x + 1, y) === 'b'; g.drawImage(plank(v && hh ? 'x' : v ? 'v' : 'h'), X, Y); }
+      }
+      return;
+    }
     for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
       const c = m.tiles[y][x], X = x * T, Y = y * T, R = hash(x, y, 5);
       switch (c) {

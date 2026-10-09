@@ -17,11 +17,13 @@
     { id: 'kuestenweg', name: zn('kuestengras', 'Küstenweg'), x: 112, y: 44, icon: 'kueste', region: 'kueste' },
     { id: 'hoehle', name: zn('hoehle', 'Klippenhöhle'), x: 108, y: 14, icon: 'hoehle', region: 'kueste' },
     { id: 'leuchtturm', name: 'Leuchtturm', x: 142, y: 22, icon: 'turm', region: 'kueste' },
-    { id: 'hafen', name: 'Hafen', x: 140, y: 70, icon: 'hafen', region: 'kueste' }
+    { id: 'hafen', name: 'Hafen', x: 140, y: 70, icon: 'hafen', region: 'kueste' },
+    // v20: Nebelinsel draussen im Meer (Überfahrt mit der «Nebelschwalbe»)
+    { id: 'aschehang', name: 'Aschehang (Nebelinsel)', x: 146, y: 104, icon: 'insel', region: 'insel' }
   ];
   const BY = Object.fromEntries(NODES.map(n => [n.id, n]));
   const LINKS = [['dorf', 'nebelgras'], ['nebelgras', 'schilfrand'], ['schilfrand', 'kapelle'], ['schilfrand', 'torfstich'], ['kapelle', 'moorherz'], ['torfstich', 'moorherz'],
-    ['torfstich', 'nebelsee'], ['nebelgras', 'kuestenweg'], ['kuestenweg', 'hoehle'], ['kuestenweg', 'leuchtturm'], ['hoehle', 'leuchtturm'], ['kuestenweg', 'hafen']];
+    ['torfstich', 'nebelsee'], ['nebelgras', 'kuestenweg'], ['kuestenweg', 'hoehle'], ['kuestenweg', 'leuchtturm'], ['hoehle', 'leuchtturm'], ['kuestenweg', 'hafen'], ['hafen', 'aschehang']];
   // Spielkarte + Kachel -> Gebiet (Innenräume zählen dort, wo ihre Tür liegt)
   function nodeAt(mapId, x, y) {
     const m = G.MAPS[mapId];
@@ -36,6 +38,7 @@
     }
     if (mapId === 'kueste') return x <= 10 ? 'kuestenweg' : y <= 9 ? 'leuchtturm' : 'hafen';
     if (mapId === 'hoehle') return 'hoehle';
+    if (mapId === 'aschehang') return 'aschehang';
     return 'dorf';
   }
   function visited() {
@@ -43,10 +46,10 @@
     // ältere Spielstände: aus dem Fortschritt ableiten
     v.dorf = 1; if (story() >= 2) v.nebelgras = 1;
     if (q1() >= 3) v.schilfrand = 1; if (q1() >= 4) v.torfstich = 1; if (q1() >= 5) v.nebelsee = 1;
-    if (story() >= 5) v.kuestenweg = v.leuchtturm = 1; if (flag('quantum')) v.hoehle = 1; if (story() >= 8) v.hafen = 1;
+    if (story() >= 5) v.kuestenweg = v.leuchtturm = 1; if (flag('quantum')) v.hoehle = 1; if (story() >= 8) v.hafen = 1; if (story() >= 9) v.aschehang = 1;
     return v;
   }
-  const unlocked = id => { const r = BY[id].region; return r === 'moor' ? q1() >= 3 : r === 'kueste' ? story() >= 4 : true; };
+  const unlocked = id => { const r = BY[id].region; return r === 'moor' ? q1() >= 3 : r === 'kueste' ? story() >= 4 : r === 'insel' ? story() >= 9 : true; };
   function markVisit() {
     if (!G.state || !G.map || !G.P) return;
     const id = nodeAt(G.map.id, G.P.x, G.P.y), S = G.state;
@@ -55,7 +58,7 @@
   }
 
   // ---- Aufgaben ----
-  const MAIN_AT = () => { const s = story(); return [ 'dorf', 'dorf', 'nebelgras', 'dorf', 'leuchtturm', G.FEAT.cave && !flag('quantum') ? 'hoehle' : 'leuchtturm', 'dorf', 'hafen', 'hafen' ][Math.min(8, s)]; };
+  const MAIN_AT = () => { const s = story(); return [ 'dorf', 'dorf', 'nebelgras', 'dorf', 'leuchtturm', G.FEAT.cave && !flag('quantum') ? 'hoehle' : 'leuchtturm', 'dorf', 'hafen', 'hafen', 'aschehang', 'aschehang', 'aschehang', 'aschehang', 'aschehang' ][Math.min(13, s)]; };
   const Q1_AT = { 1: 'nebelgras', 2: 'nebelgras', 3: 'torfstich', 4: 'nebelsee', 5: 'nebelsee', 6: 'dorf' };
   const Q1_GOAL = {
     1: 'Sprich mit Wido bei den Gräbern im Nebelgras.',
@@ -77,7 +80,7 @@
   ];
   G.SIDEQUESTS = SIDE;
   function quests() {
-    const out = { main: { name: 'Das erloschene Licht', goal: G.Story.goal(), at: MAIN_AT() }, newQ: [], active: [], done: [] };
+    const out = { main: { name: story() >= 9 ? 'Das Schwarze Dojo' : 'Das erloschene Licht', goal: G.Story.goal(), at: MAIN_AT() }, newQ: [], active: [], done: [] };
     for (const q of SIDE) {
       if (q.done()) out.done.push(q);
       else if (q.active()) out.active.push({ q, goal: q.goal(), at: q.goalAt() });
@@ -100,6 +103,7 @@
     kueste(c, x, y) { px(c, x - 8, y - 1, 16, 5, '#c8b890'); px(c, x - 8, y + 3, 16, 2, '#3a6a8a'); px(c, x - 5, y - 3, 1, 3, '#8aa070'); px(c, x + 3, y - 2, 1, 2, '#8aa070'); },
     hoehle(c, x, y) { px(c, x - 7, y - 4, 14, 8, '#5a5460'); px(c, x - 5, y - 6, 10, 2, '#6a6470'); px(c, x - 3, y - 1, 6, 5, '#141018'); px(c, x - 2, y - 2, 4, 1, '#141018'); },
     turm(c, x, y) { px(c, x - 2, y - 7, 4, 11, '#d8d0e0'); px(c, x - 2, y - 4, 4, 2, '#c84a4a'); px(c, x - 2, y, 4, 2, '#c84a4a'); px(c, x - 3, y - 9, 6, 2, '#ffe08a'); px(c, x - 4, y + 4, 8, 1, '#5a5460'); },
+    insel(c, x, y) { px(c, x - 8, y + 2, 16, 3, '#2a4a6a'); px(c, x - 6, y - 1, 12, 3, '#3a3434'); px(c, x - 3, y - 5, 6, 4, '#4a4040'); px(c, x - 1, y - 7, 2, 2, '#5a4a48'); px(c, x - 1, y - 6, 2, 1, '#ff7a3a'); px(c, x + 1, y - 9, 1, 2, '#8a8090'); px(c, x - 2, y - 10, 1, 2, '#6a6070'); },
     hafen(c, x, y) { px(c, x - 8, y + 2, 16, 3, '#3a6a8a'); px(c, x - 5, y, 9, 2, '#6a4a30'); px(c, x - 1, y - 7, 1, 7, '#8a7a6a'); px(c, x, y - 6, 4, 4, '#e8e0d0'); px(c, x - 8, y - 1, 3, 3, '#7a5a3a'); }
   };
   function bubble(c, x, y, kind) {

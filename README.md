@@ -181,6 +181,24 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v20: Das Schwarze Dojo (Aschehang)
+Nach dem Prolog legt die «Nebelschwalbe» wirklich ab: Kapitänin Wenke segelt zur **Rauchbucht** auf der Nebelinsel (Ziel 8 → 9). Am Steg wartet Wenke für die Rückfahrt; die Überfahrt geht in beide Richtungen.
+
+| Abschnitt | Inhalt |
+|---|---|
+| 1 Rauchbucht | Steg, verlassene Hütten, umgestürztes Torii im Wasser, Ascheregen. Fischerin **Hanne** («Letzte Nacht hat der Berg geschrien.») heilt am Feuer und ist der Rückkehrpunkt. |
+| 2 Laternenstiege | Steinstufen, umgestürzte Laternen, verbranntes Bambusgras (wild: Aschmotte, Funkenfalke, Kohlenbär, Faustbiber, selten Oni-Asche). **Ronin der Asche** sperrt die Stiege. |
+| 3 Glutgarten | Kies, Glutnester, dampfender Teich, brennende Kirschbäume, Bach mit Mauerübergang (West) oder Brücke (Ost). **Schattenklinge** am Gartentor. Verkohlte Schriftrolle: «… er hat die Ketten selbst gelöst.» |
+| 4 Kettenhof | Zerbrochene Ketten, Krallenspuren; der **Kettenwächter** hält das Haupttor (härtester Kampf, auf Nachfrage). |
+| 5 Brennendes Dojo | Eingestürztes Dach, Papierfunken, Schrein mit gespaltener schwarzer Maske; **Klingenmeister** (Bosskampf). |
+
+- Atmosphäre: flackerndes Orange, Asche, aufsteigende Funken und Hitzeflimmern nehmen bergauf zu; Knistern, dumpfe Glocken, **keine Musik bis zum Bosskampf**; im Dojo fallen Dachteile (kurzes Wackeln). **Glutnester** kosten dem ersten Geist ca. 4 % KP (nie unter 1).
+- Trainer-Teams: Ronin (Faustbiber, Aschmotte, Kohlenbär) · Schattenklinge (Funkenfalke, Schlickaal, Surrlibelle, Pilzhexe) · Kettenwächter (Kieselkröte, Moorkeiler, Drusenbock) · Klingenmeister (Essenbär, Glutfähe, Gewitterkauz, Oni-Glutfürst).
+- Neue Geister: **Klingengeist** (Kampf/Psycho, Sweeper, selten – Signatur *Geisterklinge*), **Oni-Asche → Oni-Glutfürst** (Feuer/Kampf, Bruiser, Lv 22 – Signatur *Onifaust*).
+- Finale: Das Dach über dem Schrein stürzt ein, im Rauch erscheint kurz eine riesige gehörnte Gestalt. Danach ruht die Glut (keine Glutschäden mehr), der Hang ist frei erkundbar, der Klingengeist erscheint selten im Bambusgras neben Glutnestern. Meister Kurogane wird erst später bekämpft.
+- Schlüssel-Items: Verkohlte Schriftrolle, Maskensplitter. Übersichtskarte: neuer Ort «Aschehang (Nebelinsel)».
+- Tests: `tests/test_v20.py`.
+
 ## v19: 15 neue Geister
 
 Neue Geister mit eigener Signatur-Attacke (ab Lv 10) und eigener Kampfanimation. Lernkurve und bestehende Attackenlisten bleiben unverändert: unter Lv 8 nur typenlose Attacken, ab Lv 8/9 die erste Typ-Attacke.
