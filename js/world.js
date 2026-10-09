@@ -1971,7 +1971,7 @@
     if (RC) RC[zone] = rare ? 0 : n + 1;
     if (RC && !rare && n + 1 === G.RARE_RULE.RAMP) G.World.rareNotice = zone;
     if (rare) { P.grace = ENCOUNTER_GRACE; const l = G.rnd(rs.lvl[0], rs.lvl[1]); G.state.rareSeen = (G.state.rareSeen || 0) + 1; return G.Battle.start({ team: [G.makeMon(rs.sp, l)], rare: true }); }
-    const sp = G.pickWeighted(A.table);
+    const sp = G.pickWeighted(G.tableNow(A));
     const lead = Math.max(...G.state.team.map(m => m.lvl));
     const cap = zone === 'nebelgras' || !zone ? 1 : 2;
     // Stein-Geister halten typenlose Attacken besser aus (½×): im Nebelgras und am Küstenweg höchstens 3 Level unter deinem stärksten Geist

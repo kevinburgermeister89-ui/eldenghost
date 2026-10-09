@@ -181,6 +181,32 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v19: 15 neue Geister
+
+Neue Geister mit eigener Signatur-Attacke (ab Lv 10) und eigener Kampfanimation. Lernkurve und bestehende Attackenlisten bleiben unverändert: unter Lv 8 nur typenlose Attacken, ab Lv 8/9 die erste Typ-Attacke.
+
+| Geist | Typ | Rolle | Gebiet | Signatur |
+|---|---|---|---|---|
+| Aschmotte | Feuer | Status | Nebelgras | Glutstaub (Verbrennung) |
+| Kohlenbär → Essenbär (Lv 20) | Feuer | Tank | Torfstich (Tiefes Moor) | Kohlenpranke |
+| Funkenfalke | Feuer | Speedster | Küstenweg | Funkensturz |
+| Nebelqualle | Wasser | Support | Küstenweg | Quellnebel (heilt) |
+| Strudelhecht | Wasser | Sweeper | Moorherz | Hechtsprung |
+| Gewitterkauz | Elektro | Sweeper | Moorherz, **nur nachts** | Donnerruf |
+| Surrlibelle | Elektro | Speedster | Schilfrand | Surrflug (2–4 Treffer) |
+| Moosschnecke | Pflanze | Tank | Nebelgras | Schneckenhaus (Abwehr +) |
+| Pilzhexe | Pflanze/Gift | Status | Kapellenruine | Hexensporen (Gift) |
+| Kieselkröte | Stein | Tank | Klippenhöhle | Kieselspucke |
+| Geodenwidder → Drusenbock (Lv 20) | Stein | Bruiser | Klippenhöhle | Hornramme |
+| Traumfalter | Psycho | Support | Kapellenruine | Schlummerlicht (heilt) |
+| Schlickaal | Gift | Status | Torfstich | Schlickschlinge |
+| Faustbiber | Kampf | Bruiser | Schilfrand | Kellenschlag |
+| Grabmaulwurf | Boden | Bruiser | Torfstich | Grabschaufel |
+
+- Die Gebietstabellen wurden leicht vergrössert (6–7 Arten inkl. Sondergeist).
+- Nacht-Geister: Tabelleneintrag mit drittem Feld `'night'`; `G.tableNow(A)` filtert nach `G.NIGHT()` (Dämmerung ≥ 0.55).
+- Test: `tests/test_v19.py`.
+
 ## v18.1: Anselm erzählt lebendiger, Markt besser erkennbar
 
 - Anselm in Fridas Marktstube nickt beim Erzählen leicht mit dem Kopf und hält eine Tasse starken Kräutertee, aus der Dampf aufsteigt (3-Frame-Loop, nur solange sein Dialog offen ist).
