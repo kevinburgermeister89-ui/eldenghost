@@ -1015,5 +1015,33 @@ window.G = window.G || {};
     for (const x of list) { r -= x[1]; if (r <= 0) return x[0]; }
     return list[0][0];
   };
+
+  // ---------- v20.1: Typen Käfer und Normal ----------
+  // Normal = echter Geister-Typ (Neutral bleibt die typenlose Attackenklasse für die ersten Level, Lernsystem unverändert).
+  // Käfer: trifft Pflanze/Psycho stark, wird von Feuer, Kampf, Gift abgeschwächt; schwach gegen Feuer und Stein, widersteht Pflanze, Kampf, Boden.
+  // Normal: trifft nichts sehr effektiv (wie das Vorbild), ½ gegen Stein; schwach nur gegen Kampf.
+  G.TYPES.push('Käfer', 'Normal');
+  Object.assign(G.TYPE_COLORS, { 'Käfer': '#a8b820', Normal: '#d8c8a8' });
+  G.CHART['Käfer'] = { Pflanze: 2, Psycho: 2, Feuer: 0.5, Kampf: 0.5, Gift: 0.5 };
+  G.CHART.Normal = { Stein: 0.5 };
+  Object.assign(G.CHART.Feuer, { 'Käfer': 2 }); Object.assign(G.CHART.Stein, { 'Käfer': 2 });
+  Object.assign(G.CHART.Pflanze, { 'Käfer': 0.5 }); Object.assign(G.CHART.Kampf, { 'Käfer': 0.5, Normal: 2 }); Object.assign(G.CHART.Boden, { 'Käfer': 0.5 });
+  Object.assign(G.MOVES, {
+    kaeferbiss:  { name: 'Käferbiss',     type: 'Käfer',  power: 60, acc: 100, pp: 25, d: 'Kräftige Kauzangen packen zu.' },
+    surrschwarm: { name: 'Surrschwarm',   type: 'Käfer',  power: 75, acc: 90,  pp: 15, eff2: { who: 'foe', stat: 'spd', n: -1, chance: 20 }, d: 'Ein surrender Schwarm umhüllt das Ziel. 20 %: senkt Init.' },
+    gespinst:    { name: 'Gespinst',      type: 'Käfer',  power: 0,  acc: 95,  pp: 20, effect: { who: 'foe', stat: 'spd', n: -1 }, d: 'Klebrige Fäden – senkt die Initiative des Ziels.' },
+    ruckzuck:    { name: 'Ruckzuck',      type: 'Normal', power: 55, acc: 100, pp: 30, d: 'Blitzschneller Sprung mitten ins Ziel.' },
+    loeffelhieb: { name: 'Löffelhieb',    type: 'Normal', power: 75, acc: 95,  pp: 15, crit: 0.25, d: 'Ein Schlag mit den langen Ohren – hohe Volltreffer-Chance.' },
+    lauschen:    { name: 'Lauschen',      type: 'Normal', power: 0,  acc: 100, pp: 20, effect: { who: 'self', stat: 'spd', n: 1 }, d: 'Spitzt die Ohren – erhöht die eigene Initiative.' }
+  });
+  const ty = (sp, types) => { G.SPECIES[sp].types = types; G.SPECIES[sp].type = types[0]; };
+  ty('tauhase', ['Normal']); ty('funkmaus', ['Elektro', 'Normal']);
+  ty('aschmotte', ['Feuer', 'Käfer']); ty('surrlibelle', ['Elektro', 'Käfer']); ty('traumfalter', ['Psycho', 'Käfer']);
+  // Tauhase: Psycho-Attacken durch Normal-Attacken ersetzt (gleiche Level, gleiche Rolle)
+  G.SPECIES.tauhase.learn = [[1, 'tausprung'], [1, 'starren'], [5, 'hakenschlag'], [8, 'ruckzuck'], [11, 'morgentau'], [12, 'lauschen'], [14, 'loeffelhieb']];
+  G.SPECIES.tauhase.desc = 'Ein Feldhase aus Morgentau und Nebel – ganz gewöhnlich, nur schneller als alles im Gras. Wo er springt, bleiben glitzernde Spuren, die erst bei Sonnenaufgang verdunsten.';
+  // Insektengeister: je eine Käfer-Attacke ergänzt (ab Lv 8, bestehende Attacken bleiben)
+  const addL = (sp, l, mv) => { const L = G.SPECIES[sp].learn; if (!L.some(x => x[1] === mv)) { L.push([l, mv]); L.sort((a, b) => a[0] - b[0]); } };
+  addL('aschmotte', 13, 'gespinst'); addL('surrlibelle', 12, 'kaeferbiss'); addL('traumfalter', 14, 'surrschwarm'); addL('funkmaus', 13, 'ruckzuck');
   G.genitive = name => { const f = name.split(' ')[0]; return /[sxz]$/.test(f) ? f + '’' : f + 's'; };
 })(window.G);

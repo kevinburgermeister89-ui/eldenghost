@@ -249,3 +249,16 @@ body.touch.landscape #btn-snd{right:auto;bottom:auto;left:max(18px,env(safe-area
 #qtoast b{color:#ffe08a}#qtoast .qs{color:#ffd45a}
 #qtoast.show{visibility:visible;animation:qtoast 4.3s ease forwards}
 @keyframes qtoast{0%{opacity:0;transform:translate(-50%,-4px)}7%{opacity:1;transform:translate(-50%,0)}88.4%{opacity:1}100%{opacity:0}}
+
+/* v20.1: Attacken-Info beim Lernen */
+#learninfo{position:absolute;z-index:6;pointer-events:none;left:calc(var(--u)*4);right:calc(var(--u)*4);bottom:calc(var(--u)*78);opacity:0;transition:opacity .2s}
+#learninfo.show{opacity:1}
+#learninfo .li-h,.li-s{font-size:calc(var(--u)*7);color:#a898d0;margin:calc(var(--u)*1) 0}
+.ch-title .mvinfo{margin-bottom:calc(var(--u)*3);text-align:left}
+.ch-title .li-new{border-color:#e8c870}
+#learninfo .mi1,.ch-title .mvinfo .mi1{font-size:calc(var(--u)*9)}#learninfo .mi1 .mn,.ch-title .mvinfo .mi1 .mn{font-size:calc(var(--u)*10)}
+/* v20.1: 11 Typen – Tabelle passt ohne Scrollen in die Breite */
+.typechart{width:100%;table-layout:fixed;font-size:10px}
+.typechart th,.typechart td{padding:2px 0;min-width:0}
+.typechart tr>th:first-child{width:16%;padding-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.typechart tr:first-child th{text-align:center;font-size:9px}

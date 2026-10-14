@@ -565,7 +565,7 @@
   // ---------- Geräusche ----------
   let stepAlt = 0;
   // neue Typen teilen sich die passenden Klangfarben der alten (Feuer = Irrlicht-Knistern, Boden = Schlamm, Psycho = Nebelhall, Gift = zischender Schatten)
-  const SFX_ALIAS = { hit_Feuer: 'hit_Irrlicht', hit_Boden: 'hit_Moor', hit_Psycho: 'hit_Nebel', hit_Gift: 'hit_Schatten' };
+  const SFX_ALIAS = { hit_Feuer: 'hit_Irrlicht', hit_Boden: 'hit_Moor', hit_Psycho: 'hit_Nebel', hit_Gift: 'hit_Schatten', 'hit_Käfer': 'hit_Pflanze', hit_Normal: 'hit_Neutral' };
   S.sfx = (n, arg, vol = 1) => { logSnd(n, !!(S.ctx && S.on)); if (!S.ctx || !S.on) return; if (S.ctx.state !== 'running') S.unlock(); voice(() => sfx(n, arg, vol), SFX_CAP); };
   // Begegnungs-Stinger (~1.1 s, zur Blitz-/Wisch-Überblendung): aufsteigendes Nebelrauschen, geisterhaftes Schimmern, tiefer Puls.
   // wild = schwebend-unheimlich, trainer = entschlossen mit Trommelschlag, boss = tiefer und bedrohlich (kleine Sekunde, Orgelgrund)

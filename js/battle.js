@@ -218,6 +218,8 @@
     Pflanze: { s: 'Pflanze', c: '#6cc45a', c2: '#e8ffd0' },
     // typenlose Attacken: schlichter Treffer (kurzer Stoss, helle Funken, dezenter Ring)
     Neutral: { s: 'Neutral', c: '#d8d0e4', c2: '#ffffff' },
+    // v20.1: Käfer – surrende grün-gelbe Splitter (auf Pflanze-Stil), Normal – schlichter heller Treffer
+    'Käfer': { s: 'Pflanze', c: '#b8c830', c2: '#f4ffb8' }, Normal: { s: 'Neutral', c: '#e8dcc0', c2: '#ffffff' },
     // Stile für Heilung, Fang und Zustände
     Seele: { s: 'Seele', c: '#c8bede', c2: '#fff4ff' }, Irrlicht: { s: 'Irrlicht', c: '#8ff0e4', c2: '#e8fff8' }, Nebel: { s: 'Nebel', c: '#dce4f2', c2: '#aab4d0' },
     Moor: { s: 'Moor', c: '#7a8a3a', c2: '#a4c46a' }
@@ -415,6 +417,13 @@
     // v20: Signaturen des Schwarzen Dojos
     geisterklinge: { ms: 1300, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x0, y0] = center(f), [x1, y1] = center(t); await An(380, p => { a.alpha = 1 - p * 0.7; if (Math.random() < 0.8) P_({ x: x0 + rnd(-14, 14), y: y0 + rnd(-16, 10), vy: -20, k: 'glow', r: 2, dr: 3, life: 0.4, c: '#c070ff' }); }); await An(160, p => { for (let i = 0; i < 2; i++) P_({ x: Lp(x0, x1, p) + rnd(-4, 4), y: Lp(y0, y1, p) + rnd(-4, 4), k: 'glow', r: 3, dr: 4, life: 0.3, c: i ? '#e8d8ff' : '#9a70e0' }); }); a.alpha = 1; G.B.shake = 5; streak(x1, y1, -0.75 * d, 52, '#ffffff', { w: 3, life: 0.35 }); streak(x1, y1, -0.75 * d, 44, '#c070ff', { w: 6, life: 0.22 }); await W(120); streak(x1, y1, 0.75 * d, 40, '#f0e8ff', { w: 2.4, life: 0.3 }); ringAt(x1, y1, 6, 110, '#c070ff', 0.3); sparks(x1, y1, 10, '#e8d8ff', 120); await W(220); } },
     onifaust: { ms: 1300, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x0, y0] = center(f), [x1, y1] = center(t); await An(420, p => { a.dx = -p * 8 * d; if (Math.random() < 0.9) P_({ x: x0 + rnd(-10, 10), y: y0 + rnd(-6, 12), vy: -40, k: 'spark', s: 2, life: 0.4, c: Math.random() < 0.5 ? '#ff7a2a' : '#ffd070' }); }); await An(200, p => { a.dx = (-8 + p * 52) * d; P_({ x: Lp(x0, x1, p), y: Lp(y0, y1, p), k: 'glow', r: 6, dr: 4, life: 0.25, c: '#ff8a3a' }); }); a.dx = 0; G.B.shake = 9; glowAt(x1, y1, 10, 30, '#ff6a2a', 0.5); ringAt(x1, y1, 8, 150, '#ffb050', 0.35); sparks(x1, y1, 18, '#ffb050', 160, { g: 200 }); for (let i = 0; i < 6; i++) P_({ x: x1 + rnd(-12, 12), y: y1 + rnd(-6, 10), vy: -30, k: 'fog', r: 4, dr: 8, life: 0.7, c: '#4a3e3a', a: 0.5 }); await W(300); } },
+    // v20.1: Käfer- und Normal-Attacken
+    kaeferbiss: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); await An(300, p => { const g = 18 * (1 - p); P_({ x: x - g, y, k: 'chunk', s: 3, life: 0.08, c: '#b8c830' }); P_({ x: x + g, y, k: 'chunk', s: 3, life: 0.08, c: '#b8c830' }); }); G.B.shake = 4; sparks(x, y, 10, '#e4f070', 90); ringAt(x, y, 4, 90, '#b8c830', 0.3); await W(150); } },
+    surrschwarm: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); await An(500, p => { for (let i = 0; i < 3; i++) { const q = Math.min(1, p * 1.4 + i * 0.05); P_({ x: Lp(x0, x1, q) + rnd(-12, 12), y: Lp(y0, y1, q) + rnd(-10, 10) + Math.sin(p * 30 + i) * 4, k: 'spark', s: 1.6, life: 0.25, c: i ? '#c8d840' : '#5a6a10' }); } }); await An(500, p => { for (let i = 0; i < 3; i++) { const a = p * 20 + i * 2.1, r = 14 + Math.sin(p * 9 + i) * 6; P_({ x: x1 + Math.cos(a) * r, y: y1 + Math.sin(a) * r * 0.7, k: 'spark', s: 1.6, life: 0.2, c: '#d8e860' }); } }); G.B.shake = 3; await W(150); } },
+    gespinst: { ms: 1100, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); await An(400, p => { P_({ x: Lp(x0, x1, p), y: Lp(y0, y1, p) - Math.sin(p * Math.PI) * 20, k: 'glow', r: 1.5, dr: 0, life: 0.5, c: '#f0f0e0' }); }); for (let i = 0; i < 6; i++) streak(x1, y1, i * Math.PI / 6, 34, '#e8e8d8', { w: 1, life: 0.6 }); ringAt(x1, y1, 3, 40, '#d0d0c0', 0.25); await W(400); } },
+    ruckzuck: { ms: 700, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(180, p => { a.dx = p * 46 * d; a.dy = -Math.sin(p * Math.PI) * 10; }); const [x, y] = center(t); ringAt(x, y, 4, 130, '#f0e4c8', 0.3); sparks(x, y, 8, '#ffffff', 110); await An(200, p => { a.dx = (1 - p) * 46 * d; a.dy = 0; }); a.dx = a.dy = 0; } },
+    loeffelhieb: { ms: 1000, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x, y] = center(t); await An(260, p => { a.dy = -Math.sin(p * Math.PI) * 16; a.dx = Math.sin(p * Math.PI) * 18 * d; }); a.dx = a.dy = 0; streak(x - 8, y - 4, 0.9, 40, '#fff8e8', { w: 4, life: 0.3 }); streak(x + 8, y - 4, 0.9, 40, '#e8dcc0', { w: 4, life: 0.3 }); G.B.shake = 5; sparks(x, y, 12, '#fff4d8', 130); await W(220); } },
+    lauschen: { ms: 900, fn: async (f) => { const [x, y] = center(f); for (let i = 0; i < 3; i++) { ringAt(x, y - 18, 3 + i * 2, 70 + i * 25, '#f0e8d0', 0.22); await W(140); } glowAt(x, y - 16, 6, 12, '#fff4d0', 0.3); await W(200); } },
     // --- Neutral ---
     hauch: { ms: 700, fn: async (f, t) => { await fly(f, t, 520, (p, x, y) => P_({ x, y, k: 'fog', r: 5 + p * 8, dr: 10, life: 0.5, c: '#e8e4f4', a: 0.4 })); } },
     rempler: { ms: 600, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1; await An(300, p => { a.dx = Math.sin(p * Math.PI) * 34 * d; }); a.dx = 0; const [x, y] = center(t); ringAt(x, y, 4, 120, '#ffffff', 0.25); } },
@@ -982,13 +991,25 @@
     el.innerHTML = `<div class="lv-banner">Level ${m.lvl}!</div><div class="lv-name">${G.nm(m)}</div><table>${rows.map(([l, a, b]) => `<tr><td>${l}</td><td>${a}</td><td>→</td><td>${b}</td><td class="up">+${b - a}</td></tr>`).join('')}</table>`;
     el.className = ''; void el.offsetWidth; el.className = 'show'; return el;
   }
+  // v20.1: Info-Leiste beim Lernen (gleiche Leiste wie im Kampfmenü) – nur Anzeige, das Lernsystem bleibt unverändert
+  function learnPanel(mv) {
+    const scr = document.getElementById('screen'); let el = document.getElementById('learninfo');
+    if (!el) { el = document.createElement('div'); el.id = 'learninfo'; scr.appendChild(el); }
+    el.innerHTML = `<div class="li-h">Neue Attacke</div><div class="mvinfo">${G.moveInfoHtml(mv)}</div>`; el.className = 'show'; return el;
+  }
+  const hideLearnPanel = () => { const el = document.getElementById('learninfo'); if (el) el.className = ''; };
   async function learnAt(m) {
     for (const [l, mv] of G.SPECIES[m.sp].learn) {
       if (l !== m.lvl || m.moves.includes(mv)) continue;
-      if (m.moves.length < 4) { m.moves.push(mv); m.pp[mv] = G.MOVES[mv].pp; await UI().say(`${G.nm(m)} lernt ${G.MOVES[mv].name}!`); }
-      else {
-        await UI().say(`${G.nm(m)} möchte ${G.MOVES[mv].name} lernen, kennt aber schon vier Attacken.`);
-        const k = await UI().choose(m.moves.map(id => ({ label: 'Vergessen: ' + G.MOVES[id].name, sub: G.MOVES[id].type })), { area: 'full', cancel: true, backLabel: 'Nicht lernen', title: `<h2>${G.MOVES[mv].name} lernen?</h2>` });
+      if (m.moves.length < 4) {
+        m.moves.push(mv); m.pp[mv] = G.MOVES[mv].pp;
+        learnPanel(mv); try { await UI().say(`${G.nm(m)} lernt ${G.MOVES[mv].name}!`); } finally { hideLearnPanel(); }
+      } else {
+        learnPanel(mv);
+        try { await UI().say(`${G.nm(m)} möchte ${G.MOVES[mv].name} lernen, kennt aber schon vier Attacken.`); } finally { hideLearnPanel(); }
+        const info = i => { const el = document.getElementById('mvinfo'); if (el) el.innerHTML = i >= 0 && i < m.moves.length ? `<div class="li-s">Vergessen?</div>${G.moveInfoHtml(m.moves[i], m.pp[m.moves[i]] || 0)}` : '<div class="li-s">Keine Attacke vergessen – die neue wird nicht gelernt.</div>'; };
+        const k = await UI().choose(m.moves.map(id => ({ label: 'Vergessen: ' + G.MOVES[id].name, sub: G.MOVES[id].type, color: G.TYPE_COLORS[G.MOVES[id].type] })), { area: 'full', cancel: true, backLabel: 'Nicht lernen', highlightBack: true,
+          title: `<h2>${G.MOVES[mv].name} lernen?</h2><div class="li-s">Neu:</div><div class="mvinfo li-new">${G.moveInfoHtml(mv)}</div><div id="mvinfo" class="mvinfo li-old"></div>`, onHighlight: info });
         if (k >= 0) { const o = m.moves[k]; m.moves[k] = mv; delete m.pp[o]; m.pp[mv] = G.MOVES[mv].pp; await UI().say(`${G.nm(m)} vergisst ${G.MOVES[o].name} und lernt ${G.MOVES[mv].name}!`); }
       }
     }

@@ -181,6 +181,15 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v20.1: Attacken-Info beim Lernen, Typen Käfer & Normal
+- Lernt ein Geist eine Attacke (Level-Up oder Entwicklung), erscheint über dem Text eine Info-Leiste wie im Kampfmenü: Typ-Badge, Stärke, Genauigkeit, AP, Erstschlag, eine Zeile Beschreibung. Muss er eine vergessen, zeigt die Auswahl oben die neue Attacke und darunter die gerade markierte bekannte Attacke zum Vergleich (Touch und Steuerkreuz). Das Lernsystem selbst ist unverändert.
+- Neue Typen **Käfer** (Badge oliv-gelb) und **Normal** (Badge sandfarben); «Neutral» bleibt die typenlose Attackenklasse der ersten Level.
+  - Käfer greift an: Pflanze 2×, Psycho 2×, Feuer/Kampf/Gift ½×. Käfer verteidigt: Feuer 2×, Stein 2×, Pflanze/Kampf/Boden ½×.
+  - Normal greift an: Stein ½× (sonst 1×). Normal verteidigt: Kampf 2×.
+  - Attacken: Käferbiss (60), Surrschwarm (75, 20 %: Init −1), Gespinst (Status: Init −1) · Ruckzuck (55), Löffelhieb (75, hohe Volltrefferchance), Lauschen (Status: eigene Init +1).
+- Geänderte Geister: Tauhase Psycho → **Normal** (Gedankenstoss/Seufzer → Ruckzuck/Lauschen/Löffelhieb), Funkmaus Elektro → Elektro/Normal (+ Ruckzuck Lv 13), Aschmotte → Feuer/Käfer (+ Gespinst Lv 13), Surrlibelle → Elektro/Käfer (+ Käferbiss Lv 12), Traumfalter → Psycho/Käfer (+ Surrschwarm Lv 14). Werte unverändert.
+- Typentabelle in der Chronik: 11×11, passt auf das Handy. Tests: `tests/test_v201.py`.
+
 ## v20: Das Schwarze Dojo (Aschehang)
 Nach dem Prolog legt die «Nebelschwalbe» wirklich ab: Kapitänin Wenke segelt zur **Rauchbucht** auf der Nebelinsel (Ziel 8 → 9). Am Steg wartet Wenke für die Rückfahrt; die Überfahrt geht in beide Richtungen.
 

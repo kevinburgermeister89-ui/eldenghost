@@ -72,7 +72,7 @@
     function hl() {
       btns.forEach((b, i) => b.classList.toggle('sel', i === sel));
       if (cfg.area === 'full' && btns[sel]) btns[sel].scrollIntoView({ block: 'nearest' });
-      if (cfg.onHighlight && sel < opts.length) cfg.onHighlight(sel);
+      if (cfg.onHighlight && (sel < opts.length || cfg.highlightBack)) cfg.onHighlight(sel);
     }
     function pick() {
       if (all[sel].back) return done(-1);
