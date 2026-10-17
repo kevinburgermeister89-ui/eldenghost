@@ -175,16 +175,53 @@
       if (c === 0) { G.state.team.splice(i, 1); G.state.team.unshift(m); UI.toast(`${G.nm(m)} führt nun dein Team an.`); }
     }
   };
-  // Typentabelle (Angriff in Zeilen, Verteidigung in Spalten): 2× stark, ½ schwach, 0 wirkungslos
+  // v20.2: Typentabelle als Matrix (Zeile greift an, Spalte verteidigt) + Detailansicht je Typ
+  const TAB = { 'Feuer': 'FEU', 'Wasser': 'WAS', 'Pflanze': 'PFL', 'Elektro': 'ELE', 'Stein': 'STE', 'Psycho': 'PSY', 'Boden': 'BOD', 'Gift': 'GIF', 'Kampf': 'KAM', 'Käfer': 'KÄF', 'Normal': 'NOR', 'Neutral': 'NEU' };
+  const abbr = t => TAB[t] || t.slice(0, 3).toUpperCase();
+  const pill = (t, cls = '') => `<span class="tp ${cls}" style="--tc:${G.TYPE_COLORS[t]}">${abbr(t)}</span>`;
   function chartHtml() {
-    const T = G.TYPES, ab = t => t.slice(0, 3).toUpperCase(), cell = f => f === 2 ? '<td class="se">2</td>' : f === 0.5 ? '<td class="nv">½</td>' : f === 0 ? '<td class="im">0</td>' : '<td></td>';
-    return `<h2 style="margin-top:12px">Typentabelle</h2><div class="hint">Zeile greift an, Spalte verteidigt. Doppeltypen multiplizieren sich.</div>
-      <table class="typechart"><tr><th></th>${T.map(t => `<th style="color:${G.TYPE_COLORS[t]}">${ab(t)}</th>`).join('')}</tr>
-      ${T.map(a => `<tr><th style="color:${G.TYPE_COLORS[a]}">${a}</th>${T.map(d => cell(G.eff1(a, d))).join('')}</tr>`).join('')}
-      <tr class="neutral"><th style="color:${G.TYPE_COLORS.Neutral}">Neutral</th>${T.map(d => cell(G.eff1('Neutral', d))).join('')}</tr></table>
-      <div class="hint">Neutral (typenlos) wie Rempler, Kratzer oder Biss wirkt 1× – nur gegen Stein ½× – und bekommt keinen Typbonus. Typ-Attacken lernen Geister erst ab Level ${G.TYPE_MOVE_LVL}.</div>`;
+    const T = G.TYPES, A = [...T, 'Neutral'];
+    const cell = (f, a, d) => `<td data-a="${a}" data-d="${d}" class="${f === 2 ? 'se' : f === 0.5 ? 'nv' : f === 0 ? 'im' : ''}">${f === 2 ? '2×' : f === 0.5 ? '½' : f === 0 ? '0' : ''}</td>`;
+    return `<div class="tc-legend"><span><i class="se">2×</i> sehr effektiv</span><span><i class="nv">½</i> wenig effektiv</span><span><i class="im">0</i> wirkungslos</span><span><i></i> leer = 1×</span></div>
+      <div class="tc-axis">Zeile ⟶ greift an · Spalte ⟂ verteidigt</div>
+      <div class="tc-wrap"><table class="typechart"><tr><th class="corner">⚔╲🛡</th>${T.map(t => `<th class="col" data-t="${t}">${pill(t, 'sm')}</th>`).join('')}</tr>
+      ${A.map(a => `<tr data-row="${a}"${a === 'Neutral' ? ' class="neutral"' : ''}><th class="row" data-t="${a}">${pill(a)}</th>${T.map(d => cell(G.eff1(a, d), a, d)).join('')}</tr>`).join('')}</table></div>`;
   }
   G.chartHtml = chartHtml;
+  // Detail: «Stark gegen», «Schwach gegen», «Anfällig für», «Resistent gegen» in Klartext
+  function typeDetail(t) {
+    const T = G.TYPES, list = a => a.length ? a.map(x => UI.typeBadge(x)).join(' ') : '<span class="none">–</span>';
+    const strong = T.filter(d => G.eff1(t, d) === 2), weak = T.filter(d => G.eff1(t, d) === 0.5), none = T.filter(d => G.eff1(t, d) === 0);
+    let h = `<div class="td-h">${UI.typeBadge(t)} <span>${t === 'Neutral' ? 'typenlose Attacken (Rempler, Kratzer …)' : 'als Angreifer und als Verteidiger'}</span></div>
+      <div class="td-r"><b class="g">Stark gegen</b> ${list(strong)}</div>
+      <div class="td-r"><b class="r">Schwach gegen</b> ${list(weak)}${none.length ? ` <span class="none">· wirkungslos gegen</span> ${list(none)}` : ''}</div>`;
+    if (t === 'Neutral') return h + `<div class="td-r"><span class="none">Kein Geist hat diesen Typ – Neutral-Attacken bekommen keinen Typbonus.</span></div>`;
+    const vuln = T.filter(a => G.eff1(a, t) === 2), res = T.filter(a => G.eff1(a, t) === 0.5), imm = T.filter(a => G.eff1(a, t) === 0);
+    return h + `<div class="td-r"><b class="r">Anfällig für</b> ${list(vuln)}</div>
+      <div class="td-r"><b class="g">Resistent gegen</b> ${list(res)}${imm.length ? ` <span class="none">· immun gegen</span> ${list(imm)}` : ''}</div>`;
+  }
+  G.typeDetail = typeDetail;
+  function showType(t) {
+    const el = document.getElementById('tdetail'); if (el) el.innerHTML = typeDetail(t);
+    document.querySelectorAll('.typechart .hl').forEach(e => e.classList.remove('hl'));
+    document.querySelectorAll(`.typechart [data-a="${t}"], .typechart [data-d="${t}"], .typechart th[data-t="${t}"]`).forEach(e => e.classList.add('hl'));
+    G.Menu.typeShown = t;
+  }
+  G.Menu.typen = async () => {
+    const A = [...G.TYPES, 'Neutral'];
+    let start = 0, keep = 0;
+    for (;;) {
+      const opts = A.map(t => ({ label: t, color: G.TYPE_COLORS[t], cls: 'tbtn' }));
+      const p = UI.choose(opts, { area: 'full', cols: 3, cancel: true, start, scrollTop: keep, noInitScroll: true, title: `<h2>Typentabelle</h2>${chartHtml()}<div id="tdetail" class="tdetail"></div><div class="hint">Typ antippen oder mit dem Steuerkreuz wählen. Doppeltypen multiplizieren sich. Neutral (typenlos, z. B. Rempler, Kratzer, Biss) wirkt 1× – nur gegen Stein ½×. Typ-Attacken lernen Geister ab Level ${G.TYPE_MOVE_LVL}.</div>`,
+        onHighlight: i => { if (A[i]) showType(A[i]); } });
+      // Antippen in der Matrix (Zeilen-/Spaltenkopf oder Feld) zeigt ebenfalls die Details
+      document.querySelectorAll('.typechart th[data-t]').forEach(e => e.addEventListener('click', ev => { ev.stopPropagation(); showType(e.dataset.t); }));
+      document.querySelectorAll('.typechart td[data-a]').forEach(e => e.addEventListener('click', ev => { ev.stopPropagation(); showType(e.dataset.a); }));
+      const ch = document.getElementById('choices'); const sc = () => { ch._lastScroll = ch.scrollTop; }; ch.addEventListener('scroll', sc); const k = await p; ch.removeEventListener('scroll', sc);
+      if (k < 0) return;
+      start = k; keep = ch._lastScroll || 0;
+    }
+  };
   G.Menu.chronik = async () => {
     const S = G.state;
     const n = Object.keys(S.caught).length;
@@ -196,7 +233,13 @@
         ${seen && s.role ? ' ' + UI.roleBadge(sp, true) : ''}
         <div class="desc">${seen ? s.desc : 'Noch nicht begegnet.'}</div></div></div>`;
     }).join('');
-    await UI.choose([], { area: 'full', cancel: true, title: `<h2>Geisterchronik</h2><div class="hint">Gefangen: ${n} / ${G.SPECIES_ORDER.filter(sp => G.SPECIES[sp].catch > 0).length}</div>${html}${chartHtml()}` });
+    for (;;) {
+      const p = UI.choose([{ label: '⚔ Typentabelle', sub: 'Wer ist stark gegen wen?', cls: 'tcopen' }], { area: 'full', cancel: true, noInitScroll: true,
+        title: `<h2>Geisterchronik</h2><button id="tcbtn" class="tcbtn">⚔ Typentabelle – Stärken &amp; Schwächen</button><div class="hint">Gefangen: ${n} / ${G.SPECIES_ORDER.filter(sp => G.SPECIES[sp].catch > 0).length}</div>${html}` });
+      const b = document.getElementById('tcbtn'); if (b) b.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); if (UI.handler) UI.handler('A'); });
+      if (await p !== 0) return;
+      await G.Menu.typen();
+    }
   };
   let menuSel = 0;
   const FX_LABEL = { auto: 'Auto', hoch: 'Hoch', niedrig: 'Niedrig' };

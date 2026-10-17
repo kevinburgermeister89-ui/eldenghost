@@ -755,6 +755,7 @@
     return w.length ? G.pickWeighted(w) : 'letzterhauch';
   }
 
+  G.Battle.enemyChoice = () => enemyChoice();   // v20.2: für Tests (Gegner-KI nutzt dieselbe Typentabelle)
   // v17: Priorität (Abwehr +3, Erstschlag +1), sonst Initiative
   const prioOf = id => { const M = G.MOVES[id]; return M ? (M.protect ? 3 : (M.prio || 0)) : 0; };
   G.Battle.prioOf = prioOf;

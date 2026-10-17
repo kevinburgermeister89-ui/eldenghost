@@ -171,10 +171,6 @@ body.touch.landscape #mid{position:absolute;right:max(10px,env(safe-area-inset-r
 .ch.item{flex-direction:column;align-items:flex-start;justify-content:center;gap:0}
 
 /* Typentabelle in der Geisterchronik */
-.typechart{border-collapse:collapse;font-size:11px;margin:4px 0 8px}
-.typechart th,.typechart td{border:1px solid #2e2842;padding:2px 3px;text-align:center;min-width:18px}
-.typechart th{font-weight:700;text-align:left}
-.typechart td.se{background:#3a6a3a;color:#e8ffe0}.typechart td.nv{background:#5a2e36;color:#ffd8d8}.typechart td.im{background:#16121e;color:#8a84a0}
 
 /* v14: Wirksamkeits-Pop-up im Einschlag, Level-up-Banner & Werte-Tafel, Hinweise im Attacken-Menü */
 #effpop{position:absolute;z-index:6;pointer-events:none;transform:translate(-50%,-50%) scale(.4);opacity:0;white-space:nowrap;
@@ -258,7 +254,28 @@ body.touch.landscape #btn-snd{right:auto;bottom:auto;left:max(18px,env(safe-area
 .ch-title .li-new{border-color:#e8c870}
 #learninfo .mi1,.ch-title .mvinfo .mi1{font-size:calc(var(--u)*9)}#learninfo .mi1 .mn,.ch-title .mvinfo .mi1 .mn{font-size:calc(var(--u)*10)}
 /* v20.1: 11 Typen – Tabelle passt ohne Scrollen in die Breite */
-.typechart{width:100%;table-layout:fixed;font-size:10px}
-.typechart th,.typechart td{padding:2px 0;min-width:0}
-.typechart tr>th:first-child{width:16%;padding-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.typechart tr:first-child th{text-align:center;font-size:9px}
+/* v20.2: Typentabelle als Matrix + Detailansicht */
+.tcbtn{display:block;width:100%;margin:0 0 calc(var(--u)*3);padding:calc(var(--u)*3);font:inherit;font-size:calc(var(--u)*8);font-weight:bold;color:#1a1432;background:#e8c870;border:0;border-radius:calc(var(--u)*3);cursor:pointer}
+.tc-legend{display:flex;flex-wrap:wrap;gap:calc(var(--u)*2) calc(var(--u)*5);font-size:calc(var(--u)*6.5);color:#d8cce8;margin-bottom:calc(var(--u)*1.5)}
+.tc-legend i{display:inline-block;font-style:normal;min-width:calc(var(--u)*10);text-align:center;border-radius:calc(var(--u)*1.5);border:1px solid #4a3e70;font-weight:bold;margin-right:2px}
+.tc-axis{font-size:calc(var(--u)*6);color:#9a8cc0;margin-bottom:calc(var(--u)*1.5)}
+.tc-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;margin-bottom:calc(var(--u)*3)}
+.typechart{width:auto;table-layout:auto;border-collapse:collapse;font-size:calc(var(--u)*8);margin:0}
+.typechart th,.typechart td{border:1px solid #2e2842;padding:0;text-align:center;min-width:calc(var(--u)*18);width:calc(var(--u)*18);height:calc(var(--u)*14);font-weight:bold}
+.typechart tr>th:first-child{width:calc(var(--u)*22);min-width:calc(var(--u)*22);max-width:none;overflow:visible;text-overflow:clip;white-space:nowrap;text-align:center;padding:0 1px}
+.typechart tr:first-child th{font-size:inherit;vertical-align:bottom;padding:1px 0}
+.typechart th.corner{font-size:calc(var(--u)*5);color:#9a8cc0}
+.typechart td.se{background:#2f7a34;color:#eaffe2}.typechart td.nv{background:#8a2e3a;color:#ffe0e0}.typechart td.im{background:#3a3648;color:#c8c4d8}
+.typechart tr.neutral th,.typechart tr.neutral td{border-top:2px solid #6a5a98}
+.typechart th[data-t],.typechart td{cursor:pointer}
+.typechart .hl{outline:2px solid #e8c870;outline-offset:-2px}
+.typechart td.hl:not(.se):not(.nv):not(.im){background:#2a2348}
+.tp{display:inline-block;background:var(--tc);color:#120e1e;border-radius:calc(var(--u)*2);padding:0 calc(var(--u)*1.2);font-size:calc(var(--u)*7);line-height:1.5;font-weight:bold;text-shadow:none}
+.tp.sm{font-size:calc(var(--u)*6);padding:0 1px;border-radius:calc(var(--u)*1.2);letter-spacing:-.02em}
+.tc-legend i.se{background:#2f7a34;color:#eaffe2}.tc-legend i.nv{background:#8a2e3a;color:#ffe0e0}.tc-legend i.im{background:#3a3648;color:#c8c4d8}
+.tdetail{background:#120e24;border:1px solid #4a3e70;border-radius:calc(var(--u)*3);padding:calc(var(--u)*3);margin-bottom:calc(var(--u)*2);font-size:calc(var(--u)*7.5);min-height:calc(var(--u)*40)}
+.tdetail .td-h{margin-bottom:calc(var(--u)*2);font-size:calc(var(--u)*7);color:#9a8cc0}
+.tdetail .td-r{margin:calc(var(--u)*1.5) 0;line-height:1.7}
+.tdetail .td-r b{display:inline-block;min-width:calc(var(--u)*46);font-size:calc(var(--u)*7)}
+.tdetail b.g{color:#8ae08a}.tdetail b.r{color:#ff9a9a}.tdetail .none{color:#8a84a0}
+.ch.tbtn{border-left:calc(var(--u)*3) solid var(--tc)}

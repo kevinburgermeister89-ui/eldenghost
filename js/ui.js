@@ -71,7 +71,7 @@
     });
     function hl() {
       btns.forEach((b, i) => b.classList.toggle('sel', i === sel));
-      if (cfg.area === 'full' && btns[sel]) btns[sel].scrollIntoView({ block: 'nearest' });
+      if (cfg.area === 'full' && btns[sel] && !skipScroll) btns[sel].scrollIntoView({ block: 'nearest' });
       if (cfg.onHighlight && (sel < opts.length || cfg.highlightBack)) cfg.onHighlight(sel);
     }
     function pick() {
@@ -80,7 +80,8 @@
       done(sel);
     }
     function done(v) { UI.handler = null; UI.kind = null; ch.className = 'hidden'; ch.innerHTML = ''; G.Snd.sfx('blip'); res(v); }
-    hl();
+    let skipScroll = !!cfg.noInitScroll; hl(); skipScroll = false;   // v20.2: Liste beim Öffnen nicht zum Knopf springen lassen
+    if (cfg.scrollTop) ch.scrollTop = cfg.scrollTop;
     UI.kind = 'choose';
     UI.handler = b => {
       const n = all.length;

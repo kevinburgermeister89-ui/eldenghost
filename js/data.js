@@ -1026,6 +1026,22 @@ window.G = window.G || {};
   G.CHART.Normal = { Stein: 0.5 };
   Object.assign(G.CHART.Feuer, { 'Käfer': 2 }); Object.assign(G.CHART.Stein, { 'Käfer': 2 });
   Object.assign(G.CHART.Pflanze, { 'Käfer': 0.5 }); Object.assign(G.CHART.Kampf, { 'Käfer': 0.5, Normal: 2 }); Object.assign(G.CHART.Boden, { 'Käfer': 0.5 });
+  // ---------- v20.2: Typentabelle exakt wie das offizielle Vorbild (Gen. 6+), eingeschränkt auf die vorhandenen 11 Typen ----------
+  // Feuer=Fire, Wasser=Water, Pflanze=Grass, Elektro=Electric, Stein=Rock, Psycho=Psychic, Boden=Ground, Gift=Poison, Kampf=Fighting, Käfer=Bug, Normal=Normal.
+  // Einzige Immunität unter diesen Typen: Elektro → Boden 0×. «Neutral» (typenlos) hat kein Vorbild: 1×, nur gegen Stein ½× (wie Normal).
+  G.CHART = {
+    Feuer:   { Pflanze: 2, 'Käfer': 2, Feuer: 0.5, Wasser: 0.5, Stein: 0.5 },
+    Wasser:  { Feuer: 2, Boden: 2, Stein: 2, Wasser: 0.5, Pflanze: 0.5 },
+    Pflanze: { Wasser: 2, Boden: 2, Stein: 2, Feuer: 0.5, Pflanze: 0.5, Gift: 0.5, 'Käfer': 0.5 },
+    Elektro: { Wasser: 2, Elektro: 0.5, Pflanze: 0.5, Boden: 0 },
+    Stein:   { Feuer: 2, 'Käfer': 2, Kampf: 0.5, Boden: 0.5 },
+    Psycho:  { Kampf: 2, Gift: 2, Psycho: 0.5 },
+    Boden:   { Feuer: 2, Elektro: 2, Gift: 2, Stein: 2, Pflanze: 0.5, 'Käfer': 0.5 },
+    Gift:    { Pflanze: 2, Gift: 0.5, Boden: 0.5, Stein: 0.5 },
+    Kampf:   { Normal: 2, Stein: 2, Gift: 0.5, Psycho: 0.5, 'Käfer': 0.5 },
+    'Käfer': { Pflanze: 2, Psycho: 2, Feuer: 0.5, Kampf: 0.5, Gift: 0.5 },
+    Normal:  { Stein: 0.5 }
+  };
   Object.assign(G.MOVES, {
     kaeferbiss:  { name: 'Käferbiss',     type: 'Käfer',  power: 60, acc: 100, pp: 25, d: 'Kräftige Kauzangen packen zu.' },
     surrschwarm: { name: 'Surrschwarm',   type: 'Käfer',  power: 75, acc: 90,  pp: 15, eff2: { who: 'foe', stat: 'spd', n: -1, chance: 20 }, d: 'Ein surrender Schwarm umhüllt das Ziel. 20 %: senkt Init.' },

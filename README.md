@@ -181,6 +181,16 @@ waren, bekommen 100 %, Geister auf der Bank 65 % (abgerundet, min. 1), erschöpf
 bekommen je eine kurze Zeile, können aufsteigen, Attacken lernen und sich nach dem Kampf entwickeln. Weil das Team damit
 schneller wächst, liegen Küstenweg und Moor 1–2 Level höher als in v13.
 
+## v20.2: Typentabelle zum Nachschlagen
+- In der Geisterchronik oben der Knopf **⚔ Typentabelle** (Antippen oder A).
+- Matrix: Zeilen = angreifender Typ (Badge links), Spalten = verteidigender Typ (Kürzel oben); 2× grün, ½ rot, 0 grau, leer = 1×; Legende darüber. Passt ins Hochformat, sonst waagrecht scrollbar.
+- Detail je Typ in Klartext: Stark gegen, Schwach gegen (und wirkungslos gegen), Anfällig für, Resistent gegen (und immun gegen). Auswahl per Steuerkreuz über die Typknöpfe oder durch Antippen einer Zeile, Spalte oder eines Feldes; Zeile und Spalte werden hervorgehoben.
+- **Typentabelle jetzt exakt wie das offizielle Vorbild (Gen. 6+)** für die 11 Typen. Geändert: Feuer nicht mehr stark gegen Psycho und Gift; Elektro nicht mehr stark gegen Psycho und nicht mehr ½ gegen Stein; Stein nicht mehr stark gegen Elektro und nicht mehr ½ gegen Stein; Boden nicht mehr ½ gegen Kampf; Gift nicht mehr stark gegen Wasser und Kampf; Kampf nicht mehr stark gegen Elektro. Einzige Immunität: Elektro → Boden. Neutral (typenlos) unverändert: 1×, nur gegen Stein ½×.
+- Geprüft im echten Kampf: Schaden 4× / 2× / 1× / ½× / ¼× / 0× bei Doppeltypen, Meldungen, ▲/▼/✕ im Attacken-Menü, Gegner-KI mit derselben Tabelle, Wirkung von Angriff/Verteidigung/Initiative.
+- Balance-Simulation der Story-Kämpfe (tests/balance_sim.js): siehe tests/test_v202_types.py.
+- Entwurf (nicht eingebaut): design/drachen_dunkel_ghosts.md – je 10 Drache- und Dunkel-Geister.
+- Cache eldenghost-v20.2; Tests: tests/test_v202.py, tests/test_v202_types.py.
+
 ## v20.1: Attacken-Info beim Lernen, Typen Käfer & Normal
 - Lernt ein Geist eine Attacke (Level-Up oder Entwicklung), erscheint über dem Text eine Info-Leiste wie im Kampfmenü: Typ-Badge, Stärke, Genauigkeit, AP, Erstschlag, eine Zeile Beschreibung. Muss er eine vergessen, zeigt die Auswahl oben die neue Attacke und darunter die gerade markierte bekannte Attacke zum Vergleich (Touch und Steuerkreuz). Das Lernsystem selbst ist unverändert.
 - Neue Typen **Käfer** (Badge oliv-gelb) und **Normal** (Badge sandfarben); «Neutral» bleibt die typenlose Attackenklasse der ersten Level.
