@@ -802,7 +802,9 @@ window.G = window.G || {};
     { sp: 'glockenrabe', zone: 'kapelle', lvl: [13, 15], cond: 'bell', hint: 'nahe der versunkenen Glocke' },
     { sp: 'farnkitz', zone: 'moorherz', lvl: [13, 15], cond: 'hidden', hint: 'in der verborgenen Ecke des Moorherzens' },
     // v20: erst wenn die Glut am Dojo zur Ruhe gekommen ist – im Bambusgras neben einem Glutnest
-    { sp: 'klingengeist', zone: 'aschehang', lvl: [15, 17], cond: 'ember', hint: 'im Bambusgras direkt neben einem Glutnest, nachdem das Dojo gefallen ist' }
+    { sp: 'klingengeist', zone: 'aschehang', lvl: [15, 17], cond: 'ember', hint: 'im Bambusgras direkt neben einem Glutnest, nachdem das Dojo gefallen ist' },
+    // v21: Neumondhirschkäfer – nachts im Bambusgras abseits der Glutnester, nach dem Dojo
+    { sp: 'neumondhirschkaefer', zone: 'aschehang', lvl: [17, 19], cond: 'newmoon', hint: 'nachts im Bambusgras fern der Glutnester, nachdem das Dojo gefallen ist' }
   ];
 
   // ---------- Gegenstände ----------
@@ -1059,5 +1061,126 @@ window.G = window.G || {};
   // Insektengeister: je eine Käfer-Attacke ergänzt (ab Lv 8, bestehende Attacken bleiben)
   const addL = (sp, l, mv) => { const L = G.SPECIES[sp].learn; if (!L.some(x => x[1] === mv)) { L.push([l, mv]); L.sort((a, b) => a[0] - b[0]); } };
   addL('aschmotte', 13, 'gespinst'); addL('surrlibelle', 12, 'kaeferbiss'); addL('traumfalter', 14, 'surrschwarm'); addL('funkmaus', 13, 'ruckzuck');
+
+  // ---------- v21: Drache und Dunkel – zwei neue Typen und 20 Geister (Entwurf design/drachen_dunkel_ghosts.md) ----------
+  // Drache=Dragon, Dunkel=Dark (wie das Vorbild, Gen. 6+). Einzige bewusste Abweichung: Psycho → Dunkel ½× statt 0× (keine Immunität, die einen Story-Kampf bricht).
+  G.TYPES.push('Drache', 'Dunkel');
+  Object.assign(G.TYPE_COLORS, { Drache: '#7a60e0', Dunkel: '#5a4a5e' });
+  G.CHART.Drache = { Drache: 2 };
+  G.CHART.Dunkel = { Psycho: 2, Kampf: 0.5, Dunkel: 0.5 };
+  for (const t of ['Feuer', 'Wasser', 'Pflanze', 'Elektro']) G.CHART[t].Drache = 0.5;
+  G.CHART.Kampf.Dunkel = 2; G.CHART['Käfer'].Dunkel = 2; G.CHART.Psycho.Dunkel = 0.5;
+  G.STAT_NAMES.spd = 'Initiative';
+  Object.assign(G.MOVES, {
+    drachenhauch:   { name: 'Drachenhauch',   type: 'Drache', power: 40, acc: 100, pp: 30, d: 'Warmer Atem aus Nebel.' },
+    schuppenhieb:   { name: 'Schuppenhieb',   type: 'Drache', power: 70, acc: 95,  pp: 15, d: 'Ein Schlag mit dem geschuppten Schweif.' },
+    wyrmzorn:       { name: 'Wyrmzorn',       type: 'Drache', power: 85, acc: 90,  pp: 10, eff2: { who: 'self', stat: 'def', n: -1, chance: 20 }, d: 'Ungezügelter Drachenzorn. 20 %: senkt die eigene Vert.' },
+    schuppenglanz:  { name: 'Schuppenglanz',  type: 'Drache', power: 0,  acc: 100, pp: 20, effect: { who: 'self', stat: 'atk', n: 1 }, d: 'Die Schuppen glänzen auf – erhöht den eigenen Angriff.' },
+    finsterbiss:    { name: 'Schattenbiss',   type: 'Dunkel', power: 55, acc: 100, pp: 25, eff2: { who: 'foe', stat: 'spd', n: -1, chance: 20 }, d: 'Ein Biss aus dem Schatten. 20 %: senkt die Init.' },
+    hinterhalt:     { name: 'Hinterhalt',     type: 'Dunkel', power: 40, acc: 100, pp: 20, prio: 1, d: 'Schlägt aus dem Verborgenen zu – Erstschlag.' },
+    finsterschlag:  { name: 'Finsterschlag',  type: 'Dunkel', power: 80, acc: 95,  pp: 10, d: 'Ein Hieb, schwarz wie eine mondlose Nacht.' },
+    raenke:         { name: 'Ränke',          type: 'Dunkel', power: 0,  acc: 95,  pp: 20, effect: { who: 'foe', stat: 'def', n: -1 }, d: 'Fiese Ränke – senkt die Vert. des Ziels.' },
+    // Signatur-Attacken
+    nebelschnoerkel:{ name: 'Nebelschnörkel', type: 'Drache', power: 50, acc: 100, pp: 20, eff2: { who: 'foe', stat: 'acc', n: -1, chance: 30 }, d: 'Ein Schnörkel aus Nebel. 30 %: senkt die Gen.' },
+    mondwindung:    { name: 'Mondwindung',    type: 'Drache', power: 90, acc: 90,  pp: 5,  ignoreDrops: true, d: 'Ein Wirbel aus Mondlicht – eigene Wertsenkungen zählen nicht.' },
+    moospanzer:     { name: 'Moospanzer',     type: 'Pflanze', power: 0, acc: 100, pp: 10, effect: { who: 'self', stat: 'def', n: 1 }, heal2: 0.125, d: 'Moos legt sich wie ein Panzer an – Vert. +1, heilt ⅛.' },
+    kohlenatem:     { name: 'Kohlenatem',     type: 'Feuer',  power: 60, acc: 95,  pp: 15, status: { id: 'brand', chance: 30 }, d: 'Glühender Kohlenatem. 30 %: verbrennt.' },
+    tropfsteinwalze:{ name: 'Tropfsteinwalze',type: 'Stein',  power: 75, acc: 90,  pp: 10, eff2: { who: 'foe', stat: 'spd', n: -1, chance: 50 }, d: 'Rollt wie ein Tropfstein heran. 50 %: senkt die Init.' },
+    donnerschweif:  { name: 'Donnerschweif',  type: 'Elektro', power: 80, acc: 95, pp: 10, lowPrio: 0.25, d: 'Ein Schweif aus Blitz. Unter ¼ LP: Erstschlag.' },
+    quellsegen:     { name: 'Quellsegen',     type: 'Wasser', power: 0,  acc: 100, pp: 5,  heal: 0.5, cure: true, d: 'Klares Brunnenwasser – heilt ½ und löst jeden Zustand.' },
+    russwisch:      { name: 'Russwisch',      type: 'Dunkel', power: 45, acc: 100, pp: 25, eff2: { who: 'foe', stat: 'acc', n: -1, chance: 30 }, d: 'Wischt Russ in die Augen. 30 %: senkt die Gen.' },
+    schattenfinte:  { name: 'Schattenfinte',  type: 'Dunkel', power: 70, acc: 100, pp: 15, sure: true, d: 'Eine Finte aus Rauch – trifft immer.' },
+    pechblase:      { name: 'Pechblase',      type: 'Gift',   power: 0,  acc: 85,  pp: 10, status: { id: 'gift', chance: 100 }, d: 'Eine platzende Teerblase – vergiftet sicher.' },
+    knopfklau:      { name: 'Knopfklau',      type: 'Dunkel', power: 40, acc: 100, pp: 20, steal: true, d: 'Stibitzt dem Ziel eine Wertsteigerung.' },
+    muhmenrat:      { name: 'Muhmenrat',      type: 'Dunkel', power: 0,  acc: 100, pp: 10, effect: { who: 'self', stat: 'def', n: 1 }, heal2: 0.25, d: 'Ein alter Rat der Rabenmuhme – Vert. +1, heilt ¼.' },
+    knorrenfalle:   { name: 'Knorrenfalle',   type: 'Pflanze', power: 70, acc: 95, pp: 10, eff2: { who: 'foe', stat: 'spd', n: -1, chance: 50 }, d: 'Knorrige Wurzeln packen zu. 50 %: senkt die Init.' },
+    schlundfalle:   { name: 'Schlundfalle',   type: 'Dunkel', power: 60, acc: 95,  pp: 10, trap: 2, d: 'Das Felsmaul schnappt zu – das Ziel kann 2 Runden nicht tauschen.' },
+    neumondzange:   { name: 'Neumondzange',   type: 'Dunkel', power: 90, acc: 90,  pp: 5,  crit: 0.25, d: 'Zwei Mondsicheln schliessen sich – hohe Volltreffer-Chance.' }
+  });
+  const SP21 = {
+    // Drache – selten und spät (Moorherz, Kapelle, Aschehang, tiefe Klippenhöhle, Küstenweg nach dem Dojo)
+    nebelwuermchen: { name: 'Nebelwürmchen', g: 'n', types: ['Drache'], base: [44, 52, 40, 54], catch: 0.25, xp: 70,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'drachenhauch'], [12, 'nebelschnoerkel'], [16, 'schuppenglanz'], [20, 'schuppenhieb']], evo: { to: 'dunstwyrm', lvl: 18 },
+      desc: 'Ein kleiner, eingerollter Wurm aus Morgennebel mit zwei Laternenaugen. Auf seinem Rücken wächst Moos, weil er so selten aufwacht.' },
+    dunstwyrm: { name: 'Dunstwyrm', g: 'm', types: ['Drache'], base: [56, 70, 52, 74], catch: 0.12, xp: 130,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'drachenhauch'], [12, 'nebelschnoerkel'], [16, 'schuppenglanz'], [20, 'schuppenhieb'], [26, 'wyrmzorn']], evo: { to: 'nebelkoenigswyrm', lvl: 32 },
+      desc: 'Ein langer Körper aus Dunst mit einer Mähne aus Weidenzweigen. Seine Schuppen glimmen, wenn er über das Moor gleitet.' },
+    nebelkoenigswyrm: { name: 'Nebelkönigswyrm', g: 'm', types: ['Drache', 'Psycho'], base: [75, 93, 70, 96], catch: 0.05, xp: 220,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'drachenhauch'], [12, 'nebelstoss'], [16, 'schuppenglanz'], [20, 'schuppenhieb'], [26, 'wyrmzorn'], [32, 'mondwindung']],
+      desc: 'Ein schwebender Wyrm mit Sternenmuster. Seine Krone besteht aus Tropfen von Mondlicht, die nie herunterfallen.' },
+    moosdrachling: { name: 'Moosdrachling', g: 'm', types: ['Drache', 'Pflanze'], base: [54, 42, 60, 34], catch: 0.25, xp: 72,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'drachenhauch'], [10, 'blattwirbel'], [14, 'moospanzer'], [18, 'schuppenhieb']], evo: { to: 'farnwyrm', lvl: 24 },
+      desc: 'Eine gedrungene Echse mit einem Kamm aus Farnwedeln. Statt Hörnern trägt sie zwei kleine Pilzhütchen.' },
+    farnwyrm: { name: 'Farnwyrm', g: 'm', types: ['Drache', 'Pflanze'], base: [78, 60, 84, 46], catch: 0.12, xp: 140,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'drachenhauch'], [10, 'blattwirbel'], [14, 'moospanzer'], [18, 'schuppenhieb'], [24, 'wurzelhieb'], [28, 'waldsegen']],
+      desc: 'Ein breiter Wyrm, auf dessen Rücken ein kleiner Farnwald wächst. Darin wohnen Glühwürmchen, die mit ihm reisen.' },
+    glutechse: { name: 'Glutechse', g: 'f', types: ['Drache', 'Feuer'], base: [54, 58, 44, 38], catch: 0.25, xp: 72,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'drachenhauch'], [10, 'glutstoss'], [14, 'kohlenatem'], [18, 'schuppenhieb']], evo: { to: 'essenwyrm', lvl: 26 },
+      desc: 'Eine kleine Echse aus Kohle mit glühender Bauchnaht. Wenn sie schläft, steigt aus ihren Nüstern feiner Rauch.' },
+    essenwyrm: { name: 'Essenwyrm', g: 'm', types: ['Drache', 'Feuer'], base: [82, 86, 64, 50], catch: 0.1, xp: 150,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'drachenhauch'], [10, 'glutstoss'], [14, 'kohlenatem'], [18, 'schuppenhieb'], [22, 'glutzunge'], [26, 'schuppenglanz'], [30, 'wyrmzorn']],
+      desc: 'Ein schwerer Wyrm wie ein alter Schmiedeofen. Wenn er schnaubt, regnet es Funken aus seinen Nüstern.' },
+    grottenwyrm: { name: 'Grottenwyrm', g: 'm', types: ['Drache', 'Stein'], base: [76, 70, 92, 26], catch: 0.1, xp: 150, rare: true,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'kieselhagel'], [12, 'drachenhauch'], [16, 'schuppenhieb'], [20, 'tropfsteinwalze']],
+      desc: 'Ein blinder Höhlenwyrm mit Zacken aus Tropfstein. Wo andere Augen haben, sitzen bei ihm zwei Kristalle.' },
+    gewitterlind: { name: 'Gewitterlind', g: 'm', types: ['Drache', 'Elektro'], base: [58, 70, 48, 92], catch: 0.1, xp: 150, rare: true,
+      learn: [[1, 'kratzer'], [1, 'heuler'], [8, 'drachenhauch'], [10, 'funkenschlag'], [14, 'hinterhalt'], [18, 'donnerschweif']],
+      desc: 'Ein schmaler Himmelswyrm aus Gewitterwolke, durchzogen von Blitzadern. Seine Mähne sind Regenfäden, die nie den Boden erreichen.' },
+    brunnendrache: { name: 'Brunnendrache', g: 'm', types: ['Drache', 'Wasser'], base: [96, 66, 84, 60], catch: 0.08, xp: 200, rare: true,
+      learn: [[1, 'platscher'], [1, 'haerten'], [8, 'wasserstrahl'], [12, 'drachenhauch'], [16, 'schuppenhieb'], [20, 'waldsegen'], [22, 'quellsegen']],
+      desc: 'Ein alter, gütiger Drache, der seit Menschengedenken im Dorfteich schläft. Sein Bart besteht aus Wasserlinsen.' },
+    // Dunkel – ab Torfstich bei Nacht, Kapelle, Moorherz und Klippenhöhle (nach der Quantum-Geschichte)
+    russwiesel: { name: 'Russwiesel', g: 'n', types: ['Dunkel'], base: [40, 50, 36, 62], catch: 0.35, xp: 60,
+      learn: [[1, 'kratzer'], [1, 'starren'], [8, 'hinterhalt'], [11, 'russwisch'], [14, 'finsterbiss']], evo: { to: 'kohlmarder', lvl: 17 },
+      desc: 'Ein flinkes Wiesel aus Kaminruss. Seine Schwanzspitze glimmt wie Glut, und wo es durchhuscht, bleiben schwarze Pfotenspuren.' },
+    kohlmarder: { name: 'Kohlmarder', g: 'm', types: ['Dunkel'], base: [56, 66, 48, 84], catch: 0.15, xp: 120,
+      learn: [[1, 'kratzer'], [1, 'starren'], [8, 'hinterhalt'], [11, 'russwisch'], [14, 'finsterbiss'], [17, 'raenke'], [24, 'finsterschlag']], evo: { to: 'schattenmarder', lvl: 30 },
+      desc: 'Ein Marder mit einem Mantel aus Rauch. In seinem Fell trägt er Laternenfunken, die er irgendwo gestohlen hat.' },
+    schattenmarder: { name: 'Schattenmarder', g: 'm', types: ['Dunkel', 'Kampf'], base: [74, 94, 64, 98], catch: 0.05, xp: 210,
+      learn: [[1, 'kratzer'], [1, 'starren'], [8, 'hinterhalt'], [11, 'russwisch'], [14, 'finsterbiss'], [17, 'raenke'], [24, 'finsterschlag'], [30, 'schattenfinte'], [34, 'grimmstoss']],
+      desc: 'Ein aufrechter Marder mit Rauchbinden um die Pfoten. Er steht ruhig wie ein alter Meister – bis er zuschlägt.' },
+    pechunke: { name: 'Pechunke', g: 'f', types: ['Dunkel', 'Gift'], base: [52, 42, 50, 40], catch: 0.35, xp: 64,
+      learn: [[1, 'platscher'], [1, 'starren'], [8, 'schattenbiss'], [11, 'finsterbiss'], [14, 'pechblase'], [17, 'raenke']], evo: { to: 'teerkroete', lvl: 22 },
+      desc: 'Eine kleine Unke mit Teerhaut. Ihre Bauchflecken leuchten violett, wenn sie sich erschreckt.' },
+    teerkroete: { name: 'Teerkröte', g: 'f', types: ['Dunkel', 'Gift'], base: [76, 60, 72, 46], catch: 0.15, xp: 130,
+      learn: [[1, 'platscher'], [1, 'starren'], [8, 'schattenbiss'], [11, 'finsterbiss'], [14, 'pechblase'], [17, 'raenke'], [22, 'giftschlamm'], [26, 'finsterschlag']],
+      desc: 'Eine schwere Kröte, auf deren Rücken kleine Teerblasen blubbern. Sie sitzt tagelang still im Moor.' },
+    kolkwicht: { name: 'Kolkwicht', g: 'm', types: ['Dunkel'], base: [50, 44, 48, 50], catch: 0.35, xp: 64,
+      learn: [[1, 'pickser'], [1, 'heuler'], [8, 'finsterbiss'], [11, 'knopfklau'], [13, 'haerten'], [15, 'raenke']], evo: { to: 'rabenmuhme', lvl: 25 },
+      desc: 'Ein struppiger Rabengeist mit dem Rest eines Strohhuts. Er sammelt verlorene Knöpfe und versteckt sie in der Friedhofsmauer.' },
+    rabenmuhme: { name: 'Rabenmuhme', g: 'f', types: ['Dunkel', 'Psycho'], base: [74, 58, 70, 60], catch: 0.12, xp: 140,
+      learn: [[1, 'pickser'], [1, 'heuler'], [8, 'finsterbiss'], [11, 'knopfklau'], [15, 'raenke'], [25, 'muhmenrat'], [28, 'traumblick'], [30, 'finsterschlag'], [34, 'waldsegen']],
+      desc: 'Eine alte Rabenfrau aus Schatten mit einem Schal aus Federn. In der Kralle trägt sie eine Laterne für alle, die sich verlaufen haben.' },
+    wurzelschrat: { name: 'Wurzelschrat', g: 'm', types: ['Dunkel', 'Pflanze'], base: [80, 82, 66, 30], catch: 0.15, xp: 140, rare: true,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'finsterbiss'], [11, 'knorrenfalle'], [15, 'wurzelhieb'], [19, 'finsterschlag']],
+      desc: 'Ein knorriger Waldschrat aus alten Wurzeln. Seine Augen sind zwei Glühwürmchen, die in einem Astloch wohnen.' },
+    grottenmaul: { name: 'Grottenmaul', g: 'n', types: ['Dunkel', 'Stein'], base: [78, 66, 94, 24], catch: 0.15, xp: 140, rare: true,
+      learn: [[1, 'einrollen'], [1, 'haerten'], [8, 'kieselhagel'], [11, 'finsterbiss'], [15, 'schlundfalle'], [19, 'felsruf']],
+      desc: 'Ein bemoostes Felsmaul, das mit offenem Mund schläft. Darin glimmen Steine, die schon manchen Wanderer angelockt haben.' },
+    neumondhirschkaefer: { name: 'Neumondhirschkäfer', g: 'm', types: ['Dunkel', 'Käfer'], base: [78, 98, 82, 54], catch: 0.06, xp: 210, rare: true,
+      learn: [[1, 'rempler'], [1, 'haerten'], [8, 'kaeferbiss'], [12, 'kampfschrei'], [16, 'finsterschlag'], [20, 'neumondzange']],
+      desc: 'Ein grosser Hirschkäfer mit einem Geweih wie zwei Mondsicheln. Auf seinem schwarzen Panzer liegt Sternenstaub, der nur in mondlosen Nächten leuchtet.' }
+  };
+  for (const [id, s] of Object.entries(SP21)) { const [hp, atk, def, spd] = s.base; G.SPECIES[id] = Object.assign({}, s, { type: s.types[0], base: { hp, atk, def, spd } }); }
+  G.NEW21 = Object.keys(SP21);
+  const ROLE21 = { nebelwuermchen: 'Sweeper', moosdrachling: 'Tank', glutechse: 'Bruiser', grottenwyrm: 'Tank', gewitterlind: 'Speedster', brunnendrache: 'Support',
+    russwiesel: 'Speedster', pechunke: 'Status', kolkwicht: 'Support', wurzelschrat: 'Bruiser', grottenmaul: 'Tank', neumondhirschkaefer: 'Bruiser' };
+  for (const sp in ROLE21) { let c = sp; while (c) { G.SPECIES[c].role = ROLE21[sp]; c = G.SPECIES[c].evo && G.SPECIES[c].evo.to; } }
+  G.SPECIES.schattenmarder.role = 'Sweeper';
+  G.RARE.push('grottenwyrm', 'gewitterlind', 'brunnendrache', 'wurzelschrat', 'grottenmaul', 'neumondhirschkaefer');
+  G.SPECIES_ORDER.push(...G.NEW21.filter(sp => G.FEAT.rare || !G.RARE.includes(sp)));
+  // Fundorte (4. Feld = eigener Levelbereich). Bedingungen: 'night', 'day', 'flag:X', 'lead:N' (stärkster Geist ≥ N), mit '+' kombinierbar.
+  const addW = (z, ...e) => { if (G.WILD_AREAS[z]) G.WILD_AREAS[z].table.push(...e); };
+  addW('kuestengras', ['russwiesel', 3, 'night', [6, 8]]);   // seltener Früh-Fund (Psycho → Dunkel ½×, Nachtmahr bleibt gewinnbar)
+  addW('torfstich', ['russwiesel', 8, 'night'], ['wurzelschrat', 4]);
+  addW('kapelle', ['kolkwicht', 8], ['moosdrachling', 5, 'lead:14', [14, 15]]);
+  addW('moorherz', ['pechunke', 7], ['nebelwuermchen', 4, 'day+lead:14', [14, 16]]);
+  addW('aschehang', ['glutechse', 4]);
+  addW('hoehle', ['grottenmaul', 3, 'flag:quantum'], ['grottenwyrm', 2, 'lead:16+flag:dojoEnd', [16, 18]]);
+  addW('kuestengras', ['gewitterlind', 1, 'night+flag:dojoEnd', [17, 19]]);
+  const condOk = c => c.split('+').every(k => k === 'night' ? G.NIGHT() : k === 'day' ? !G.NIGHT()
+    : k.startsWith('flag:') ? !!(G.flag && G.flag(k.slice(5))) : k.startsWith('lead:') ? !!G.state && Math.max(0, ...(G.state.team || []).map(m => m.lvl)) >= +k.slice(5) : false);
+  G.tableNow = A => A.table.filter(e => !e[2] || condOk(e[2]));
+  G.condOk = condOk;
   G.genitive = name => { const f = name.split(' ')[0]; return /[sxz]$/.test(f) ? f + '’' : f + 's'; };
 })(window.G);

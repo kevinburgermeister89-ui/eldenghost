@@ -3,7 +3,7 @@
 (function (G) {
   const UI = () => G.UI, Snd = () => G.Snd;
   const ease = p => 1 - Math.pow(1 - p, 3);
-  const freshStages = () => ({ atk: 0, def: 0, acc: 0 });
+  const freshStages = () => ({ atk: 0, def: 0, acc: 0, spd: 0 });   // v21: Initiative-Stufe (Gespinst, Lauschen, Schattenbiss …)
   const stageMult = s => s >= 0 ? (2 + s) / 2 : 2 / (2 - s);
   const accMult = s => s >= 0 ? (3 + s) / 3 : 3 / (3 - s);
   const newAnim = () => ({ dx: 0, dy: 0, vis: 1, flash: 0, scale: 1, alpha: 1 });
@@ -496,6 +496,33 @@
     grimmstoss: { ms: 1100, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x0, y0] = center(f); await An(260, p => { a.dx = -p * 10 * d; glowAt(x0, y0, 14, 0, '#ff7050', 0.05); }); await An(220, p => { a.dx = Lp(-10, 50, p) * d; }); a.dx = 0; const [x, y] = center(t); ringAt(x, y, 4, 170, '#ffb090', 0.3); ringAt(x, y, 2, 110, '#ff7050', 0.4); G.B.shake = 6; await W(200); } },
     ahnenstoss: { ms: 1300, fn: async (f, t) => { const [x0, y0] = center(f); P_({ x: x0, y: y0, k: 'shade', r: 18, dr: 6, life: 0.6, c: '#e8d8b8', a: 0.5 }); await W(300); await fly(f, t, 360, (p, x, y) => { P_({ x, y, k: 'shade', r: 14, dr: -8, life: 0.25, c: '#e8d8b8', a: 0.5 }); glowAt(x, y, 6, -4, '#ffe0b0', 0.2); }); G.B.shake = 5; } },
   };
+
+  // --- v21: Drache & Dunkel (eigene Choreografie, ≤ 3 s) ---
+  Object.assign(MOVE_FX, {
+    drachenhauch: { ms: 1100, fn: async (f, t) => { await fly(f, t, 600, (p, x, y) => { P_({ x, y, k: 'fog', r: 6, dr: 10, life: 0.4, c: '#9a80ff', a: 0.6 }); P_({ x, y, vx: rnd(-20, 20), vy: rnd(-20, 20), k: 'spark', s: 1.5, life: 0.3, c: '#d8c8ff' }); }, 10); const [x, y] = center(t); ringAt(x, y, 6, 80, '#7a60e0', 0.35); await W(200); } },
+    schuppenhieb: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); for (let i = 0; i < 3; i++) { streak(x - 14 + i * 12, y - 12, 1.2, 28, '#b8a8ff', { w: 4, life: 0.3 }); sparks(x - 14 + i * 12, y, 3, '#7a60e0', 60); await W(110); } G.B.shake = 4; await W(250); } },
+    wyrmzorn: { ms: 1700, fn: async (f, t) => { const [x0, y0] = center(f), [x1, y1] = center(t); G.B.dim = 0.35; await An(450, p => glowAt(x0, y0, 6 + p * 18, 0, '#7a60e0', 0.08)); await An(500, p => { const x = Lp(x0, x1, p), y = Lp(y0, y1, p) + Math.sin(p * 18) * 12; P_({ x, y, k: 'glow', r: 8, dr: -6, life: 0.3, c: '#9a80ff' }); }); G.B.shake = 7; sparks(x1, y1, 18, '#d8c8ff', 120); ringAt(x1, y1, 8, 140, '#7a60e0', 0.4); await W(300); G.B.dim = 0; } },
+    schuppenglanz: { ms: 1200, fn: async (f, t) => { const [x, y] = center(f); for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; P_({ x: x + Math.cos(a) * 22, y: y + Math.sin(a) * 16, k: 'glow', r: 3, dr: 4, life: 0.5, c: i % 2 ? '#b8a8ff' : '#e8e0ff' }); await W(60); } ringAt(x, y, 10, 60, '#9a80ff', 0.4); await W(300); } },
+    finsterbiss: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); G.B.dim = 0.3; await An(360, p => { const g = 18 * (1 - p * p); for (let i = -2; i <= 2; i++) { P_({ x: x + i * 7, y: y - g, k: 'tooth', s: 4, up: 0, life: 0.06, c: '#5a4a5e' }); P_({ x: x + i * 7 + 3, y: y + g, k: 'tooth', s: 4, up: 1, life: 0.06, c: '#5a4a5e' }); } }); G.B.shake = 4; sparks(x, y, 8, '#2a2030', 70); await W(200); G.B.dim = 0; } },
+    hinterhalt: { ms: 900, fn: async (f, t) => { const a = selfA(f); await An(200, p => { a.alpha = 1 - p; }); const [x, y] = center(t); a.alpha = 1; streak(x + 20, y - 18, 2.4, 40, '#3a3040', { w: 4, life: 0.25 }); G.B.shake = 4; sparks(x, y, 10, '#8a7a90', 90); await W(300); } },
+    finsterschlag: { ms: 1200, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x, y] = center(t); G.B.dim = 0.45; await An(300, p => { a.dx = -p * 10 * d; }); await An(220, p => { a.dx = Lp(-10, 55, p) * d; }); a.dx = 0; G.B.shake = 6; P_({ x, y, k: 'shade', r: 20, dr: 10, life: 0.5, c: '#2a2030', a: 0.7 }); ringAt(x, y, 4, 120, '#5a4a5e', 0.35); await W(300); G.B.dim = 0; } },
+    raenke: { ms: 1100, fn: async (f, t) => { const [x, y] = center(f); await An(700, p => { const a = p * 12; P_({ x: x + Math.cos(a) * 20, y: y + Math.sin(a) * 12, k: 'fog', r: 4, dr: 6, life: 0.4, c: '#5a4a5e', a: 0.6 }); }); glowAt(x + 6, y - 10, 4, 6, '#e0d0ff', 0.3); await W(200); } },
+    nebelschnoerkel: { ms: 1100, fn: async (f, t) => { const [x1, y1] = center(t); await An(750, p => { const a = p * 10, r = 26 * (1 - p); P_({ x: x1 + Math.cos(a) * r, y: y1 + Math.sin(a) * r * 0.6, k: 'fog', r: 5, dr: 6, life: 0.4, c: '#c8c0f0', a: 0.5 }); }); ringAt(x1, y1, 4, 70, '#9a80ff', 0.3); await W(200); } },
+    mondwindung: { ms: 1500, fn: async (f, t) => { const a = selfA(f), [x1, y1] = center(t); G.B.dim = 0.35; glowAt(x1, y1 - 46, 12, 6, '#e8f0ff', 0.6); await An(600, p => { a.dy = -Math.sin(p * Math.PI) * 26; const q = p * 9; P_({ x: x1 + Math.cos(q) * 24, y: y1 + Math.sin(q) * 14, k: 'glow', r: 3, dr: 2, life: 0.3, c: '#b8a8ff' }); }); a.dy = 0; G.B.shake = 5; ringAt(x1, y1, 6, 110, '#e8f0ff', 0.4); await W(300); G.B.dim = 0; } },
+    moospanzer: { ms: 1200, fn: async (f, t) => { const [x, y] = center(f); for (let i = 0; i < 7; i++) { P_({ x: x + rnd(-22, 22), y: y + 22, vy: -50, k: 'mote', life: 0.6, c: i % 2 ? '#6aa040' : '#a0d070' }); await W(70); } ringAt(x, y, 22, -8, '#6aa040', 0.5); await W(350); } },
+    kohlenatem: { ms: 1200, fn: async (f, t) => { await fly(f, t, 650, (p, x, y) => { P_({ x, y, k: 'glow', r: 6, dr: 6, life: 0.3, c: p < 0.5 ? '#ff9040' : '#c04020' }); P_({ x, y: y - 4, vy: -20, k: 'fog', r: 3, dr: 6, life: 0.5, c: '#3a3036', a: 0.5 }); }, 6, 3); const [x, y] = center(t); sparks(x, y, 12, '#ffb060', 90); await W(250); } },
+    tropfsteinwalze: { ms: 1300, fn: async (f, t) => { const [x1, y1] = center(t); await An(700, p => { const x = Lp(x1 - 70, x1, p); P_({ x, y: y1 + 16, k: 'chunk', s: 6, life: 0.1, c: '#9890a8' }); if (Math.random() < 0.5) P_({ x, y: y1 + 20, vy: -60, g: 300, k: 'chunk', s: 2, life: 0.4, c: '#b8b0c8' }); }); G.B.shake = 6; ringAt(x1, y1, 6, 100, '#b8b0c8', 0.35); await W(250); } },
+    donnerschweif: { ms: 1100, fn: async (f, t) => { const [x1, y1] = center(t); await An(500, p => { const a = -2.6 + p * 3.6; streak(x1 + Math.cos(a) * 30, y1 + Math.sin(a) * 20, a + 1.57, 14, '#fff4a0', { w: 3, life: 0.1 }); }); for (let i = 0; i < 3; i++) streak(x1 + rnd(-8, 8), y1 - 40, 1.57, 40, '#e8e070', { w: 2, life: 0.2 }); G.B.shake = 5; await W(300); } },
+    quellsegen: { ms: 1300, fn: async (f, t) => { const [x, y] = center(f); await An(800, p => { P_({ x: x + rnd(-14, 14), y: y + 24 - p * 40, vy: -30, k: 'drop', s: 2, life: 0.4, c: '#80c0f0' }); }); ringAt(x, y, 4, 60, '#c0e8ff', 0.4); glowAt(x, y, 18, -10, '#e0f4ff', 0.4); await W(300); } },
+    russwisch: { ms: 900, fn: async (f, t) => { const [x, y] = center(t); await An(400, p => { const xx = Lp(x - 36, x + 36, p); P_({ x: xx, y: y + Math.sin(p * 6) * 6, k: 'fog', r: 5, dr: 8, life: 0.5, c: '#2a2426', a: 0.7 }); }); sparks(x, y, 6, '#6a5a5a', 60); await W(250); } },
+    schattenfinte: { ms: 1000, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x, y] = center(t); await An(250, p => { a.dx = Math.sin(p * Math.PI) * -24 * d; a.alpha = 1 - p * 0.6; }); a.alpha = 1; a.dx = 0; P_({ x: x - 20 * d, y, k: 'shade', r: 12, dr: 4, life: 0.4, c: '#3a3040', a: 0.6 }); streak(x, y - 14, 1.9, 30, '#8a7a90', { w: 3, life: 0.25 }); G.B.shake = 3; await W(350); } },
+    pechblase: { ms: 1200, fn: async (f, t) => { await fly(f, t, 600, (p, x, y, st) => { if (st % 2 === 0) P_({ x, y, k: 'ring', r: 5, dr: 2, life: 0.2, c: '#2a2030' }); }, 30); const [x, y] = center(t); for (let i = 0; i < 6; i++) P_({ x, y, vx: rnd(-60, 60), vy: rnd(-80, -20), g: 300, k: 'drop', s: 3, life: 0.4, c: '#1a1418' }); await W(300); } },
+    knopfklau: { ms: 1100, fn: async (f, t) => { const a = selfA(f), d = f === 'ally' ? 1 : -1, [x0, y0] = center(f), [x1, y1] = center(t); await An(260, p => { a.dx = Math.sin(p * Math.PI) * 34 * d; }); a.dx = 0; sparks(x1, y1, 5, '#e8d070', 50); await An(380, p => { P_({ x: Lp(x1, x0, p), y: Lp(y1, y0, p) - Math.sin(p * 3.14) * 20, k: 'glow', r: 3, dr: 0, life: 0.06, c: '#f0e090' }); }); await W(200); } },
+    muhmenrat: { ms: 1500, fn: async (f, t) => { const [x, y] = center(f); P_({ x: x - 26, y: y - 20, k: 'shade', r: 12, dr: 2, life: 0.9, c: '#8a7aa0', a: 0.5 }); await An(800, p => { if (Math.random() < 0.5) P_({ x: Lp(x - 26, x, p), y: Lp(y - 20, y, p), k: 'mote', life: 0.4, c: '#d8c8f0' }); }); glowAt(x, y, 16, -8, '#e8e0ff', 0.4); await W(350); } },
+    knorrenfalle: { ms: 1200, fn: async (f, t) => { const [x, y] = center(t); for (const s of [-1, 1]) for (let i = 0; i < 3; i++) P_({ x: x + s * (30 - i * 6), y: y + 26, vy: -90, g: 120, k: 'chunk', s: 4, life: 0.5, c: '#6a4a30' }); await W(400); G.B.shake = 4; ringAt(x, y + 10, 6, 70, '#8a6a48', 0.35); await W(350); } },
+    schlundfalle: { ms: 1300, fn: async (f, t) => { const [x, y] = center(t); G.B.dim = 0.4; await An(500, p => { const g = 30 * (1 - p); for (let i = -2; i <= 2; i++) { P_({ x: x + i * 9, y: y - g - 6, k: 'tooth', s: 5, up: 0, life: 0.06, c: '#4a3a40' }); P_({ x: x + i * 9, y: y + g + 6, k: 'tooth', s: 5, up: 1, life: 0.06, c: '#4a3a40' }); } }); G.B.shake = 6; P_({ x, y, k: 'shade', r: 18, dr: 4, life: 0.5, c: '#1a1418', a: 0.6 }); await W(350); G.B.dim = 0; } },
+    neumondzange: { ms: 1100, fn: async (f, t) => { const [x, y] = center(t); G.B.dim = 0.4; await An(420, p => { const g = 26 * (1 - p); streak(x - g, y - 8, 0.6, 18, '#c8c0e0', { w: 3, life: 0.06 }); streak(x + g, y + 8, 0.6 + Math.PI, 18, '#c8c0e0', { w: 3, life: 0.06 }); }); G.B.shake = 5; glowAt(x, y, 4, 30, '#e8f0ff', 0.3); sparks(x, y, 10, '#8a7aa0', 90); await W(300); G.B.dim = 0; } },
+  });
   G.Battle.MOVE_FX = MOVE_FX;
   // kompletter Treffer: Anflug, Einschlag, Klang, Schütteln, Blitz bei Volltreffer / sehr wirksam
   async function attackFx(type, from, to, crit, eff, id) {
@@ -713,6 +740,7 @@
         if (idx < 0) continue;
         if (idx === B.allyIdx) { await UI().say(`${G.nm(al)} kämpft bereits!`); continue; }
         if (S.team[idx].hp <= 0) { await UI().say(`${G.nm(S.team[idx])} ist zu erschöpft zum Kämpfen.`); continue; }
+        if (B.trap && B.trap.ally > 0) { await UI().say(`${G.nm(al)} steckt in der Schlundfalle fest und kann nicht zurück!`); continue; }   // v21
         await switchTo(idx);
         r = await enemyOnly();
       } else {
@@ -757,13 +785,15 @@
 
   G.Battle.enemyChoice = () => enemyChoice();   // v20.2: für Tests (Gegner-KI nutzt dieselbe Typentabelle)
   // v17: Priorität (Abwehr +3, Erstschlag +1), sonst Initiative
-  const prioOf = id => { const M = G.MOVES[id]; return M ? (M.protect ? 3 : (M.prio || 0)) : 0; };
+  // v21: Donnerschweif – Erstschlag, wenn der Anwender unter ¼ seiner LP ist
+  const prioOf = (id, m) => { const M = G.MOVES[id]; if (!M) return 0; if (M.protect) return 3; if (M.lowPrio && m && m.hp < G.stats(m).hp * M.lowPrio) return 1; return M.prio || 0; };
   G.Battle.prioOf = prioOf;
+  G.Battle._useMove = (side, id) => useMove(side, id);   // v21: für Tests (Typ-Multiplikatoren im echten Schadensweg)
   async function round(id) {
     const al = G.state.team[G.B.allyIdx], en = G.B.enemy;
-    const a = G.stats(al).spd, e = G.stats(en).spd;
+    const a = G.stats(al).spd * stageMult(G.B.st.ally.spd || 0), e = G.stats(en).spd * stageMult(G.B.st.enemy.spd || 0);
     const eid = await enemyChoice();
-    const pa = prioOf(id), pe = prioOf(eid);
+    const pa = prioOf(id, al), pe = prioOf(eid, en);
     const allyFirst = pa !== pe ? pa > pe : (a > e || (a === e && Math.random() < 0.5));
     const seq = allyFirst ? ['ally', 'enemy'] : ['enemy', 'ally'];
     G.Battle.lastOrder = { seq, ids: { ally: id, enemy: eid } };
@@ -783,6 +813,7 @@
     const B = G.B;
     // Abwehr gilt nur für die laufende Runde; wer sie gerade benutzt hat, kann sie nicht zuverlässig wiederholen
     B.lastProtect = { ally: B.protect && B.protect.ally ? 1 : 0, enemy: B.protect && B.protect.enemy ? 1 : 0 }; B.protect = null;
+    if (B.trap) for (const k in B.trap) if (B.trap[k] > 0) B.trap[k]--;   // v21: Schlundfalle läuft ab
     for (const side of ['ally', 'enemy']) {
       const m = sideMon(side), S = m && m.status && G.STATUS[m.status.id];
       if (m && m.hp > 0 && S && S.dot) {
@@ -807,7 +838,7 @@
   }
   // Werte-Stufe ändern (Status-Attacke oder Zusatzeffekt)
   async function stageChange(tgt, e, quiet) {
-    const st = G.B.st[tgt], n = e.n;
+    const st = G.B.st[tgt], n = e.n; if (st[e.stat] == null) st[e.stat] = 0;
     if ((n > 0 && st[e.stat] >= 3) || (n < 0 && st[e.stat] <= -3)) { if (!quiet) await UI().say('Es passiert nichts weiter.'); return; }
     st[e.stat] = Math.max(-3, Math.min(3, st[e.stat] + n));
     const [x, y] = center(tgt); ringAt(x, y, n > 0 ? 4 : 24, n > 0 ? 70 : -40, n > 0 ? '#c8f0ff' : '#ffb0b0', 0.4); Snd().sfx('status');
@@ -843,12 +874,13 @@
     await G.animate(220, p => { aA.dx = Math.sin(p * Math.PI) * 14 * dir; aA.dy = -Math.sin(p * Math.PI) * 4; });
     const selfOnly = M.heal || (!M.power && !M.status && M.effect && M.effect.who === 'self');
     if (!selfOnly && B.protect && B.protect[other(side)]) { const [x, y] = center(other(side)); ringAt(x, y, 30, -20, '#e8f6ff', 0.4); await UI().say(`${cap(label(other(side)))} wehrt die Attacke ab!`); return; }
-    const acc = M.acc * accMult(B.st[side].acc);
+    const acc = M.acc * accMult(M.ignoreDrops ? Math.max(0, B.st[side].acc) : B.st[side].acc);
     if (!M.sure && !selfOnly && !G.debugHit && Math.random() * 100 >= acc) { await UI().say('Daneben! Die Attacke verfliegt im Nebel.'); return; }
     if (M.heal) {
       const mx = G.stats(atk).hp;
-      if (atk.hp >= mx) { await UI().say('Aber die LP sind bereits voll.'); return; }
-      atk.hp = Math.min(mx, atk.hp + Math.floor(mx * M.heal)); UI().updateHud();
+      if (atk.hp >= mx && !(M.cure && atk.status)) { await UI().say('Aber die LP sind bereits voll.'); return; }
+      if (atk.hp >= mx && M.cure && atk.status) { atk.status = null; UI().updateHud(); await UI().say(`${cap(label(side))} ist wieder ganz klar.`); return; }
+      atk.hp = Math.min(mx, atk.hp + Math.floor(mx * M.heal)); if (M.cure && atk.status) atk.status = null; UI().updateHud();
       if (MOVE_FX[id]) await MOVE_FX[id].fn(side, other(side));
       const [x, y] = center(side); burst(x, y, 'Seele', 18); Snd().sfx('heal');
       await UI().say(`${cap(label(side))} ${HEAL_TXT[id] || 'schöpft neue Kraft.'}`); return;
@@ -858,10 +890,12 @@
       const tgt = M.effect.who === 'self' ? side : other(side);
       if (MOVE_FX[id]) await MOVE_FX[id].fn(side, other(side));
       const [x, y] = center(tgt); burst(x, y, M.type, 14);
-      return stageChange(tgt, M.effect);
+      await stageChange(tgt, M.effect);
+      if (M.heal2) { const mx = G.stats(atk).hp; if (atk.hp < mx) { atk.hp = Math.min(mx, atk.hp + Math.max(1, Math.floor(mx * M.heal2))); UI().updateHud(); Snd().sfx('heal'); await UI().say(`${cap(label(side))} schöpft neue Kraft.`); } }   // v21: Moospanzer, Muhmenrat
+      return;
     }
     const as = G.stats(atk), ds = G.stats(def);
-    const A = as.atk * stageMult(B.st[side].atk), Dd = ds.def * stageMult(B.st[other(side)].def);
+    const A = as.atk * stageMult(M.ignoreDrops ? Math.max(0, B.st[side].atk) : B.st[side].atk), Dd = ds.def * stageMult(B.st[other(side)].def);
     const stab = G.hasType(atk.sp, M.type) ? 1.5 : 1, eff = G.eff(M.type, def.sp);
     const nHits = M.hits ? G.rnd(M.hits[0], M.hits[1]) : 1, critP = M.crit || 1 / 16;
     let total = 0, anyCrit = false, done = 0;
@@ -882,6 +916,10 @@
     if (M.drain && total) { atk.hp = Math.min(as.hp, atk.hp + Math.max(1, Math.floor(total * M.drain))); UI().updateHud(); await UI().say(`${cap(label(side))} saugt Kraft ab.`); }
     if (M.recoil && total) { atk.hp = Math.max(0, atk.hp - Math.max(1, Math.floor(total * M.recoil))); UI().updateHud(); await UI().say(`${cap(label(side))} wird vom Rückstoss getroffen.`); }
     if (M.status && def.hp > 0 && Math.random() * 100 < (G.debugStatus ? 100 : M.status.chance)) await tryStatus(other(side), M.status.id, false);
+    // v21: Knopfklau stiehlt eine Wertsteigerung, Schlundfalle verhindert 2 Runden lang das Tauschen
+    if (M.steal && total && def.hp > 0) { const so = B.st[other(side)], sm = B.st[side], k = ['atk', 'def', 'spd', 'acc'].find(k => (so[k] || 0) > 0);
+      if (k) { so[k]--; sm[k] = Math.min(3, (sm[k] || 0) + 1); await UI().say(`${cap(label(side))} stibitzt die ${G.STAT_NAMES[k]} von ${G.nm(def)}!`); } }
+    if (M.trap && total && def.hp > 0) { B.trap = Object.assign(B.trap || {}, { [other(side)]: M.trap + 1 }); await UI().say(`${cap(label(other(side)))} sitzt in der Schlundfalle fest!`); }
     if (M.eff2 && total && Math.random() * 100 < (G.debugStatus ? 100 : M.eff2.chance)) { const tgt = M.eff2.who === 'self' ? side : other(side); if (sideMon(tgt).hp > 0 && atk.hp > 0) await stageChange(tgt, M.eff2, true); }
   }
 

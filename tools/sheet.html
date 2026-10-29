@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#1a1628">
+<canvas id="c"></canvas>
+<script>window.G={mk:(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;}};</script>
+<script src="../js/art.js"></script><script src="../js/creatures.js"></script>
+<script>
+const Z=+(new URLSearchParams(location.search).get('z')||3), ids=Object.keys(G.Creatures.DEF), cols=5, cw=150, ch=90;
+const c=document.getElementById('c'); c.width=cols*cw*Z; c.height=Math.ceil(ids.length/cols)*ch*Z; const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
+g.fillStyle='#2a2440'; g.fillRect(0,0,c.width,c.height);
+ids.forEach((id,i)=>{const x=(i%cols)*cw, y=Math.floor(i/cols)*ch;
+ g.fillStyle=(i%2)?'#302a48':'#262038'; g.fillRect(x*Z,y*Z,cw*Z,ch*Z);
+ const f=G.Creatures.render(id,64,false), b=G.Creatures.render(id,80,true);
+ g.drawImage(f,(x+4)*Z,(y+14)*Z,64*Z,64*Z); g.drawImage(b,(x+68)*Z,(y+6)*Z,80*Z,80*Z);
+ g.fillStyle='#e8e0ff'; g.font=(8*Z)+'px sans-serif'; g.fillText(id,(x+3)*Z,(y+9)*Z);});
+</script>

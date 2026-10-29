@@ -261,8 +261,8 @@ body.touch.landscape #btn-snd{right:auto;bottom:auto;left:max(18px,env(safe-area
 .tc-axis{font-size:calc(var(--u)*6);color:#9a8cc0;margin-bottom:calc(var(--u)*1.5)}
 .tc-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;margin-bottom:calc(var(--u)*3)}
 .typechart{width:auto;table-layout:auto;border-collapse:collapse;font-size:calc(var(--u)*8);margin:0}
-.typechart th,.typechart td{border:1px solid #2e2842;padding:0;text-align:center;min-width:calc(var(--u)*18);width:calc(var(--u)*18);height:calc(var(--u)*14);font-weight:bold}
-.typechart tr>th:first-child{width:calc(var(--u)*22);min-width:calc(var(--u)*22);max-width:none;overflow:visible;text-overflow:clip;white-space:nowrap;text-align:center;padding:0 1px}
+.typechart th,.typechart td{border:1px solid #2e2842;padding:0;text-align:center;min-width:calc(var(--u)*16);width:calc(var(--u)*16);height:calc(var(--u)*14);font-weight:bold}
+.typechart tr>th:first-child{width:calc(var(--u)*20);min-width:calc(var(--u)*20);max-width:none;overflow:visible;text-overflow:clip;white-space:nowrap;text-align:center;padding:0 1px}
 .typechart tr:first-child th{font-size:inherit;vertical-align:bottom;padding:1px 0}
 .typechart th.corner{font-size:calc(var(--u)*5);color:#9a8cc0}
 .typechart td.se{background:#2f7a34;color:#eaffe2}.typechart td.nv{background:#8a2e3a;color:#ffe0e0}.typechart td.im{background:#3a3648;color:#c8c4d8}

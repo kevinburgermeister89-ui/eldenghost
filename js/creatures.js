@@ -1413,5 +1413,5 @@
     if (!c.s) { texture(c, TEX[sp]); c.s = 2; c.lw = n; c.lh = n; if (c.glows) c.glows = c.glows.map(([x, y, r, col]) => [x / 2, y / 2, r / 2, col]); }
     return c;
   }
-  G.Creatures = { DEF, render, renderHi };
+  G.Creatures = { DEF, render, renderHi, TEX };
 })(window.G);

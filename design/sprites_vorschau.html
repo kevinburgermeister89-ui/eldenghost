@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Entwurf: Drache- und Dunkel-Geister</title>
+<style>body{background:#0c0a14;margin:0;display:flex;flex-wrap:wrap;gap:8px;padding:8px}canvas{display:block}</style>
+</head><body>
+<script>window.G = window.G || {};</script>
+<script src="../js/data.js"></script>
+<script src="../js/platform.js"></script>
+<script src="../js/art.js"></script>
+<script src="../js/creatures.js"></script>
+<script src="../js/sprites.js"></script>
+<script src="sprites_drachen_dunkel.js"></script>
+<script src="dd_helpers.js"></script>
+<script src="dd_fern.js"></script>
+<script src="dd_s01.js"></script>
+<script src="dd_s02.js"></script>
+<script src="dd_s03.js"></script>
+<script src="dd_s04.js"></script>
+<script src="dd_s05.js"></script>
+<script src="dd_s06.js"></script>
+<script src="dd_s07.js"></script>
+<script src="dd_s08.js"></script>
+<script src="dd_s09.js"></script>
+<script src="dd_s10.js"></script>
+<script src="dd_s11.js"></script>
+<script src="dd_s12.js"></script>
+<script src="dd_s13.js"></script>
+<script src="dd_s14.js"></script>
+<script src="dd_s15.js"></script>
+<script src="dd_s16.js"></script>
+<script>
+// Rendert jeden Entwurf mit G.Creatures.renderHi (wie im Kampf, 64 logische Pixel) auf eine Vorschaukarte (3× vergrössert)
+Object.assign(G.Creatures.DEF, DD.DEF);
+const only = (location.hash || '').slice(1).split(',').filter(Boolean);
+for (const sp of (only.length ? only : Object.keys(DD.DEF))) {
+  const c = G.Creatures.renderHi(sp, 64); DD.texture(c, DD.TEX[sp]);
+  const Z = 3, W = c.width * Z, o = document.createElement('canvas'); o.width = W; o.height = W; o.id = sp;
+  const g = o.getContext('2d');
+  const bg = g.createRadialGradient(W / 2, W * 0.55, W * 0.05, W / 2, W * 0.5, W * 0.75);
+  bg.addColorStop(0, '#3a2e52'); bg.addColorStop(1, '#141020'); g.fillStyle = bg; g.fillRect(0, 0, W, W);
+  g.fillStyle = 'rgba(8,6,14,0.55)'; g.beginPath(); g.ellipse(W / 2, W * 0.945, W * 0.34, W * 0.04, 0, 0, 7); g.fill();
+  for (const [x, y, r, col] of (c.glows || [])) {
+    const X = x * c.s * Z, Y = y * c.s * Z, R = r * c.s * Z * 3 + 12;
+    const rg = g.createRadialGradient(X, Y, 0, X, Y, R); rg.addColorStop(0, col + '50'); rg.addColorStop(1, col + '00');
+    g.fillStyle = rg; g.fillRect(0, 0, W, W);
+  }
+  g.imageSmoothingEnabled = false; g.drawImage(c, 0, 0, W, W);
+  document.body.appendChild(o);
+}
+document.title = 'ok:' + document.querySelectorAll('canvas').length;
+</script>
+</body></html>

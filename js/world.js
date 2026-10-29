@@ -2171,7 +2171,9 @@
     reeds: (m, x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) !== 'q') return false; return true; },
     // v20: Klingengeist nach dem Finale im hohen Gras direkt neben einem Glutnest
     ember: (m, x, y) => { if (!G.flag('dojoEnd')) return false; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (at(m, x + dx, y + dy) === 'E') return true; return false; },
-    bell: (m, x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === 'B') return true; return false; }
+    bell: (m, x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (at(m, x + dx, y + dy) === 'B') return true; return false; },
+    // v21: «Neumond» – es gibt keine Mondphasen, darum: nachts nach dem Dojo im Bambusgras, aber NICHT neben einem Glutnest (dort wohnt der Klingengeist)
+    newmoon: (m, x, y) => G.flag('dojoEnd') && G.NIGHT() && !RARE_COND.ember(m, x, y)
   };
   // Gebiet einer Kachel (wie in onStep)
   function tileZone(m, x, y) {
@@ -2192,7 +2194,7 @@
     if (!live.length) return out;
     for (let y = Math.max(0, y0); y <= Math.min(m.h - 1, y1); y++) for (let x = Math.max(0, x0); x <= Math.min(m.w - 1, x1); x++) {
       const z = tileZone(m, x, y); if (!z) continue;
-      const r = live.find(r => r.zone === z); if (r && RARE_COND[r.cond](m, x, y)) out.push([x, y, r.sp]);
+      const r = live.find(r => r.zone === z && RARE_COND[r.cond](m, x, y)); if (r) out.push([x, y, r.sp]);   // v21: mehrere Seltene je Gebiet
     }
     return out;
   };
@@ -2206,11 +2208,11 @@
     if (RC) RC[zone] = rare ? 0 : n + 1;
     if (RC && !rare && n + 1 === G.RARE_RULE.RAMP) G.World.rareNotice = zone;
     if (rare) { P.grace = ENCOUNTER_GRACE; const l = G.rnd(rs.lvl[0], rs.lvl[1]); G.state.rareSeen = (G.state.rareSeen || 0) + 1; return G.Battle.start({ team: [G.makeMon(rs.sp, l)], rare: true }); }
-    const sp = G.pickWeighted(G.tableNow(A));
+    const sp = G.pickWeighted(G.tableNow(A)), ent = A.table.find(e => e[0] === sp), ov = ent && Array.isArray(ent[3]) ? ent[3] : null;   // v21: eigener Level-Bereich je Eintrag
     const lead = Math.max(...G.state.team.map(m => m.lvl));
     const cap = zone === 'nebelgras' || !zone ? 1 : 2;
     // Stein-Geister halten typenlose Attacken besser aus (½×): im Nebelgras und am Küstenweg höchstens 3 Level unter deinem stärksten Geist
-    let lvl = Math.max(2, Math.min(lead + cap, G.rnd(A.lvl[0], A.lvl[1])));
+    let lvl = Math.max(2, Math.min(lead + cap, ov ? G.rnd(ov[0], ov[1]) : G.rnd(A.lvl[0], A.lvl[1])));
     if (G.hasType(sp, 'Stein') && (zone === 'nebelgras' || zone === 'kuestengras' || !zone)) lvl = Math.max(2, Math.min(lvl, lead - 3));
     if (story() === 2) lvl = Math.min(lvl, 3);   // Fang-Übung: ein kleiner, müder Geist
     P.grace = ENCOUNTER_GRACE;
@@ -2323,6 +2325,18 @@
     if (m === AH && c === 'Q') return shrineTalk();
     if (m === AH && c === '~' && shipAt() === 'aschehang' && fx >= 16 && fx <= 22 && fy >= 58 && fy <= 62) { G.lock++; await talkWenkeAH(); G.UI.hideText(); G.lock--; return; }
     if (m === K && c === '~' && story() >= 8 && shipAt() === 'kueste' && fx >= 16 && fx <= 21 && fy >= 17 && fy <= 20) { G.lock++; await talkWenke(); G.UI.hideText(); G.lock--; return; }
+    // v21: Brunnendrache – einmalig nach dem Dojo im östlichen Dorfteich (das Dorf hat keinen Brunnen)
+    if (m.id === 'dorf' && c === '~' && fx >= 34 && fx <= 41 && fy >= 8 && fy <= 12) {
+      if (G.flag('dojoEnd') && !G.flag('brunnendrache')) {
+        G.lock++;
+        await G.UI.sayAll(['Im Teich treiben Wasserlinsen in einem Kreis, als würde darunter etwas atmen.', 'Ein alter Drache hebt den Kopf aus dem Wasser. Sein Bart ist voller Entengrütze.']);
+        G.UI.hideText(); G.lock--;
+        const res = await G.Battle.start({ team: [G.makeMon('brunnendrache', G.rnd(20, 22))], rare: true });
+        if (res === 'won' || res === 'caught') S.flags.brunnendrache = 1;
+        return res;
+      }
+      if (G.flag('brunnendrache')) return G.World.talk(['Die Wasserlinsen liegen still. Der Teich wirkt ein wenig leerer als früher.']);
+    }
     // Innenräume
     if (m.id === 'home' && c === 'b') return restHome();
     if (m.id === 'home' && c === 'a') return G.Menu.archive();

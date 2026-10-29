@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#1a1628"><canvas id="c"></canvas>
+<script>window.G={mk:(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;}};</script>
+<script src="../js/art.js"></script><script src="../js/people.js"></script>
+<script>
+const Z=5, ids=Object.keys(G.People.PEOPLE), c=document.getElementById('c'); c.width=ids.length*24*Z; c.height=4*28*Z+30; const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
+g.fillStyle='#34502e'; g.fillRect(0,0,c.width,c.height);
+ids.forEach((id,i)=>{ ['down','up','left','right'].forEach((d,j)=>{ const im = id==='player'? G.SPR.player[d][0] : G.SPR[id][d]; g.drawImage(im,(i*24+2)*Z,(j*28+2)*Z,20*Z,26*Z); }); });
+</script>
