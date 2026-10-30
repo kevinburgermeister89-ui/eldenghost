@@ -250,9 +250,9 @@
     while (true) {
       const c = await UI.choose([
         { label: 'Team' }, { label: 'Tasche' }, { label: 'Chronik' }, { label: 'Karte' }, { label: 'Speichern' },
-        { label: 'Ton: ' + (Snd.on ? 'An' : 'Aus') }, { label: 'Effekte: ' + FX_LABEL[G.fxMode] + (G.fxMode === 'auto' && G.lowFx ? ' (niedrig)' : '') }, { label: 'Schliessen' }
+        { label: 'Ton: ' + (Snd.on ? 'An' : 'Aus') }, { label: 'Effekte: ' + FX_LABEL[G.fxMode] + (G.fxMode === 'auto' && G.lowFx ? ' (niedrig)' : '') }, { label: 'Lautstärke' }, { label: 'Schliessen' }
       ], { area: 'menu', cancel: true, start: menuSel, title: `<div class="goal"><b>Ziel</b>${G.Story.goal()}</div>${G.moneyHtml()}` });
-      if (c < 0 || c === 7) break;
+      if (c < 0 || c === 8) break;
       menuSel = c;
       if (c === 0) await G.Menu.team();
       else if (c === 1) await G.Menu.bag();
@@ -260,9 +260,25 @@
       else if (c === 3) await G.Menu.map();
       else if (c === 4) { UI.toast(G.save() ? 'Spiel gespeichert.' : 'Speichern nicht möglich.'); }
       else if (c === 5) { Snd.init(); Snd.toggle(); UI.syncSound(); }
+      else if (c === 7) await G.Menu.volume();
       else if (c === 6) { const nx = { auto: 'hoch', hoch: 'niedrig', niedrig: 'auto' }[G.fxMode]; G.setFx(nx); UI.toast('Effekte: ' + FX_LABEL[nx]); }
     }
     G.lock--;
+  };
+
+  // v3 Audio: Lautstärke je Bereich (Musik / Geräusche / Umgebung), Stufen 100–0 %, gespeichert in G.Store
+  G.Menu.volume = async () => {
+    const STEPS = [1, 0.8, 0.6, 0.4, 0.2, 0], KEYS = ['music', 'sfx', 'amb'], NAMES = ['Musik', 'Geräusche', 'Umgebung'];
+    let sel = 0;
+    while (true) {
+      const pc = k => Math.round((Snd.vol ? Snd.vol[k] : 0.8) * 100) + ' %';
+      const c = await UI.choose(KEYS.map((k, i) => ({ label: NAMES[i] + ': ' + pc(k) })).concat([{ label: 'Zurück' }]), { area: 'menu', cancel: true, start: sel });
+      if (c < 0 || c === 3) break;
+      sel = c; Snd.init();
+      const k = KEYS[c], cur = Snd.vol[k], i = STEPS.findIndex(v => Math.abs(v - cur) < 0.05);
+      Snd.setVol(k, STEPS[(i + 1) % STEPS.length]);
+      if (k === 'sfx') Snd.sfx('blip');
+    }
   };
 
   // ---------- Titel & neues Spiel ----------
@@ -404,5 +420,5 @@
     if (G.Store.get('eldenghost.soundReset') === '14') return false;
     G.Store.set('eldenghost.sound', '1'); G.Store.set('eldenghost.soundReset', '14'); G.Snd.on = true; return true;
   };
-  G.Store.ready.then(() => { G.soundMigrate(); G.Snd.on = G.Store.get('eldenghost.sound') !== '0'; { const fx = G.Store.get('eldenghost.fx'); if (fx === 'hoch' || fx === 'niedrig') { G.fxMode = fx; G.lowFx = fx === 'niedrig'; } if (/[?&]lowfx=1/.test(location.search)) G.lowFx = true; } UI.syncSound(); if (/[?&]demo=battle/.test(location.search)) demoFlow(); else titleFlow(); });
+  G.Store.ready.then(() => { G.soundMigrate(); G.Snd.on = G.Store.get('eldenghost.sound') !== '0'; if (G.Snd.reloadVol) G.Snd.reloadVol(); { const fx = G.Store.get('eldenghost.fx'); if (fx === 'hoch' || fx === 'niedrig') { G.fxMode = fx; G.lowFx = fx === 'niedrig'; } if (/[?&]lowfx=1/.test(location.search)) G.lowFx = true; } UI.syncSound(); if (/[?&]demo=battle/.test(location.search)) demoFlow(); else titleFlow(); });
 })(window.G);

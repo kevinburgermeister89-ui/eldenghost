@@ -1,5 +1,8 @@
 'use strict';
 // Eldenghost – prozedurale Musik & Geräusche (WebAudio, alles synthetisch, keine fremden Audiodateien)
+// v3: Musik bevorzugt vorgerenderte Loops (audio/music/*.ogg|.mp3, eigene Kompositionen, -16 LUFS, nahtlos);
+// fehlt eine Datei oder schlägt das Laden fehl, spielt die bisherige generative Synthese (Rückfall).
+// Geräusche: Samples aus audio/sfx/ (Angriffstypen, Schritte, UI, Fang) mit Synthese-Rückfall.
 // Musik: generative Stücke je Gebiet (Takt-/Phrasen-Planer mit Vorlauf), die nie identisch wiederholen:
 // Motive werden je Phrase variiert (A A' B A''), Akkordfolgen rotieren, seltene «Unbehagen»-Momente
 // (verstimmte Glocke, Flüstern, tiefer Einzelton, Herzschlag) mit Mindestabstand. Wechsel per Überblendung.
@@ -11,13 +14,77 @@
   const MUSIC_CAP = 150, SFX_CAP = 230;
   S.on = G.Store.get('eldenghost.sound') !== '0';
   const MASTER = 0.72;
+  // ---------- v3: Lautstärke je Bereich (Musik / Effekte / Umgebung), gespeichert ----------
+  const VOLK = { music: 'eldenghost.vol.music', sfx: 'eldenghost.vol.sfx', amb: 'eldenghost.vol.amb' };
+  const rdVol = k => { const v = parseFloat(G.Store.get(VOLK[k])); return isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.8; };
+  S.vol = { music: rdVol('music'), sfx: rdVol('sfx'), amb: rdVol('amb') };
+  const MUSIC_BUS = 0.62, SFX_BUS = 0.55, VOL_REF = 0.8; // 80 % = bisheriger Pegel
+  function applyVol(sec = 0.2) {
+    if (!S.ctx || S.ctx.state === 'closed') return; const t = S.ctx.currentTime;
+    const set = (p, v) => { p.cancelScheduledValues(t); p.setValueAtTime(p.value, t); p.linearRampToValueAtTime(v, t + sec); };
+    if (musicBus) set(musicBus.gain, MUSIC_BUS * S.vol.music / VOL_REF);
+    if (sfxBus) set(sfxBus.gain, SFX_BUS * S.vol.sfx / VOL_REF);
+    if (S.amb) set(S.amb.vol.gain, S.vol.amb / VOL_REF);
+  }
+  S.reloadVol = () => { S.vol = { music: rdVol('music'), sfx: rdVol('sfx'), amb: rdVol('amb') }; applyVol(); };
+  S.setVol = (k, v) => { if (!VOLK[k]) return; S.vol[k] = Math.max(0, Math.min(1, Math.round(v * 100) / 100)); G.Store.set(VOLK[k], String(S.vol[k])); applyVol(); return S.vol[k]; };
+  // ---------- v3: Samples (Musik-Loops + Effekte) ----------
+  const AUDIO_DIR = 'audio/';
+  const EXT = (() => { try { const a = document.createElement('audio'); return a.canPlayType && a.canPlayType('audio/ogg; codecs="vorbis"') ? 'ogg' : 'mp3'; } catch (e) { return 'mp3'; } })();
+  // Loop-Längen in Sekunden (MP3-Encoder hängen Stille an -> loopEnd fest setzen)
+  const MLEN = { ambient: 53.3333, indoor: 32, nebel: 64, moor: 57.6, cave: 53.3333, battle: 34.2857, battle_hi: 34.2857, trainer: 32, boss: 51.4286, quantum: 36.9231 };
+  const SFX_FILES = ['hit_Irrlicht', 'hit_Schatten', 'hit_Wasser', 'hit_Elektro', 'hit_Kampf', 'hit_Moor', 'hit_Nebel', 'hit_Neutral', 'hit_Pflanze', 'hit_Seele', 'hit_Stein',
+    'step_grass', 'step_wood', 'step_floor', 'step_mud', 'ui_blip', 'ui_tick', 'ui_open', 'catch'];
+  const SFX_GAIN = { hit_Seele: 0.6, catch: 0.8 };   // Feinabgleich nach Lautheitsmessung
+  const SYNTH_FALLBACK_GAIN = 1.6;
+  const SAMPLE_GAIN = 1.4;                           // -16-LUFS-Loops -> ca. -20 LUFS am Ausgang (Platz für Effekte)
+  const BUF = {}, LOADING = {}; S.samples = { ext: EXT, loaded: [], failed: [] };
+  function loadBuf(key, path) {
+    if (BUF[key] || LOADING[key] || !S.ctx || !window.fetch) return LOADING[key];
+    const c = S.ctx;
+    return (LOADING[key] = fetch(AUDIO_DIR + path + '.' + EXT).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(ab => new Promise((ok, bad) => { const p = c.decodeAudioData(ab, ok, bad); if (p && p.catch) p.catch(bad); }))
+      .then(b => { BUF[key] = b; S.samples.loaded.push(key); return b; },
+        e => { S.samples.failed.push(key); delete LOADING[key]; LOADING[key] = null; return null; }));
+  }
+  function loadMusic(name) {
+    if (!MLEN[name]) return;
+    const ps = [loadBuf('m:' + name, 'music/' + name)]; if (name === 'battle') ps.push(loadBuf('m:battle_hi', 'music/battle_hi'));
+    Promise.all(ps).then(() => { // Datei kam nach Start der Synthese an -> sanft auf den Loop wechseln
+      const tr = S.tracks.find(x => x.alive && x.name === name);
+      if (tr && !tr.sample && S.want === name && BUF['m:' + name]) { S.cur = null; S.music(name); }
+    });
+  }
+  function preload() {
+    if (S.want) loadMusic(S.want);
+    SFX_FILES.forEach(k => loadBuf('s:' + k, 'sfx/' + k));
+    setTimeout(() => Object.keys(MLEN).forEach(n => n !== 'battle_hi' && loadMusic(n)), 1500);
+  }
+  function playSample(key, dest, t, gain = 1, rate = 1) {
+    const b = BUF[key]; if (!b) return false;
+    const c = S.ctx, src = c.createBufferSource(), g = c.createGain(); src.buffer = b; src.playbackRate.value = rate; g.gain.value = gain;
+    src.connect(g); g.connect(dest); src.onended = () => { disc(src); disc(g); }; src.start(t);
+    return true;
+  }
 
   // ---------- Grundgerüst ----------
+  // v3: gedämpfter Hall – 22 ms Vorverzögerung, exponentielles Abklingen, Höhen klingen schneller ab (einpoliger Tiefpass,
+  // dessen Grenzfrequenz mit der Zeit sinkt), frühe Reflexionen; vorher rohes Rauschen (wirkte zischelig)
   function impulse(c, sec, decay) {
-    const n = Math.floor(c.sampleRate * sec), b = c.createBuffer(2, n, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay); }
+    const sr = c.sampleRate, n = Math.floor(sr * sec), pre = Math.floor(sr * 0.022), b = c.createBuffer(2, n, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = b.getChannelData(ch); let y = 0;
+      for (let i = pre; i < n; i++) {
+        const x = (i - pre) / (n - pre), a = 0.08 + 0.85 * x;               // Dämpfung nimmt zu
+        y = y * a + (Math.random() * 2 - 1) * (1 - a);
+        d[i] = y * Math.pow(1 - x, decay) * (1.6 + 2.4 * x);               // Pegel-Ausgleich für den Tiefpass
+      }
+      for (let k = 0; k < 6; k++) { const i = pre + Math.floor(sr * (0.006 + Math.random() * 0.05)); if (i < n) d[i] += (Math.random() < 0.5 ? -1 : 1) * (0.5 - k * 0.06); }
+    }
     return b;
   }
+  // Hall-Send mit Hochpass (150 Hz): Bässe matschen nicht im Raum
+  function verbHp(c) { const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 150; f.Q.value = 0.7; return f; }
   // Robustheit (Android/Chrome): Kontext kann jederzeit «suspended», «interrupted» (iOS) oder «closed» sein.
   // - jede Nutzereingabe (pointerup/touchend/click/keydown …) und visibilitychange/focus/pageshow ruft S.unlock()
   // - geschlossener Kontext wird komplett neu aufgebaut, laufendes Stück neu gestartet
@@ -35,10 +102,10 @@
     master.connect(comp); comp.connect(c.destination);
     analyser = c.createAnalyser(); analyser.fftSize = 512; abuf = new Float32Array(analyser.fftSize); comp.connect(analyser);   // Pegelmesser für den Wachhund
     duck = c.createGain(); duck.gain.value = 1; duck.connect(master);
-    musicBus = c.createGain(); musicBus.gain.value = 0.62; musicBus.connect(duck);
-    sfxBus = c.createGain(); sfxBus.gain.value = 0.55; sfxBus.connect(master);
+    musicBus = c.createGain(); musicBus.gain.value = MUSIC_BUS * S.vol.music / VOL_REF; musicBus.connect(duck);
+    sfxBus = c.createGain(); sfxBus.gain.value = SFX_BUS * S.vol.sfx / VOL_REF; sfxBus.connect(master);
     verb = c.createConvolver(); verb.buffer = impulse(c, 3.4, 2.6);
-    verbIn = c.createGain(); verbIn.gain.value = 0.9; verbIn.connect(verb); verb.connect(duck);
+    verbIn = c.createGain(); verbIn.gain.value = 0.9; const vhp = verbHp(c); verbIn.connect(vhp); vhp.connect(verb); verb.connect(duck);
     echo = c.createDelay(1.5); echo.delayTime.value = 0.42; echoFb = c.createGain(); echoFb.gain.value = 0.33;
     const echoLp = c.createBiquadFilter(); echoLp.type = 'lowpass'; echoLp.frequency.value = 2400;
     echo.connect(echoLp); echoLp.connect(echoFb); echoFb.connect(echo); echoLp.connect(verbIn); echoLp.connect(musicBus);
@@ -46,6 +113,7 @@
     timer = setInterval(tick, 60); lastTick = performance.now();
     wdTimer = setInterval(watchdog, 1500);
     listen();
+    preload();
     if (c.state !== 'running') S.unlock();
     if (S.want) { const w = S.want; S.cur = null; S.music(w); }
   };
@@ -53,7 +121,8 @@
     clearInterval(timer); clearInterval(wdTimer); timer = wdTimer = null;
     const c = S.ctx; S.ctx = null; gen++;
     if (c && c.state !== 'closed') try { c.close(); } catch (e) {}
-    S.tracks = []; S.cur = null; S.active = 0; S.nodes = 0; nbuf = null; duckUntil = 0;
+    S.tracks = []; S.cur = null; S.active = 0; S.nodes = 0; nbuf = null; duckUntil = 0; S.amb = null;
+    for (const k in LOADING) if (!BUF[k]) delete LOADING[k];   // Puffer selbst bleiben gültig (kontextunabhängig)
   }
   // Kontext fortsetzen (wirkt nur, wenn der Browser es gerade erlaubt – daher bei jeder Eingabe erneut)
   S.unlock = () => {
@@ -284,16 +353,35 @@
   // v16: zurück zur v14-Musik – Küste spielt wie in v14 die Dorfmusik, Kirchen die Innenraum-Musik (gleicher Name -> kein Neustart beim Kartenwechsel)
   const TRACK_ALIAS = { coast: 'ambient', church: 'indoor' };
 
-  function mkTrack(name) {
+  function mkTrack(name, synthOnly) {
     const def = TRACKS[name], c = S.ctx, bus = c.createGain(), now = c.currentTime, fade = def.fastIn ? 0.5 : 2.8;
-    bus.gain.setValueAtTime(0.0001, now); bus.gain.exponentialRampToValueAtTime(def.vol, now + fade); bus.connect(musicBus);
-    const tr = { name, def, bus, born: now, root: def.root, mode: def.mode, spb: 60 / def.bpm / 2, next: now + 0.12, step: 0, alive: true, motif: null, phrase: 0,
+    const smp = !synthOnly && BUF['m:' + name], vol = smp ? SAMPLE_GAIN : synthOnly ? def.vol : def.vol * SYNTH_FALLBACK_GAIN;   // Rückfall-Synthese ~4 dB lauter -> nahe am Loop-Pegel
+    bus.gain.setValueAtTime(0.0001, now); bus.gain.exponentialRampToValueAtTime(vol, now + fade); bus.connect(musicBus);
+    if (smp) return mkSampleTrack(name, def, bus, now, vol);
+    if (!synthOnly) loadMusic(name);
+    const tr = { name, def, bus, vol, born: now, root: def.root, mode: def.mode, spb: 60 / def.bpm / 2, next: now + 0.12, step: 0, alive: true, motif: null, phrase: 0,
       nextUnease: now + def.unease.every[0] * (0.5 + R() * 0.5), prevNote: 7, drone: null };
     if (def.bass === 'drone') startDrone(tr);
     if (def.air) startAir(tr);
     if (def.crackle) tr.crackle = true;
     return tr;
   }
+  // v3: vorgerenderter Loop; Kampf mit zweiter Intensitäts-Schicht (gleiche Länge, synchron gestartet)
+  function mkSampleTrack(name, def, bus, now, vol) {
+    const c = S.ctx, t0 = now + 0.05, tr = { name, def, bus, vol, born: now, spb: 60 / def.bpm / 2, next: now + 0.12, step: 0, alive: true, sample: true, drone: [], droneAux: [] };   // Taktuhr läuft mit (Wachhund/Tests)
+    const src = (key, dest) => { const s = c.createBufferSource(); s.buffer = BUF[key]; s.loop = true; s.loopStart = 0; s.loopEnd = Math.min(MLEN[key.slice(2)] || s.buffer.duration, s.buffer.duration); s.connect(dest); s.start(t0); tr.drone.push(s); return s; };
+    tr.src = src('m:' + name, bus);
+    if (name === 'battle' && BUF['m:battle_hi']) {
+      const hg = c.createGain(); hg.gain.setValueAtTime(0.0001, t0); hg.connect(bus); tr.hi = hg; tr.droneAux.push(hg); src('m:battle_hi', hg);
+      // ohne Spiel-Hook: Intensität steigt nach 20 s automatisch; S.intensity(0..1) steuert sie direkt
+      hg.gain.setValueAtTime(0.0001, t0 + 20); hg.gain.exponentialRampToValueAtTime(1, t0 + 26);
+    }
+    return tr;
+  }
+  S.intensity = x => {
+    const tr = S.tracks.find(t => t.alive && t.hi); if (!tr) return false;
+    const t = S.ctx.currentTime, p = tr.hi.gain; p.cancelScheduledValues(t); p.setValueAtTime(Math.max(0.0001, p.value), t); p.exponentialRampToValueAtTime(Math.max(0.0001, Math.min(1, x)), t + 1.5); return true;
+  };
   function startDrone(tr) {
     const c = S.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; g.gain.value = 0;
     g.gain.linearRampToValueAtTime(0.09, c.currentTime + 4); lp.connect(g); g.connect(tr.bus);
@@ -401,7 +489,7 @@
       if (!tr.alive) continue;
       if (tr.next < now - 0.2) tr.next = now + 0.05; // nach Hintergrund-Pause nicht nachholen
       let guard = 0;
-      while (tr.next < now + 0.4 && guard++ < 16) { if (S.on) voice(() => schedule(tr, tr.next), MUSIC_CAP); tr.next += tr.spb; tr.step++; }
+      while (tr.next < now + 0.4 && guard++ < 16) { if (S.on && !tr.sample) voice(() => schedule(tr, tr.next), MUSIC_CAP); tr.next += tr.spb; tr.step++; }
     }
   }
   S.pump = () => { if (S.ctx && performance.now() - lastTick > 180) tick(); };
@@ -420,7 +508,7 @@
     let why = null;
     if (!tr) why = 'notrack';
     else if (tr.next < now - 1) why = 'stall';
-    else if (now - tr.born > 5 && tr.bus.gain.value < def.vol * 0.25) why = 'gain';
+    else if (now - tr.born > 5 && tr.bus.gain.value < tr.vol * 0.25) why = 'gain';
     else {
       analyser.getFloatTimeDomainData(abuf); let e = 0; for (let i = 0; i < abuf.length; i++) e += abuf[i] * abuf[i];
       S.wd.rms = Math.sqrt(e / abuf.length);
@@ -446,7 +534,7 @@
   const AMB_MAX = { water: 0.16, wind: 0.07, hearth: 0.05 };
   S.amb = null; S.ambLevel = { water: 0, wind: 0, hearth: 0, pan: 0 };
   function mkAmb() {
-    const c = S.ctx, bus = c.createGain(); bus.gain.value = 1; bus.connect(master);
+    const c = S.ctx, vol = c.createGain(), bus = c.createGain(); vol.gain.value = S.vol.amb / VOL_REF; bus.gain.value = 1; bus.connect(vol); vol.connect(master);
     const loop = (type, f, q) => { const n = c.createBufferSource(); n.buffer = noiseBuf(); n.loop = true; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
       const g = c.createGain(); g.gain.value = 0; n.connect(fl); fl.connect(g); n.start(0, R() * 2); return { n, fl, g }; };
     const wa = loop('lowpass', 700, 0.7), wi = loop('bandpass', 520, 0.9), he = loop('lowpass', 260, 0.8);
@@ -456,7 +544,7 @@
     wa.g.connect(swell); if (pan) { swell.connect(pan); pan.connect(bus); } else swell.connect(bus);
     const wl = c.createOscillator(), wg = c.createGain(); wl.frequency.value = 0.05; wg.gain.value = 260; wl.connect(wg); wg.connect(wi.fl.frequency); wl.start();
     wi.g.connect(bus); he.g.connect(bus);
-    return { bus, wa, wi, he, pan, swell, lfo, wl };
+    return { bus, vol, wa, wi, he, pan, swell, lfo, wl };
   }
   S.ambience = lv => {
     if (!S.ctx || S.ctx.state === 'closed') return;
@@ -486,10 +574,10 @@
       master.connect(comp); comp.connect(c.destination);
       duck = c.createGain(); duck.connect(master); musicBus = c.createGain(); musicBus.gain.value = 0.62; musicBus.connect(duck);
       sfxBus = c.createGain(); sfxBus.connect(master);
-      verb = c.createConvolver(); verb.buffer = impulse(c, 3.4, 2.6); verbIn = c.createGain(); verbIn.gain.value = 0.9; verbIn.connect(verb); verb.connect(duck);
+      verb = c.createConvolver(); verb.buffer = impulse(c, 3.4, 2.6); verbIn = c.createGain(); verbIn.gain.value = 0.9; const vhp = verbHp(c); verbIn.connect(vhp); vhp.connect(verb); verb.connect(duck);
       echo = c.createDelay(1.5); echo.delayTime.value = 0.42; echoFb = c.createGain(); echoFb.gain.value = 0.33;
       const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; echo.connect(lp); lp.connect(echoFb); echoFb.connect(echo); lp.connect(verbIn); lp.connect(musicBus);
-      const tr = mkTrack(name);
+      const tr = mkTrack(name, true);
       while (tr.next < sec - 0.5) { schedule(tr, tr.next); tr.next += tr.spb; tr.step++; }
     } finally {
       out_ = c; Object.assign(S, { ctx: saved.ctx, tracks: saved.tracks });
@@ -560,7 +648,8 @@
   };
   // Protokoll der zuletzt gespielten Klänge (Tests, Fehlersuche): [{ n, t, played }]
   S.history = []; const logSnd = (n, played) => { S.history.push({ n, t: performance.now(), played }); if (S.history.length > 60) S.history.shift(); };
-  S.jingle = name => { logSnd('jingle:' + name, !!(S.ctx && S.on)); if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05; let sec = 0; voice(() => { sec = J[name](t); }, SFX_CAP + 40); if (sec) duckFor(sec); };
+  S.jingle = name => { logSnd('jingle:' + name, !!(S.ctx && S.on)); if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05;
+    if (name === 'catch' && playSample('s:catch', sfxBus, t, SFX_GAIN.catch)) { duckFor(2.6); return; } let sec = 0; voice(() => { sec = J[name](t); }, SFX_CAP + 40); if (sec) duckFor(sec); };
 
   // ---------- Geräusche ----------
   let stepAlt = 0;
@@ -585,6 +674,12 @@
     const c = S.ctx;
     n = SFX_ALIAS[n] || n;
     const t = c.currentTime + 0.005, D = vol === 1 ? sfxBus : (() => { const g = c.createGain(); g.gain.value = vol; g.connect(sfxBus); return g; })();
+    // v3: Samples zuerst (Angriffstypen, Schritte je Untergrund, UI); fehlt eines, greift die Synthese unten
+    const sk = n.startsWith('hit_') ? n : n === 'step' ? 'step_' + (['wood', 'floor', 'mud'].includes(arg) ? arg : 'grass') : n === 'blip' || n === 'tick' || n === 'open' ? 'ui_' + n : null;
+    if (sk && BUF['s:' + sk]) {
+      const rate = n === 'step' ? 0.9 + R() * 0.2 : n.startsWith('hit_') ? 0.97 + R() * 0.06 : 1, gain = (SFX_GAIN[sk] || 1) * (n === 'step' ? 0.8 + R() * 0.3 : 1);
+      if (playSample('s:' + sk, D, t, gain, rate)) return;
+    }
     switch (n) {
       case 'hit_Wasser': I.noise(D, t, 0.28, 0.25, 'bandpass', 1400, { to: 500, q: 1.4 }); for (let i = 0; i < 4; i++) { const o = c.createOscillator(), g = c.createGain(), f0 = 500 + R() * 500, tt = t + 0.08 + i * 0.06; o.type = 'sine'; o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.05); env(g, tt, 0.004, 0.05, 0, 0.06); o.connect(g); g.connect(D); o.start(tt); o.stop(tt + 0.1); } I.bass(D, t, 110, 0.08, 0.02, { rel: 0.1 }); break;
       case 'hit_Elektro': for (let i = 0; i < 9; i++) { const tt = t + i * 0.022 + R() * 0.01; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.setValueAtTime(900 + R() * 1800, tt); env(g, tt, 0.001, 0.025, 0, 0.02); o.connect(g); g.connect(D); o.start(tt); o.stop(tt + 0.05); } I.noise(D, t, 0.18, 0.25, 'highpass', 2500, { to: 6000 }); I.bass(D, t + 0.05, 80, 0.1, 0.03, { rel: 0.15 }); break;

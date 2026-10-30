@@ -121,6 +121,7 @@
       ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
     const en = B.enemy, al = G.state.team[B.allyIdx], big = B.boss ? 1.3 : 1;
+    musicIntensity(B, en, al);   // v22: Kampfmusik-Intensität (Sound-Hook)
     if (B.boss) { ctx.save(); ctx.globalAlpha = 0.18 * B.ea.alpha; ctx.translate(186 + B.ea.dx, 100); ctx.scale(1, -0.5); ctx.drawImage(G.SPR.mon[en.sp].big, -42, -80, 84, 84); ctx.restore(); }
     aura(ctx, 186 + B.ea.dx, 62, G.SPECIES[en.sp].type, B.ea);
     if (en.rage > 1 && B.ea.alpha > 0.3) { // Phase 2: pulsierendes rot-violettes Glühen
@@ -137,7 +138,7 @@
       ctx.drawImage(G.SPR.lantern, -12, -14, 24, 28); ctx.restore();
     }
     if (B.dim > 0.01) { ctx.fillStyle = `rgba(10,4,24,${B.dim})`; ctx.fillRect(-8, -8, 272, 256); B.dim *= Math.pow(0.08, dt); }
-    renderParts(ctx, dt);
+    renderParts(ctx, B.hitStop ? 0 : dt); BFX.draw(ctx);   // v22: Hit-Stop friert Partikel ein, Typ-Effekt darüber
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 1;
     for (let i = 0; i < 14; i++) {
@@ -524,17 +525,154 @@
     neumondzange: { ms: 1100, fn: async (f, t) => { const [x, y] = center(t); G.B.dim = 0.4; await An(420, p => { const g = 26 * (1 - p); streak(x - g, y - 8, 0.6, 18, '#c8c0e0', { w: 3, life: 0.06 }); streak(x + g, y + 8, 0.6 + Math.PI, 18, '#c8c0e0', { w: 3, life: 0.06 }); }); G.B.shake = 5; glowAt(x, y, 4, 30, '#e8f0ff', 0.3); sparks(x, y, 10, '#8a7aa0', 90); await W(300); G.B.dim = 0; } },
   });
   G.Battle.MOVE_FX = MOVE_FX;
+  // ---------- v22: Grosse Attacken-Effekte je Typ (Phase 1 Grafik-Upgrade) ----------
+  // Ablauf je Schadensattacke: Aufladen am Angreifer → Anflug (eigene Choreografie der Attacke) → Einschlag mit Hit-Stop
+  // (Bild friert kurz ein, Ziel blitzt weiss), Schütteln, Lichtblitz → Ausblenden. Alles in Spielkoordinaten (256×240).
+  // G.lowFx (Android/schwache Geräte): kein Aufladen, kürzerer Einschlag, halb so viele Elemente, keine Vollbild-Flächen.
+  const BFX = (() => {
+    const L = (a, b, k) => a + (b - a) * k, cl = v => v < 0 ? 0 : v > 1 ? 1 : v;
+    let sd = 1; const sr = s => { sd = s; }, r1 = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    const N = n => G.lowFx ? Math.ceil(n / 2) : n;
+    function glow(g, x, y, r, col, a) { if (r <= 0 || a <= 0) return; g.globalCompositeOperation = 'lighter'; g.globalAlpha = cl(a) * E.al; g.drawImage(glowSpr(col), x - r, y - r, r * 2, r * 2); }
+    function solid(g, a) { g.globalCompositeOperation = 'source-over'; g.globalAlpha = cl(a) * E.al; }
+    function add(g, a) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = cl(a) * E.al; }
+    function poly(g, pts) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); }
+    function star(g, x, y, n, ro, ri, rot = 0) { const p = []; for (let i = 0; i < n * 2; i++) { const a = rot + i / (n * 2) * 6.283, r = i % 2 ? ri : ro; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } poly(g, p); }
+    function dim(g, a, col = '10,0,25') { if (G.lowFx) a *= 0.6; solid(g, 1); g.fillStyle = `rgba(${col},${cl(a)})`; g.fillRect(-8, -8, 272, 256); }
+    function bolt(g, x0, y0, x1, y1, w, seg = 8) { const pts = [[x0, y0]]; for (let i = 1; i <= seg; i++) pts.push([L(x0, x1, i / seg) + (i < seg ? (r1() - 0.5) * 20 : 0), L(y0, y1, i / seg)]);
+      for (const [ww, c, a] of G.lowFx ? [[w, '#fffbd8', 1]] : [[w * 3, '#ffe058', 0.35], [w, '#fffbd8', 1]]) { add(g, a); g.strokeStyle = c; g.lineWidth = ww; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); } }
+    const E = { al: 1 };   // aktueller Zeichen-Kontext (Alpha für Ausblenden)
+    // charge(g, k, S, F, d) am Angreifer S; hit(g, t, S, F, d) am Ziel F (t 0→1); d = Richtung (+1 Spieler→Gegner)
+    const T = {
+      Feuer: { c: '#ff8a30', fl: '#ffd890',
+        charge(g, k, S) { glow(g, S[0], S[1], 14 + 16 * k, '#ff8c28', 0.9); for (let i = 0; i < N(12); i++) { const a = i * 0.52 + k * 5, r = 34 * (1 - k); glow(g, S[0] + Math.cos(a) * r, S[1] + Math.sin(a) * r * 0.6, 3.5, '#ffc85a', 0.9); } },
+        hit(g, t, S, F) { const b = F[1] + 26; sr(4); for (let i = 0; i < N(18); i++) { const ox = (r1() - 0.5) * 60 * (0.5 + t), h = (40 + r1() * 60) * Math.sin(Math.min(1, t * 1.6) * 2.83 + 0.2), w = 5 + r1() * 8, sw = Math.sin(G.time * 30 + i) * 4;
+            const gr = g.createLinearGradient(0, b, 0, b - h); gr.addColorStop(0, 'rgba(255,240,180,0.95)'); gr.addColorStop(0.4, 'rgba(255,130,30,0.85)'); gr.addColorStop(1, 'rgba(160,30,10,0)'); add(g, 0.9); g.fillStyle = gr;
+            g.beginPath(); g.moveTo(F[0] + ox - w, b); g.quadraticCurveTo(F[0] + ox - w + sw, b - h * 0.6, F[0] + ox + sw * 2, b - h); g.quadraticCurveTo(F[0] + ox + w + sw, b - h * 0.6, F[0] + ox + w, b); g.fill(); }
+          glow(g, F[0], F[1] + 10, 70, '#ff7828', 0.6 * (1 - t * 0.7)); for (let i = 0; i < N(24); i++) { const u = (i * 0.07 + t) % 1; add(g, 1 - u); g.fillStyle = '#ffc860'; g.fillRect(F[0] + Math.sin(i * 7) * 45, F[1] + 20 - u * 100, 1.5, 1.5); } } },
+      Wasser: { c: '#58b0f8', fl: '#dcf2ff',
+        charge(g, k, S) { glow(g, S[0], S[1] + 6, 30 * k, '#5aaaff', 0.7); for (let i = 0; i < N(8); i++) { const a = i * 0.8 + k * 6; solid(g, 0.8); g.fillStyle = '#bfe6ff'; g.fillRect(S[0] + Math.cos(a) * 18 * (1 - k), S[1] + 6 + Math.sin(a) * 8, 2, 2); } },
+        hit(g, t, S, F, d) { const k = Math.min(1, t * 1.4), x = L(F[0] - 60 * d, F[0] + 30 * d, k), b = F[1] + 35, H = 75 * Math.sin(Math.min(1, k * 1.2) * 2.67 + 0.15);
+          const gr = g.createLinearGradient(0, b - H, 0, b); gr.addColorStop(0, 'rgba(170,225,255,0.95)'); gr.addColorStop(0.4, 'rgba(50,120,220,0.85)'); gr.addColorStop(1, 'rgba(20,50,120,0.7)'); solid(g, 0.92); g.fillStyle = gr;
+          g.save(); g.translate(x, 0); g.scale(d, 1); g.beginPath(); g.moveTo(-130, b); g.quadraticCurveTo(-60, b - H * 0.4, -10, b - H); g.quadraticCurveTo(15, b - 5 - H * 1.1, 20, b - H * 0.7); g.quadraticCurveTo(5, b - H * 0.75, 2, b - H * 0.55); g.quadraticCurveTo(20, b - 15, 30, b); g.fill(); g.restore();
+          sr(8); for (let i = 0; i < N(30); i++) { const a = -Math.PI * (0.2 + r1() * 0.6), r = r1() * 40 * k; solid(g, 0.9 - k * 0.5); g.fillStyle = '#dcf5ff'; g.beginPath(); g.arc(x - 5 * d + Math.cos(a) * r, b - H + Math.sin(a) * r, 0.8 + r1() * 1.3, 0, 7); g.fill(); } } },
+      Pflanze: { c: '#6cc45a', fl: '#e8ffd0',
+        charge(g, k, S) { for (let i = 0; i < N(10); i++) { const a = i * 0.63 + k * 7, r = 26 * (1 - k) + 4; g.save(); g.translate(S[0] + Math.cos(a) * r, S[1] + Math.sin(a) * r * 0.6); g.rotate(a * 2); solid(g, 0.9); g.fillStyle = i % 3 ? '#8ee07a' : '#d6ff9a'; g.beginPath(); g.ellipse(0, 0, 4, 1.8, 0, 0, 7); g.fill(); g.restore(); } glow(g, S[0], S[1], 20 * k, '#8ee07a', 0.5); },
+        hit(g, t, S, F) { const k = cl(t / 0.55); g.lineCap = 'round';
+          for (let v = 0; v < 5; v++) { const x0 = F[0] - 40 + v * 20, sg = 24; solid(g, 1); g.strokeStyle = v % 2 ? '#3f9a4a' : '#62c05a'; g.lineWidth = 3.5 - v % 2; g.beginPath(); g.moveTo(x0, F[1] + 30);
+            for (let i = 1; i <= sg * k; i++) { const u = i / sg; g.lineTo(F[0] + Math.cos(u * 9 + v) * (35 - u * 20), F[1] + 30 - u * 70 + Math.sin(u * 9 + v) * 7); } g.stroke(); }
+          sr(12); for (let i = 0; i < N(24); i++) { const u = (r1() + t * 1.5) % 1, a = r1() * 7 + t * 6, x = L(F[0] - 50, F[0] + 60, u) + Math.sin(u * 12 + i) * 20, y = L(F[1] + 40, F[1] - 30, u) + Math.cos(u * 9 + i) * 20;
+            g.save(); g.translate(x, y); g.rotate(a); solid(g, 1); g.fillStyle = i % 3 ? '#8ee07a' : '#d6ff9a'; g.beginPath(); g.ellipse(0, 0, 4, 1.8, 0, 0, 7); g.fill(); g.restore(); }
+          if (t > 0.5) glow(g, F[0], F[1], 55, '#a0ff8c', 0.6 * (1 - t)); } },
+      Elektro: { c: '#ffe058', fl: '#fffbe4',
+        charge(g, k, S) { sr(Math.floor(k * 12) + 3); for (let i = 0; i < N(6); i++) { const a = r1() * 7; add(g, 0.9); g.strokeStyle = '#fff078'; g.lineWidth = 1; g.beginPath(); g.moveTo(S[0], S[1] - 6); g.lineTo(S[0] + Math.cos(a) * 22 * k, S[1] - 6 + Math.sin(a) * 22 * k); g.stroke(); } glow(g, S[0], S[1] - 6, 26 * k, '#fff064', 0.8); },
+        hit(g, t, S, F) { sr(Math.floor(t * 9) + 1);
+          if (t < 0.6) { bolt(g, F[0] + 10, -10, F[0], F[1] + 10, 2.5); bolt(g, F[0] - 30, -10, F[0] - 5, F[1], 1.2); if (!G.lowFx) bolt(g, F[0] + 45, -10, F[0] + 8, F[1] + 5, 1.2); glow(g, F[0], F[1] + 5, 60, '#fff078', 0.8);
+            if (t < 0.2 && !G.lowFx) { add(g, 0.45); g.fillStyle = '#fffff0'; g.fillRect(0, 0, 256, 240); } }
+          else { const k = (t - 0.6) / 0.4; for (let i = 0; i < N(22); i++) { const a = r1() * 7, r = 15 + k * 55 * r1(); add(g, 1 - k); g.fillStyle = '#fff078'; g.fillRect(F[0] + Math.cos(a) * r, F[1] + Math.sin(a) * r, 1, 2); } } } },
+      Stein: { c: '#9a8a78', fl: '#e8d8c0', shake: 7,
+        charge(g, k, S) { sr(3); for (let i = 0; i < N(7); i++) { const a = i * 0.9, r = 24 * (1 - k) + 6; solid(g, 0.9); g.fillStyle = i % 2 ? '#8a7660' : '#b8a488'; g.fillRect(S[0] + Math.cos(a) * r - 2, S[1] + 18 - k * 20 + Math.sin(a) * 6 - 2, 4, 4); } },
+        hit(g, t, S, F) { sr(15); for (let i = 0; i < N(7); i++) { const k = cl((t - i * 0.05) / 0.35), x = F[0] - 50 + i * 16 + (r1() - 0.5) * 10, y = L(-30, F[1] + 20 - (i % 3) * 7, k * k), r = 8 + r1() * 8;
+            g.save(); g.translate(x, y); g.rotate(k * 3 + i); solid(g, 1); g.fillStyle = '#8a7660'; g.beginPath(); for (let j = 0; j < 7; j++) { const a = j / 7 * 6.283, rr = r * (0.75 + r1() * 0.35); g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.fill();
+            g.fillStyle = '#c8b494'; g.fillRect(-r * 0.4, -r * 0.5, r * 0.5, r * 0.25); g.strokeStyle = '#3a2e24'; g.lineWidth = 1; g.stroke(); g.restore(); }
+          if (t > 0.4) { const k = (t - 0.4) / 0.6; for (let i = 0; i < N(12); i++) { solid(g, 0.45 * (1 - k)); g.fillStyle = '#a89678'; g.beginPath(); g.arc(F[0] + (i - 6) * 9 * (1 + k), F[1] + 28 - k * 15 - (i % 3) * 5, 10 + k * 10, 0, 7); g.fill(); } } } },
+      Psycho: { c: '#f478dc', fl: '#ffe4f6',
+        charge(g, k, S) { for (let i = 0; i < 3; i++) { const u = (k * 1.5 + i / 3) % 1; add(g, 1 - u); g.strokeStyle = '#ff8ce0'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(S[0], S[1], 30 * (1 - u) + 3, (30 * (1 - u) + 3) * 0.55, 0, 0, 7); g.stroke(); } },
+        hit(g, t, S, F) { for (let i = 0; i < N(6); i++) { const u = t * 1.6 - i * 0.12; if (u < 0 || u > 1) continue; add(g, 1 - u); g.strokeStyle = '#ff78dc'; g.lineWidth = 3 * (1 - u) + 0.6; const r = 10 + u * 60; g.beginPath(); g.ellipse(F[0], F[1], r, r * 0.55, 0, 0, 7); g.stroke(); }
+          if (t > 0.3) { glow(g, F[0], F[1], 60, '#ff64dc', 0.5 * (1 - t)); if (!G.lowFx) dim(g, 0.25 * (1 - t), '120,40,160'); } } },
+      Boden: { c: '#a0743e', fl: '#f0d8a8', shake: 7,
+        charge(g, k, S, F) { solid(g, 0.9); g.strokeStyle = '#3a2a18'; g.lineWidth = 1.2; sr(5); for (let i = 0; i < N(5); i++) { const a = (r1() - 0.5) * 2.4, l = 30 * k; g.beginPath(); g.moveTo(S[0], S[1] + 26); g.lineTo(S[0] + Math.cos(a) * l, S[1] + 26 + Math.sin(a) * l * 0.25); g.stroke(); } },
+        hit(g, t, S, F) { const b = F[1] + 30, k = cl(t / 0.3), dn = t > 0.6 ? (t - 0.6) / 0.4 : 0; sr(21);
+          for (let i = 0; i < N(7); i++) { const x = F[0] + (i - 3) * 13 + (r1() - 0.5) * 6, h = (24 + r1() * 30) * k * (1 - dn * 0.8), w = 6 + r1() * 4; solid(g, 1); g.fillStyle = i % 2 ? '#7a5630' : '#9a7044'; poly(g, [[x - w, b], [x + (r1() - 0.5) * 4, b - h], [x + w, b]]); g.fillStyle = '#c8a06a'; poly(g, [[x - 1, b - h * 0.9], [x + w * 0.5, b - 2], [x + 1, b - 2]]); }
+          for (let i = 0; i < N(14); i++) { const a = -0.3 - r1() * 2.5, v = 30 + r1() * 40, tt = t * 0.9; solid(g, 1 - t); g.fillStyle = i % 2 ? '#5a4024' : '#a0743e'; g.fillRect(F[0] + Math.cos(a) * v * tt * 1.6, b + Math.sin(a) * v * tt * 1.6 + 120 * tt * tt, 3, 3); }
+          for (let i = 0; i < N(8); i++) { solid(g, 0.4 * (1 - t)); g.fillStyle = '#b8966a'; g.beginPath(); g.arc(F[0] + (i - 4) * 12 * (1 + t), b - t * 10, 8 + t * 12, 0, 7); g.fill(); } } },
+      Gift: { c: '#b474e8', fl: '#e0ffb0',
+        charge(g, k, S) { for (let i = 0; i < N(6); i++) { const u = (k + i / 6) % 1; add(g, 1 - u); g.strokeStyle = '#c0ff70'; g.lineWidth = 1; g.beginPath(); g.arc(S[0] + Math.sin(i * 3) * 14, S[1] + 10 - u * 26, 2 + i % 3, 0, 7); g.stroke(); } glow(g, S[0], S[1], 18 * k, '#9a40d0', 0.6); },
+        hit(g, t, S, F) { const k = cl(t * 2.5); solid(g, 0.88); g.fillStyle = '#782aaa'; const p = []; for (let i = 0; i < 16; i++) { const a = i / 16 * 6.283, r = (i % 2 ? 30 : 45) * k; p.push([F[0] + Math.cos(a) * r, F[1] + 5 + Math.sin(a) * r * 0.7]); } poly(g, p);
+          for (let i = 0; i < N(8); i++) g.fillRect(F[0] - 35 + i * 10, F[1] + 15, 3, 10 + t * 20 * ((i % 3) + 1) / 3);
+          sr(6); for (let i = 0; i < N(14); i++) { const u = (r1() + t) % 1; add(g, 1 - u); g.strokeStyle = '#beff6e'; g.lineWidth = 1; g.beginPath(); g.arc(F[0] + (r1() - 0.5) * 70, F[1] + 10 - u * 60, 2 + r1() * 4, 0, 7); g.stroke(); } } },
+      Kampf: { c: '#ff7a52', fl: '#fff4e8', shake: 7,
+        charge(g, k, S) { glow(g, S[0], S[1], 12 + 14 * k, '#ff6a40', 0.8); for (let i = 0; i < N(8); i++) { const a = i * 0.785; add(g, k); g.strokeStyle = '#ffd8c0'; g.lineWidth = 1; g.beginPath(); g.moveTo(S[0] + Math.cos(a) * 30 * (1 - k), S[1] + Math.sin(a) * 20 * (1 - k)); g.lineTo(S[0] + Math.cos(a) * 36 * (1 - k), S[1] + Math.sin(a) * 24 * (1 - k)); g.stroke(); } },
+        hit(g, t, S, F, d) { if (t < 0.35) { const k = t / 0.35; add(g, 0.7); g.strokeStyle = '#ffe6d2'; g.lineWidth = 1; sr(2); for (let i = 0; i < N(26); i++) { const a = r1() * 7, r0 = 30 + r1() * 25, r = r0 + 45 * k + 20; g.beginPath(); g.moveTo(F[0] + Math.cos(a) * r * 1.6, F[1] + Math.sin(a) * r); g.lineTo(F[0] + Math.cos(a) * r0 * 1.6, F[1] + Math.sin(a) * r0); g.stroke(); }
+            const x = L(F[0] - 60 * d, F[0] - 12 * d, k * k), y = L(F[1] + 30, F[1], k * k); solid(g, 1); g.fillStyle = '#e85a3c'; g.beginPath(); g.ellipse(x, y, 15, 12, 0, 0, 7); g.fill(); g.fillStyle = '#ffb090'; for (let j = 0; j < 4; j++) g.fillRect(x + (d > 0 ? 5 : -13), y - 10 + j * 5, 8, 3.5); }
+          else { const k = (t - 0.35) / 0.65; solid(g, 1 - k); g.fillStyle = '#fff0a0'; star(g, F[0], F[1], 10, 50 * (0.6 + k * 0.8), 20 * (0.6 + k * 0.8)); g.fillStyle = '#e64632'; star(g, F[0], F[1], 10, 30 * (0.6 + k * 0.8), 11 * (0.6 + k * 0.8)); } } },
+      'Käfer': { c: '#b8c830', fl: '#f4ffb8',
+        charge(g, k, S) { for (let i = 0; i < N(14); i++) { const a = i * 0.45 + G.time * 9, r = 14 + (i % 4) * 5; const x = S[0] + Math.cos(a) * r, y = S[1] + Math.sin(a) * r * 0.5 - 4; solid(g, k); g.fillStyle = '#3a4a10'; g.fillRect(x, y, 2, 2); add(g, k * (0.5 + 0.5 * Math.sin(G.time * 40 + i))); g.fillStyle = '#f4ffb8'; g.fillRect(x - 1, y - 1, 1, 1); g.fillRect(x + 2, y - 1, 1, 1); } },
+        hit(g, t, S, F, d) { sr(31); const n = N(36); for (let i = 0; i < n; i++) { const u = cl(t * 1.8 - (i / n) * 0.6), a = r1() * 6.283 + t * 10 * (i % 2 ? 1 : -1), r = L(70, 10 + (i % 5) * 6, u), x = u < 1 ? L(S[0], F[0], u) * 0 + F[0] + Math.cos(a) * r * 1.3 : F[0] + Math.cos(a) * r * 1.3, y = F[1] + Math.sin(a) * r * 0.7;
+            if (t * 1.8 - (i / n) * 0.6 <= 0) continue; solid(g, 1 - t * 0.6); g.fillStyle = i % 3 ? '#4a5a14' : '#7a8a20'; g.fillRect(x, y, 2.5, 2); add(g, (1 - t) * (0.5 + 0.5 * Math.sin(G.time * 50 + i))); g.fillStyle = '#f4ffb8'; g.fillRect(x - 1, y - 1.5, 1.5, 1); g.fillRect(x + 2, y - 1.5, 1.5, 1); }
+          if (t > 0.45) { const k = (t - 0.45) / 0.55; for (const s of [-1, 1]) { add(g, 1 - k); g.strokeStyle = '#e4ff60'; g.lineWidth = 3 * (1 - k) + 0.8; g.beginPath(); g.moveTo(F[0] - 26 * s, F[1] - 22); g.quadraticCurveTo(F[0] + 6 * s, F[1] - 4, F[0] + 22 * s, F[1] + 22); g.stroke(); } glow(g, F[0], F[1], 40, '#d8f040', 0.6 * (1 - k)); } } },
+      Normal: { c: '#e8dcc0', fl: '#ffffff',
+        charge(g, k, S) { add(g, k); g.strokeStyle = '#fff8e8'; g.lineWidth = 1.5; g.beginPath(); g.arc(S[0], S[1], 26 * (1 - k) + 4, 0, 7); g.stroke(); glow(g, S[0], S[1], 14 * k, '#fff4dc', 0.6); },
+        hit(g, t, S, F, d) { const k = cl(t / 0.25), q = cl((t - 0.2) / 0.8);
+          add(g, 1 - q); g.fillStyle = '#fffaf0'; star(g, F[0], F[1], 8, 34 * k * (1 + q * 0.3), 12 * k, 0.2); g.strokeStyle = '#fff4dc'; g.lineWidth = 3 * (1 - q) + 0.6; g.beginPath(); g.ellipse(F[0], F[1], 12 + q * 60, (12 + q * 60) * 0.6, 0, 0, 7); g.stroke();
+          for (let i = 0; i < N(10); i++) { const a = i / 10 * 6.283 + 0.3, r = 20 + q * 50; add(g, 1 - q); g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(F[0] + Math.cos(a) * r, F[1] + Math.sin(a) * r * 0.7); g.lineTo(F[0] + Math.cos(a) * (r + 12), F[1] + Math.sin(a) * (r + 12) * 0.7); g.stroke(); }
+          glow(g, F[0], F[1], 40, '#fff0d0', 0.7 * (1 - q)); } },
+      Drache: { c: '#8a6aff', fl: '#e0d8ff',
+        charge(g, k, S) { for (let i = 0; i < N(14); i++) { const a = i * 0.45 + k * 6, r = 30 * (1 - k) + 4; glow(g, S[0] + Math.cos(a) * r, S[1] + Math.sin(a) * r * 0.6, 4, i % 2 ? '#825aff' : '#508cff', 0.9); } glow(g, S[0], S[1], 22 * k, '#9a80ff', 0.7); },
+        hit(g, t, S, F) { const k = Math.min(1, t / 0.55); for (let j = 0; j < N(30); j++) { const u = k - j * 0.025 * (G.lowFx ? 2 : 1); if (u < 0) break; const x = L(S[0], F[0], u) + Math.sin(u * 10) * 25, y = L(S[1], F[1], u) + Math.cos(u * 10) * 20 - Math.sin(u * Math.PI) * 30;
+            glow(g, x, y, 17 - j * 0.3, j < 2 ? '#e6f0ff' : j % 2 ? '#825aff' : '#508cff', 0.9 - j * 0.02); }
+          if (t > 0.5) { const q = (t - 0.5) / 0.5; glow(g, F[0], F[1], 75, '#8c6eff', 0.8 * (1 - q)); add(g, 1 - q); g.strokeStyle = '#c8d2ff'; g.lineWidth = 2; g.beginPath(); g.arc(F[0], F[1], 15 + q * 70, 0, 7); g.stroke(); } } },
+      Dunkel: { c: '#5a3a8a', fl: '#c090ff', dark: 1,
+        charge(g, k, S) { dim(g, 0.5 * k); for (let i = 0; i < N(14); i++) { const a = i * 0.45, r = 60 * (1 - k); add(g, k); g.strokeStyle = '#9646e6'; g.lineWidth = 1; g.beginPath(); g.moveTo(S[0] + Math.cos(a) * r, S[1] + Math.sin(a) * r); g.lineTo(S[0] + Math.cos(a) * (r + 12), S[1] + Math.sin(a) * (r + 12)); g.stroke(); } },
+        hit(g, t, S, F) { dim(g, 0.55 * (t < 0.8 ? 1 : (1 - t) / 0.2)); const k = cl(t / 0.25), o = 45 * (1 - k);
+          for (const s of [-1, 1]) { solid(g, 1); g.fillStyle = '#0b0218'; const p = [[F[0] - 65, F[1] + s * (o + 60)], [F[0] - 50, F[1] + s * o]]; for (let i = 0; i <= 8; i++) p.push([F[0] - 50 + i * 12.5, F[1] + s * o - s * (i % 2 ? 13 : 0)]); p.push([F[0] + 65, F[1] + s * (o + 60)]); poly(g, p); add(g, 0.9); g.strokeStyle = '#be78ff'; g.lineWidth = 1; g.stroke(); }
+          solid(g, 1); g.fillStyle = '#ff3ca0'; g.beginPath(); g.ellipse(F[0] - 30, F[1] - o - 25, 3.5, 1.5, 0, 0, 7); g.ellipse(F[0] + 30, F[1] - o - 25, 3.5, 1.5, 0, 0, 7); g.fill();
+          if (t > 0.3) { const q = (t - 0.3) / 0.7; add(g, 1 - q); g.strokeStyle = '#c88cff'; g.lineWidth = 1.5; for (let i = 0; i < 6; i++) { const a = i * 1.05 + 0.3; g.beginPath(); g.moveTo(F[0], F[1]); g.lineTo(F[0] + Math.cos(a) * (20 + 60 * q), F[1] + Math.sin(a) * (15 + 45 * q)); g.stroke(); } } } },
+    };
+    T.Kaefer = T['Käfer'];
+    const ms = { charge: () => G.lowFx ? 0 : 260, hit: () => G.lowFx ? 340 : 560, stop: crit => G.lowFx ? 50 : crit ? 120 : 80 };
+    // Zeichnen (aus G.Battle.render): aktive Phase am Angreifer bzw. Ziel, mit Ausblenden am Ende
+    function draw(g) {
+      const B = G.B, X = B && B.bfx; if (!X) return; const D = T[X.type]; if (!D) return;
+      g.save(); E.al = X.al;
+      try { if (X.ph === 'charge') D.charge(g, X.k, X.S, X.F, X.d); else { const t = X.k; E.al = X.al * (t > 0.7 ? (1 - t) / 0.3 : 1); D.hit(g, t, X.S, X.F, X.d); } } catch (e) { B.bfx = null; }
+      g.restore(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    }
+    async function charge(type, from, to) {
+      const B = G.B, D = T[type], m = ms.charge(); if (!D || !m || !B) return;
+      B.bfx = { type, ph: 'charge', k: 0, al: 1, S: center(from), F: center(to), d: from === 'ally' ? 1 : -1 };
+      await G.animate(m, p => { if (B.bfx) B.bfx.k = p; }); B.bfx = null;
+    }
+    async function impact(type, from, to, crit, eff) {
+      const B = G.B, D = T[type]; if (!D || !B) return;
+      const tgt = to === 'ally' ? B.aa : B.ea, strong = crit || eff > 1;
+      B.bfx = { type, ph: 'hit', k: 0.02, al: eff < 1 ? 0.7 : 1, S: center(from), F: center(to), d: from === 'ally' ? 1 : -1 };
+      // Hit-Stop: Bild friert ein, Ziel blitzt weiss
+      B.hitStop = 1; const fl0 = tgt.flash; tgt.flash = true; await G.wait(ms.stop(crit)); tgt.flash = fl0; B.hitStop = 0;
+      B.shake = Math.max(B.shake || 0, (D.shake || 5) * (strong ? 1.3 : 1) * (G.lowFx ? 0.7 : 1));
+      if (!G.lowFx || strong) B.flash = { c: D.fl, a: (strong ? 0.55 : 0.3) * (D.dark ? 0.6 : 1) };
+      const t0 = performance.now();
+      await G.animate(ms.hit(), p => { if (B.bfx) B.bfx.k = 0.02 + p * 0.98; }); B.bfx = null;
+      G.Battle.lastBfx = { type, low: !!G.lowFx, ms: Math.round(performance.now() - t0) };
+    }
+    return { T, draw, charge, impact, ms, types: () => Object.keys(T).filter(k => k !== 'Kaefer') };
+  })();
+  G.Battle.BFX = BFX;
+  // v22: Intensität 0..1 für die Kampfmusik – steigt bei wenig LP des eigenen Geists, im Bosskampf und beim letzten LP-Rest eines Geists
+  function musicIntensity(B, en, al) {
+    const S = Snd(); if (!S || !S.intensity || !en || !al) return;
+    const f = m => { const mx = G.stats(m).hp; return mx > 0 ? m.hp / mx : 1; }, a = f(al), e = f(en);
+    let x = B.boss ? 0.55 : 0.15;
+    if (a < 0.5) x += (0.5 - a) * 0.9;            // eigener Geist angeschlagen
+    if (a > 0 && a <= 0.12) x += 0.25;             // eigener Geist am letzten LP
+    if (e > 0 && e <= 0.12) x += 0.2;              // Gegner am letzten LP
+    x = Math.round(Math.min(1, x) * 20) / 20;
+    if (x !== B.musicX) { let ok = false; try { ok = S.intensity(x) !== false; } catch (err) {} if (ok) B.musicX = x; G.Battle.musicX = x; }
+  }
   // kompletter Treffer: Anflug, Einschlag, Klang, Schütteln, Blitz bei Volltreffer / sehr wirksam
   async function attackFx(type, from, to, crit, eff, id) {
     const mf = id && MOVE_FX[id];
+    if (eff !== 0) await BFX.charge(type, from, to);   // v22: Aufladen am Angreifer
     if (mf) { const t0 = performance.now(); await mf.fn(from, to); G.Battle.lastFx = { id, ms: performance.now() - t0 }; } else await travel(type, from, to);
     const [x, y] = center(to), B = G.B;
     // Wirksamkeit: Pop-up direkt im Einschlag (kein Textfenster, keine Wartezeit)
     if (eff === 0) { burst(x, y, 'Nebel', 10); Snd().sfx('immune'); effPop(to, 'Hat keine Wirkung …', 'im'); return; }
-    burst(x, y, type, eff < 1 ? 12 : eff > 1 ? 32 : 22); Snd().sfx('hit_' + type, null, eff < 1 ? 0.55 : 1);
+    const imp = BFX.impact(type, from, to, crit, eff);   // v22: grosser Typ-Einschlag mit Hit-Stop
+    burst(x, y, type, G.lowFx ? (eff > 1 ? 16 : 10) : eff < 1 ? 12 : eff > 1 ? 32 : 22); Snd().sfx('hit_' + type, null, eff < 1 ? 0.55 : 1);
     if (eff > 1) effPop(to, 'Sehr effektiv!', 'se'); else if (eff < 1) effPop(to, 'Nicht sehr effektiv …', 'nv');   // auch Neutral gegen Stein (½×)
     if (crit || eff > 1) { B.flash = { c: (TYPE_FX[type] || TYPE_FX.Seele).s === 'Schatten' ? TYPE_FX[type].c : (TYPE_FX[type] || TYPE_FX.Seele).c2, a: crit ? 0.6 : 0.42 }; B.shake = Math.max(B.shake || 0, crit ? 6 : 4.5); Snd().sfx(crit ? 'crit' : 'super'); }
     else if (eff < 1) Snd().sfx('weak');
+    await imp;
   }
   // schwebender Wirksamkeits-Text über dem Ziel: poppt auf, hält kurz, verblasst (CSS, blockiert den Kampf nicht)
   function effPop(side, text, cls) {

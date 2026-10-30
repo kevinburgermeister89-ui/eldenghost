@@ -1,7 +1,7 @@
 // Kopiert die Web-Quelle (einzige Quelle: Projektwurzel) nach www/ für Capacitor.
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), out = path.join(root, 'www');
-const ITEMS = ['index.html', 'style.css', 'manifest.json', 'sw.js', 'js', 'icons'];
+const ITEMS = ['index.html', 'style.css', 'manifest.json', 'sw.js', 'js', 'icons', 'audio'];   // v3: vorgerenderte Musik-Loops + Effekte
 const SKIP = new Set(['android', 'splash.png', 'ios-icon-1024.png']); // native-only Assets nicht ins Web-Bundle
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });

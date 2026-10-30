@@ -346,7 +346,7 @@
   AH.doors = { '4,53': { to: 'aschehang', cond: () => false, locked: ahLocked }, '21,53': { to: 'aschehang', cond: () => false, locked: ahLocked } };
   AH.signs = {
     '17,51': () => ['Ein verkohltes Brett: «Laternenstiege – zum Dojo des Schwarzen Berges».', 'Darunter, frisch in die Asche gekratzt: «NICHT HINAUF».'],
-    '9,11': () => ['Tiefe Krallenspuren im verkohlten Holz. Vier Furchen, jede breiter als deine Hand.', 'Zu gross für jeden Geist, den du kennst. Und sie führen von innen nach aussen.'],
+    '9,11': () => ['Tiefe Krallenspuren im verkohlten Holz. Fünf Furchen, jede breiter als deine Hand.', 'Zu gross für jeden Geist, den du kennst. Und sie führen von innen nach aussen.'],
     '20,11': () => ['In den Balken ist ein Zeichen eingebrannt: ein Kreis aus Ketten, in der Mitte zerrissen.']
   };
   AH.pickups = [
@@ -482,7 +482,7 @@
       'Cassandra: Das da ist Filou, der Schwarze mit dem Wuschelschwanz. Und die Getigerte ist Mira.',
       'Kevin: Filou tut so, als gehöre ihm das Haus. Wahrscheinlich hat er recht.',
       'Cassandra: Mira ist die Schlaue. Sie merkt immer als Erste, wenn jemand traurig ist, und legt sich dann einfach dazu.',
-      'Kevin: Katzen sind wie gute Freunde: Sie kommen, wenn sie wollen – aber wenn es drauf ankommt, sind sie da.',
+      'Kevin: Filou merkt man nicht an, dass er dich mag. Bis du gehst. Dann sitzt er stundenlang an der Tür.',
       'Cassandra: Und sie schnurren. Gegen Schnurren kommt kein Nebel an.',
       'Kevin: Hier, nimm das mit. Für unterwegs.'
     ]);
@@ -963,7 +963,7 @@
           'Hans: Ich versteh sie auch nicht immer. Aber die Uniform ist bequem.'
         ]);
         G.World.camFocus = null;
-      } else { G.Snd.sfx('hiss'); await G.UI.say('Der Nachtmahr zischt, als du näherkommst. Mandy: Schon wieder du? Hartnäckig, das muss man dir lassen.'); }
+      } else { G.Snd.sfx('hiss'); await G.UI.say('Der Nachtmahr zischt, als du näher kommst. Mandy: Schon wieder du? Hartnäckig, das muss man dir lassen.'); }
       await quantumTalk(true);
     } finally { G.UI.hideText(); G.lock--; }
   }
@@ -992,7 +992,7 @@
         'Der Glaskolben bekommt einen Sprung. Das gefangene Licht zischt heraus und fliesst die Ader entlang zurück, hinauf zum Leuchtturm.',
         'Der Nachtmahr flackert. Aus dem Rauch dringt ein Flüstern, viele Stimmen auf einmal, keine Worte. Dann schrumpft er in Mandys Glaslaterne.',
         'Mandy: Merk dir eines, Laternenkind: Licht wirft immer auch Schatten. Und in den Schatten sind wir zu Hause.',
-        'Mandy: Team Quantum vergisst nicht! Hans – Rückzug!',
+        'Mandy: Der Kolben war nur ein Anfang. Auf den Inseln brennen noch viele Lichter. Hans – Rückzug!',
         'Hans: Ich hab doch gerade erst meinen Tee ausgepackt …'
       ]);
       G.UI.hideText();
@@ -1023,7 +1023,7 @@
     if (await G.UI.yesNo('Wenke: Na, Landratte? Die Ladung ist an Bord. Bereit zum Ablegen?')) {
       G.UI.hideText();
       await G.UI.sayAll(['Wenke: Ha! So gefällt mir das. Torf, Laternenöl, Heddas Tee – und ein Geisterbeschwörer.',
-        'Wenke: Aber hör zu: In der Nacht kam Rauch über das Wasser. Er riecht nach verbranntem Holz … und nach etwas anderem.', 'Wenke: Wir fahren zuerst zur Rauchbucht. Dort lebt eine alte Fischerin – Hanne. Sie wird wissen, was los ist.']);
+        'Wenke: Aber hör zu: In der Nacht kam Rauch über das Wasser. Er riecht nach verbranntem Holz … und nach etwas anderem.', 'Wenke: Wir fahren zuerst zur Rauchbucht. Dort lebt eine alte Fischerin – Hanne. Wenn noch jemand dort ist, dann sie.']);
       G.UI.hideText(); return sailTo('aschehang');
     }
     G.UI.hideText();
@@ -1076,12 +1076,31 @@
     { id: 'schattenklingeB', spr: 'schattenklinge', x: 17, y: 33, dir: 'left', trainer: 'schattenklinge', show: () => beaten('schattenklinge') && !dojoEnd() },
     { id: 'kettenwaechter', spr: 'kettenwaechter', x: 15, y: 11, dir: 'down', trainer: 'kettenwaechter', show: () => !beaten('kettenwaechter') },
     { id: 'kettenwaechterB', spr: 'kettenwaechter', x: 17, y: 12, dir: 'left', trainer: 'kettenwaechter', show: () => beaten('kettenwaechter') },
+    { id: 'kasparAH', spr: 'kaspar', x: 7, y: 12, dir: 'right', show: () => beaten('kaspar') && story() >= 11, talk: talkKasparAH },
     { id: 'klingenmeister', spr: 'klingenmeister', x: 15, y: 4, dir: 'down', trainer: 'klingenmeister', show: () => !dojoEnd() }
   ];
   G.TRAINERS.ronin.onWin = async () => setStory(10);
   G.TRAINERS.schattenklinge.onWin = async () => setStory(11);
   G.TRAINERS.kettenwaechter.onWin = async () => setStory(12);
   G.TRAINERS.klingenmeister.onWin = () => dojoFinale();
+  // Kaspar Graumantel kehrt zurück: vom Binden zum Trösten (nur wer ihn im Moor besiegt hat)
+  async function talkKasparAH() {
+    const S = G.state;
+    if (dojoEnd()) {
+      if (!S.flags.kasparEnd) { S.flags.kasparEnd = 1;
+        return G.UI.sayAll(['Kaspar: Ich hab es gesehen. Das Ding im Rauch. Gebunden mit Glas, das für Laternen gemacht war.',
+          'Kaspar: Im Moor wollte ich den Alten genauso fesseln. Ich hätte ihn zu dem gemacht.',
+          'Kaspar: Du hast ihn getröstet. Ich glaube … ich muss das erst lernen.',
+          'Kaspar: Wenn du Selma siehst, sag ihr, ihr Bruder kommt heim. Irgendwann.']); }
+      return G.UI.say('Kaspar: Die Ketten hier halten nichts mehr. Gut so.');
+    }
+    if (!S.flags.kasparAH) { S.flags.kasparAH = 1;
+      return G.UI.sayAll(['Kaspar: Du schon wieder. Natürlich.',
+        'Kaspar: Ich hörte, hier hat einer etwas gebunden, das grösser ist als der Alte im Moor. Ich wollte sehen, wie.',
+        'Kaspar: Sieh dir die Ketten an. Sie sind nicht gerissen. Er hat sie von innen geöffnet.',
+        'Kaspar: Wer bindet, wird gebunden. Das hast du mir im Moor gezeigt. Ich hab es nicht gern gelernt.']); }
+    return G.UI.say('Kaspar: Geh rein. Ich bleibe hier. Ich will nicht noch etwas wecken, das ich nicht trösten kann.');
+  }
   async function talkHanne() {
     const S = G.state;
     if (!S.flags.hanne) {
@@ -1151,7 +1170,7 @@
     G.state.flags.dojoIn = 1; G.lock++;
     G.Snd.sfx('creak'); ah.shake = 0.25;
     await G.UI.sayAll(['Hitze schlägt dir entgegen. Das Dach ist zur Hälfte eingestürzt, brennende Papierfetzen tanzen durch die Luft.',
-      'Vor dem Schrein kniet jemand in Schwarz und Gold – reglos, als hätte er auf dich gewartet.']);
+      'Vor dem Schrein kniet jemand. Reglos. Nur der Rauch um ihn bewegt sich.']);
     G.UI.hideText(); G.lock--;
   }
   // Finale: Dach stürzt ein, eine riesige gehörnte Gestalt im Rauch – danach ruhige, freie Erkundung
@@ -1162,6 +1181,7 @@
       await G.UI.sayAll(['Klingenmeister: … So kämpft niemand, der nur neugierig ist. Dann höre.',
         'Klingenmeister: Vierzig Jahre hat Meister Kurogane dieses Dojo geführt. Ruhig. Höflich. Er hat nie die Stimme erhoben.',
         'Klingenmeister: In jener Nacht hat er etwas gerufen – tief unter dem Schrein. Wir haben die Ketten gehalten, so lange wir konnten.',
+        'Klingenmeister: Zwei Fremde brachten ihm eine Maske aus Mondglas. Seitdem hörte er nachts Stimmen. Viele.',
         'Klingenmeister: Er war es nicht … es war das, was er gerufen hat.']);
       G.UI.hideText();
       G.Snd.sfx('creak'); G.Snd.sfx('hit_Stein', null, 0.8); ah.shake = 1.4;
@@ -1176,7 +1196,7 @@
       G.UI.hideText();
       await G.animate(1400, p => { ah.fin.t = 0.85 + p * 0.15; });
       G.state.flags.dojoEnd = 1; ah.fin = null; ah.debris.length = 0; resetNPCs(AH);
-      if (!G.state.items.maskensplitter) { await give('maskensplitter', 1); await G.UI.say('Zwischen den Trümmern lag ein Splitter der schwarzen Maske vom Schrein. Er ist noch warm.'); G.UI.hideText(); }
+      if (!G.state.items.maskensplitter) { await give('maskensplitter', 1); await G.UI.say('Zwischen den Trümmern lag ein Splitter der schwarzen Maske vom Schrein. Er ist noch warm.'); await G.UI.say('Das Innere schimmert bläulich – wie Mondglas. Brann im Dorf würde es erkennen.'); G.UI.hideText(); }
       setStory(13);
       await G.UI.say('– Hier endet «Das Schwarze Dojo». Die Glut am Aschehang ist zur Ruhe gekommen – die Reise geht bald weiter! –');
       G.UI.hideText(); G.save(true);
@@ -1204,7 +1224,7 @@
     if (q1() === 1) {
       await G.UI.sayAll(['Wido: Jorin? Ins Moor, sagst du. Hm. Hab mir so was gedacht.',
         'Wido: Maren, seine Frau – vor sieben Wintern ist sie im Tiefen Moor verschwunden. Ihre Laterne haben wir nie gefunden.',
-        'Wido: Maren? Die hat Laternen nie ausgeblasen. Sagte, man wisse nie, wer noch unterwegs ist.',
+        'Wido: Sie hat nie eine Laterne ausgeblasen. Man wisse nie, wer noch unterwegs ist, sagte sie.',
         'Wido: Nimm das mit. Wacholderrauch vertreibt die Moorkälte. Und lies den Wegweiser im Süden – er zeigt dir den Pfad.']);
       setQ(2); await give('wacholder', 2); return;
     }
@@ -1238,6 +1258,13 @@
         'Brann: Jorin hat mir früher das Erz gebracht. Seit er fort ist, liegt der Amboss oft still. Hier – zwei Seelenfänger, frisch gebogen.']);
       S.flags.brann = 1; await give('laterne', 2);
       await G.UI.say('Brann: Bring mir drei einfache Seelenfänger, dann mache ich dir einen aus Mondglas. Da bleibt selbst ein scheuer Geist gern.'); return;
+    }
+    if ((it.maskensplitter || 0) > 0 && !S.flags.brannMaske) {
+      S.flags.brannMaske = 1;
+      await G.UI.sayAll(['Brann: Zeig her … Das ist Mondglas. Mein Schliff, ich erkenn die Kante.',
+        'Brann: Letzten Herbst kamen zwei in dunklen Mänteln. Kauften alle Mondglas-Fänger, die ich hatte. Bar bezahlt.',
+        'Brann: Die Frau hat kaum geredet. Der Mann wollte nur wissen, ob ich Tee habe.',
+        'Brann: Jemand hat meine Fänger eingeschmolzen. Zu einer Maske. Für so viele Seelen ist das Glas nicht gemacht.']); return;
     }
     if ((it.marenslaterne || 0) > 0 && !S.flags.brannMaren) {
       S.flags.brannMaren = 1;

@@ -15,18 +15,8 @@ window.G = window.G || {};
     Neutral: '#b8b0c8', Feuer: '#f58c4c', Wasser: '#5aa8f2', Pflanze: '#6cc45a', Elektro: '#f0cc40', Stein: '#c4ae88',
     Psycho: '#ec7cbc', Boden: '#c8985a', Gift: '#a872dc', Kampf: '#d8604c'
   };
-  G.CHART = {
-    // Starter-Dreieck: Feuer > Pflanze > Wasser > Feuer (je 2×), Rückrichtung je ½×
-    Feuer:   { Pflanze: 2, Gift: 2, Psycho: 2, Feuer: 0.5, Wasser: 0.5, Stein: 0.5 },
-    Wasser:  { Feuer: 2, Stein: 2, Boden: 2, Wasser: 0.5, Pflanze: 0.5 },
-    Pflanze: { Wasser: 2, Stein: 2, Boden: 2, Feuer: 0.5, Pflanze: 0.5, Gift: 0.5 },
-    Elektro: { Wasser: 2, Psycho: 2, Elektro: 0.5, Stein: 0.5, Pflanze: 0.5, Boden: 0 },
-    Stein:   { Feuer: 2, Elektro: 2, Stein: 0.5, Boden: 0.5, Kampf: 0.5 },
-    Psycho:  { Kampf: 2, Gift: 2, Psycho: 0.5 },
-    Boden:   { Feuer: 2, Elektro: 2, Stein: 2, Gift: 2, Kampf: 0.5, Pflanze: 0.5 },
-    Gift:    { Wasser: 2, Kampf: 2, Pflanze: 2, Gift: 0.5, Boden: 0.5, Stein: 0.5 },
-    Kampf:   { Stein: 2, Elektro: 2, Psycho: 0.5, Gift: 0.5 }
-  };
+  // Typentabelle: wird vollständig in v20.2 (Gen. 6+) weiter unten gesetzt, ergänzt um Drache/Dunkel.
+  G.CHART = {};
   G.eff1 = (mt, dt) => { if (mt === 'Neutral') return G.NEUTRAL_VS[dt] || 1;  const r = G.CHART[mt] && G.CHART[mt][dt]; return r === undefined ? 1 : r; };
   // Doppeltypen: Faktoren multiplizieren sich (z. B. Feuer gegen Gift/Psycho = 4×)
   G.typesOf = sp => G.SPECIES[sp].types || [G.SPECIES[sp].type];
@@ -884,14 +874,15 @@ window.G = window.G || {};
     // Selma stellt sich nicht in den Weg, bevor du bereit bist: ansprechen, zusagen – erst dann Kampf (sie gibt den Steg danach frei)
     selma: { name: 'Selma', title: 'Geisterbeschwörerin', area: 'tiefesmoor', pos: [16, 34], sight: 0,
       ask: ['Selma: Der Steg dahinter führt ins Tiefe Moor. Dort sind die Geister alt und stark.',
-        'Selma: Wenn deine Geister noch jung sind, trainier erst im Schilf am Moorrand. Ab Level 9 oder 10 hast du eine Chance gegen mich.'],
+        'Selma: Ich hab hier schon zu viele umkehren sehen – oder nicht zurückkommen. Trainier erst im Schilf. Ab Level 9 reden wir.'],
       askQ: 'Selma: Willst du dich mit mir messen?',
       decline: ['Selma: Klug. Das Schilf läuft nicht davon – und ich auch nicht.'],
       team: [['nebelkauz', 9], ['moorlurch', 10]],
       reward: { klarblick: 1, laterne: 3 },
       intro: ['Selma: Du willst tiefer hinein? Dann zeig mir zuerst, was deine Geister können.'],
       lose: ['Selma: Gut gekämpft. Deine Geister vertrauen dir, das sieht man.'],
-      after: ['Selma: Hinter den drei Weiden wird der Nebel dicker. Dort wirst du nicht mehr sehen, was dich angreift – nur hören.'] },
+      after: ['Selma: Hinter den drei Weiden wird der Nebel dicker. Dort wirst du nicht mehr sehen, was dich angreift – nur hören.',
+        'Selma: Und wenn dir ein Mann im grauen Mantel begegnet … das ist mein Bruder. Er will binden, was man nicht binden soll.'] },
     // v15: Klippenhöhle – zwei Beschwörer (nur auf Ansprache) und Team Quantum
     ruedi: { name: 'Ruedi', title: 'Höhlenforscher', area: 'hoehle', pos: [14, 11], sight: 0,
       ask: ['Ruedi: Pass auf, wo du hintrittst – hier bröckelt es überall. Ich kartiere die Gänge unter der Klippe.',
@@ -948,7 +939,7 @@ window.G = window.G || {};
       lose: ['Die Ketten fallen klirrend zu Boden. Der Wächter tritt langsam beiseite.', 'Kettenwächter: Er hat uns gesagt, wir sollen das Tor halten. Er hat nicht gesagt, wie lange.'],
       after: ['Kettenwächter: Geh hinein. Ich halte hier nichts mehr fest.'] },
     klingenmeister: { name: 'Klingenmeister', title: 'Schwarzes Dojo', area: 'aschehang', pos: [15, 4], sight: 0, boss: true, noFlee: true, noCatch: true,
-      team: [['essenbaer', 17], ['glutfaehe', 17], ['gewitterkauz', 18], ['onigluetfuerst', 19]],
+      team: [['essenbaer', 16], ['glutfaehe', 16], ['gewitterkauz', 17], ['onigluetfuerst', 18]],
       reward: { starktee: 2, mondlaterne: 2 },
       intro: ['Vor dem Schrein kniet eine Gestalt in Schwarz und Gold. Ein Geweihhelm aus verbranntem Holz, ein Umhang aus Rauch.',
         'Klingenmeister: Du hast den Wächter am Tor bezwungen. Dann bist du gekommen, um zu sehen, was hier geschehen ist.',
@@ -960,7 +951,7 @@ window.G = window.G || {};
       reward: { mondlaterne: 2, starktee: 1 },
       intro: ['Kaspar: Noch jemand, der den Alten stören will? Er gehört mir. Wer ihn bindet, befiehlt dem Nebel.', 'Kaspar: Geh nach Hause, Kind. Oder kämpfe.'],
       lose: ['Kaspar: … Deine Geister folgen dir nicht, weil sie müssen. Merkwürdig.'],
-      after: ['Kaspar: Geh. Aber wenn du ihn nicht bindest, wirst du ihn trösten müssen. Das ist schwerer.'] },
+      after: ['Kaspar: Geh. Wenn du ihn nicht bindest, musst du ihn trösten. Das ist schwerer.', 'Kaspar: Andere da draussen binden längst. Mit Glas statt mit Ketten.'] },
     nebelahn: { name: 'Nebelahn', title: 'Wächter des Tiefen Moors', area: 'tiefesmoor', pos: [16, 3], boss: true, noFlee: true, noCatch: true, hpMult: 1.5, // Boss-LP x1.5 (56 -> 84 LP)
       team: [['nebelahn', 16]],
       reward: { marenslaterne: 1 },
@@ -1024,10 +1015,6 @@ window.G = window.G || {};
   // Normal: trifft nichts sehr effektiv (wie das Vorbild), ½ gegen Stein; schwach nur gegen Kampf.
   G.TYPES.push('Käfer', 'Normal');
   Object.assign(G.TYPE_COLORS, { 'Käfer': '#a8b820', Normal: '#d8c8a8' });
-  G.CHART['Käfer'] = { Pflanze: 2, Psycho: 2, Feuer: 0.5, Kampf: 0.5, Gift: 0.5 };
-  G.CHART.Normal = { Stein: 0.5 };
-  Object.assign(G.CHART.Feuer, { 'Käfer': 2 }); Object.assign(G.CHART.Stein, { 'Käfer': 2 });
-  Object.assign(G.CHART.Pflanze, { 'Käfer': 0.5 }); Object.assign(G.CHART.Kampf, { 'Käfer': 0.5, Normal: 2 }); Object.assign(G.CHART.Boden, { 'Käfer': 0.5 });
   // ---------- v20.2: Typentabelle exakt wie das offizielle Vorbild (Gen. 6+), eingeschränkt auf die vorhandenen 11 Typen ----------
   // Feuer=Fire, Wasser=Water, Pflanze=Grass, Elektro=Electric, Stein=Rock, Psycho=Psychic, Boden=Ground, Gift=Poison, Kampf=Fighting, Käfer=Bug, Normal=Normal.
   // Einzige Immunität unter diesen Typen: Elektro → Boden 0×. «Neutral» (typenlos) hat kein Vorbild: 1×, nur gegen Stein ½× (wie Normal).
