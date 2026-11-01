@@ -83,7 +83,8 @@ with sync_playwright() as p:
     check(r[2] and r[2] >= 2, f"Schlundfalle hält fest ({r[2]})")
     # --- Chronik & Cache ---
     sw = open('sw.js').read()
-    check("'eldenghost-v21'" in sw and 'creatures_dd.js' in sw, "Service-Worker-Cache eldenghost-v21 inkl. creatures_dd.js")
+    m = re.search(r"'eldenghost-v(\d+)'", sw)
+    check(bool(m) and int(m.group(1)) >= 21 and 'creatures_dd.js' in sw, f"Service-Worker-Cache eldenghost-v{m.group(1) if m else '?'} (≥ v21) inkl. creatures_dd.js")
     mj = open('js/main.js').read()
     check(re.search(r"G\.TYPES", mj) is not None, "Chronik-Typentabelle nutzt G.TYPES (zeigt Drache/Dunkel)")
     bad = [e for e in errors if 'favicon' not in e]

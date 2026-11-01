@@ -1,8 +1,8 @@
 // Eldenghost Service Worker – offline-fähig (Cache-first, Versionswechsel räumt alte Caches)
-const VERSION = 'eldenghost-v22';
+const VERSION = 'eldenghost-v23';
 const ASSETS = [
   './', './index.html', './style.css', './manifest.json',
-  './js/data.js', './js/platform.js', './js/audio.js', './js/art.js', './js/creatures.js', './js/creatures_dd.js', './js/sprites.js', './js/people.js', './js/tiles.js', './js/ui.js', './js/world.js', './js/battle.js', './js/map.js', './js/main.js',
+  './js/data.js', './js/platform.js', './js/audio.js', './js/art.js', './js/creatures.js', './js/creatures_dd.js', './js/sprites.js', './js/people.js', './js/tiles.js', './js/ui.js', './js/env.js', './js/world.js', './js/battle.js', './js/map.js', './js/main.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];
 self.addEventListener('install', e => {

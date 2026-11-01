@@ -34,7 +34,7 @@
   // Loop-Längen in Sekunden (MP3-Encoder hängen Stille an -> loopEnd fest setzen)
   const MLEN = { ambient: 53.3333, indoor: 32, nebel: 64, moor: 57.6, cave: 53.3333, battle: 34.2857, battle_hi: 34.2857, trainer: 32, boss: 51.4286, quantum: 36.9231 };
   const SFX_FILES = ['hit_Irrlicht', 'hit_Schatten', 'hit_Wasser', 'hit_Elektro', 'hit_Kampf', 'hit_Moor', 'hit_Nebel', 'hit_Neutral', 'hit_Pflanze', 'hit_Seele', 'hit_Stein',
-    'step_grass', 'step_wood', 'step_floor', 'step_mud', 'ui_blip', 'ui_tick', 'ui_open', 'catch'];
+    'ui_blip', 'ui_tick', 'ui_open', 'catch'];
   const SFX_GAIN = { hit_Seele: 0.6, catch: 0.8 };   // Feinabgleich nach Lautheitsmessung
   const SYNTH_FALLBACK_GAIN = 1.6;
   const SAMPLE_GAIN = 1.4;                           // -16-LUFS-Loops -> ca. -20 LUFS am Ausgang (Platz für Effekte)
@@ -651,8 +651,37 @@
   S.jingle = name => { logSnd('jingle:' + name, !!(S.ctx && S.on)); if (!S.ctx || !S.on || !J[name]) return; const t = S.ctx.currentTime + 0.05;
     if (name === 'catch' && playSample('s:catch', sfxBus, t, SFX_GAIN.catch)) { duckFor(2.6); return; } let sec = 0; voice(() => { sec = J[name](t); }, SFX_CAP + 40); if (sec) duckFor(sec); };
 
+
+  // ---------- Schritte (eigene Synthese, ruhig) ----------
+  // STEPGEN-BEGIN
+  // Weicher, tiefer, kurzer Schritt (60–120 ms): gefiltertes Rauschen + tiefer Puls, Halb-Kosinus-Anstieg (kein Klick),
+  // zweifacher Tiefpass, 4 Varianten je Untergrund (deterministisch gesetzt, damit sie stabil klingen).
+  function stepWave(kind, variant, sr) {
+    const P = { grass: [0.10, 0.012, 1100, 95, 0.35, 0.55], wood: [0.085, 0.008, 650, 135, 0.6, 0.35], floor: [0.07, 0.007, 800, 115, 0.5, 0.4], mud: [0.12, 0.018, 380, 72, 0.55, 0.5] }[kind] || null;
+    const [dur0, att, fc0, f0, thump, nz] = P || [0.1, 0.012, 1100, 95, 0.35, 0.55];
+    let seed = 0x9e37 + variant * 7919 + kind.length * 104729; const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    const dur = dur0 * (0.9 + rnd() * 0.2), fc = fc0 * (0.85 + rnd() * 0.3), f = f0 * (0.9 + rnd() * 0.2), n = Math.round(dur * sr), out = new Float32Array(n);
+    const a = 1 - Math.exp(-2 * Math.PI * fc / sr); let l1 = 0, l2 = 0, ph = 0; const dec = 5 / dur;
+    for (let i = 0; i < n; i++) { const tt = i / sr;
+      const e = tt < att ? 0.5 - 0.5 * Math.cos(Math.PI * tt / att) : Math.exp(-(tt - att) * dec);
+      const tail = i > n - sr * 0.01 ? (n - i) / (sr * 0.01) : 1;                     // sanftes Ende
+      l1 += a * (rnd() * 2 - 1 - l1); l2 += a * (l1 - l2);
+      ph += 2 * Math.PI * f * (1 - 0.25 * tt / dur) / sr;
+      out[i] = (nz * l2 * 3 + thump * Math.sin(ph) * Math.exp(-tt * dec * 0.8)) * e * tail; }
+    let pk = 0; for (const v of out) pk = Math.max(pk, Math.abs(v)); for (let i = 0; i < n; i++) out[i] /= pk || 1;   // Spitze = 1, Pegel über STEP_GAIN
+    return out;
+  }
+  // STEPGEN-END
+  const STEP_GAIN = 0.11, STEP_EVERY = 2, STEPB = {};   // ca. -19 dBFS Spitze vor dem Effektbus; nur jeder 2. Schritt (Kachel = 0.18 s)
+  let stepN = 0, stepLast = -1;
+  function playStep(D, t, kind) {
+    const c = S.ctx; kind = ['wood', 'floor', 'mud'].includes(kind) ? kind : 'grass';
+    if (!STEPB[kind]) STEPB[kind] = [0, 1, 2, 3].map(v => { const w = stepWave(kind, v, c.sampleRate), b = c.createBuffer(1, w.length, c.sampleRate); b.copyToChannel(w, 0); return b; });
+    let v = Math.floor(R() * 4); if (v === stepLast) v = (v + 1 + Math.floor(R() * 3)) % 4; stepLast = v;   // nie zweimal dieselbe Variante
+    const src = c.createBufferSource(), g = c.createGain(); src.buffer = STEPB[kind][v]; src.playbackRate.value = 0.94 + R() * 0.12;
+    g.gain.value = STEP_GAIN * (0.75 + R() * 0.25); src.connect(g); g.connect(D); src.onended = () => { disc(src); disc(g); }; src.start(t);
+  }
   // ---------- Geräusche ----------
-  let stepAlt = 0;
   // neue Typen teilen sich die passenden Klangfarben der alten (Feuer = Irrlicht-Knistern, Boden = Schlamm, Psycho = Nebelhall, Gift = zischender Schatten)
   const SFX_ALIAS = { hit_Feuer: 'hit_Irrlicht', hit_Boden: 'hit_Moor', hit_Psycho: 'hit_Nebel', hit_Gift: 'hit_Schatten', 'hit_Käfer': 'hit_Pflanze', hit_Normal: 'hit_Neutral' };
   S.sfx = (n, arg, vol = 1) => { logSnd(n, !!(S.ctx && S.on)); if (!S.ctx || !S.on) return; if (S.ctx.state !== 'running') S.unlock(); voice(() => sfx(n, arg, vol), SFX_CAP); };
@@ -675,9 +704,9 @@
     n = SFX_ALIAS[n] || n;
     const t = c.currentTime + 0.005, D = vol === 1 ? sfxBus : (() => { const g = c.createGain(); g.gain.value = vol; g.connect(sfxBus); return g; })();
     // v3: Samples zuerst (Angriffstypen, Schritte je Untergrund, UI); fehlt eines, greift die Synthese unten
-    const sk = n.startsWith('hit_') ? n : n === 'step' ? 'step_' + (['wood', 'floor', 'mud'].includes(arg) ? arg : 'grass') : n === 'blip' || n === 'tick' || n === 'open' ? 'ui_' + n : null;
+    const sk = n.startsWith('hit_') ? n : n === 'blip' || n === 'tick' || n === 'open' ? 'ui_' + n : null;
     if (sk && BUF['s:' + sk]) {
-      const rate = n === 'step' ? 0.9 + R() * 0.2 : n.startsWith('hit_') ? 0.97 + R() * 0.06 : 1, gain = (SFX_GAIN[sk] || 1) * (n === 'step' ? 0.8 + R() * 0.3 : 1);
+      const rate = n.startsWith('hit_') ? 0.97 + R() * 0.06 : 1, gain = SFX_GAIN[sk] || 1;
       if (playSample('s:' + sk, D, t, gain, rate)) return;
     }
     switch (n) {
@@ -694,14 +723,8 @@
         bp.type = 'bandpass'; bp.frequency.value = 700; bp.Q.value = 6; env(g, t, 0.12, 0.05, 0.3, 0.25); o.connect(bp); bp.connect(g); g.connect(D); o.start(t); o.stop(t + 1); break; }
       case 'splash': I.noise(D, t, 0.12, 0.18, 'bandpass', 1100 + R() * 600, { q: 1.2, to: 600 }); break;
       // Schritte: weich, je Untergrund (Gras, Holz, Stein/Boden, Moor)
-      case 'step': {
-        stepAlt ^= 1; const v = 0.05 + R() * 0.02, sh = stepAlt ? 1 : 0.88;
-        if (arg === 'wood') { I.noise(D, t, v * 1.2, 0.06, 'bandpass', 900 * sh, { q: 2 }); I.bass(D, t, 150 * sh, 0.04, 0.02, { rel: 0.06 }); }
-        else if (arg === 'floor') I.noise(D, t, v * 0.8, 0.045, 'bandpass', 1400 * sh, { q: 1.5 });
-        else if (arg === 'mud') { I.noise(D, t, v, 0.12, 'lowpass', 500 * sh, { to: 220 }); }
-        else I.noise(D, t, v * 0.9, 0.07, 'bandpass', 2200 * sh, { q: 0.7, to: 1300 });
-        break;
-      }
+      // Schritte: eigene Synthese, nur jeder 2. Schritt, leise im Hintergrund
+      case 'step': if (stepN++ % STEP_EVERY === 0) playStep(D, t, arg); break;
       case 'blip': I.box(D, t, 1318, 0.035, { dec: 0.12, wet: 0.1, echo: 0 }); break;           // bestätigen
       case 'tick': I.box(D, t, 1760, 0.018, { dec: 0.06, wet: 0.05, echo: 0 }); break;          // Auswahl bewegen
       case 'bump': I.bass(D, t, 70, 0.1, 0.03, { rel: 0.08, cut: 300 }); break;

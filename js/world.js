@@ -2741,17 +2741,19 @@
       ctx.fillStyle = gr; ctx.fillRect(x - 5, y - 5, 10, 10); ctx.fillStyle = `rgba(255,255,230,${b})`; ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
     }
     ctx.globalCompositeOperation = 'source-over';
-    for (const f of m.fog) {
+    const ENV = G.Env && G.Env.on;   // v23: Umgebung (Nebel, Farbe, Partikel, Bloom, Vignette) aus js/env.js statt alter Nebel + Vignette
+    if (!ENV) for (const f of m.fog) {
       f.x += f.vx * dt; if (f.x - f.r > m.w * T) f.x = -f.r;
       const x = f.x - cx, y = f.y - cy + Math.sin(t * 0.3 + f.ph) * 6; if (x < -f.r || y < -f.r || x > VW + f.r || y > VH + f.r) continue;
       const a = m.fogA * (0.75 + 0.25 * Math.sin(t * 0.4 + f.ph));
       const gr = ctx.createRadialGradient(x, y, 0, x, y, f.r); gr.addColorStop(0, `rgba(190,200,228,${a})`); gr.addColorStop(1, 'rgba(190,200,228,0)');
       ctx.fillStyle = gr; ctx.fillRect(x - f.r, y - f.r, f.r * 2, f.r * 2);
     }
-    if (FL) fogLayers(ctx, cx, cy, t, FL);   // ferne (Parallaxe 0.55) und nahe (1.25) Nebelschicht
+    if (FL && !ENV) fogLayers(ctx, cx, cy, t, FL);   // ferne (Parallaxe 0.55) und nahe (1.25) Nebelschicht
+    if (ENV) G.Env.render(ctx, m, cx, cy, t, dt, vis, opt.hidePlayer ? null : [plx, ply]);
     if (m === AH) renderAsche(ctx, cx, cy, t, dt, opt);
     renderEvents(ctx, m, cx, cy, t, dt, opt);
-    ctx.drawImage(vign, 0, 0);
+    if (!ENV) ctx.drawImage(vign, 0, 0);
     renderLegend(ctx, cx, cy, t);
     if (!opt.hidePlayer) renderMarkers(ctx, m, cx, cy, t);
     // Laternenstein-Vorstellung: der Geist gross im Bild, während man seine Beschreibung liest
