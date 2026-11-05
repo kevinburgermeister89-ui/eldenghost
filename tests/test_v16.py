@@ -102,7 +102,8 @@ async def main():
         await pg.wait_for_timeout(2500); await pg.locator('#screen').screenshot(path='/workspace/shots_v16/dorf_wido.png')
         # ================= Klippenhöhle =================
         r = await ev("[G.WILD_AREAS.hoehle.lvl, G.WILD_AREAS.hoehle.table.map(t=>[t[0],G.typesOf(t[0])]), ['ruedi','nele'].map(k=>[!!G.TRAINERS[k].ask, G.TRAINERS[k].team.map(t=>t[1])]), G.MAPS.hoehle.music, G.MAPS.kueste.warps['13,6'].to]")
-        check(r[0] == [5, 9] and all(any(t in ('Stein', 'Boden', 'Neutral', 'Psycho') for t in x[1]) for x in r[1]), f"Höhle: Wildgeister Lv 5–9, Stein/Boden/Nachtgeister {r[1]}")
+        # v24: Höhlenband 6–8 (neue Levelkurve, verteilung_neu.js); Schwammling (Gift, Höhlenpilz) ist gewollt
+        check(r[0] == [6, 8] and all(any(t in ('Stein', 'Boden', 'Neutral', 'Psycho', 'Gift') for t in x[1]) for x in r[1]), f"Höhle: Wildgeister Lv 6–8 (v24), Stein/Boden/Nachtgeister + Höhlenpilz {r[1]}")
         check(all(x[0] for x in r[2]) and r[3] == 'cave' and r[4] == 'hoehle', f"Zwei Höhlen-Beschwörer (fragen vorher), eigene Höhlenmusik, Eingang am Küstenpfad {r[2]}")
         await ev(SET(story=5, m='hoehle', x=8, y=12)); await pg.wait_for_timeout(1500); await pg.locator('#screen').screenshot(path='/workspace/shots_v16/hoehle.png')
         # ================= Nachtmahr statt Synx =================

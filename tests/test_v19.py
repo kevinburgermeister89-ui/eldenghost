@@ -59,7 +59,7 @@ with sync_playwright() as p:
     z = ev("""(ids)=>{const out={}, sizes={}; for (const id in G.WILD_AREAS){const t=G.WILD_AREAS[id].table; sizes[id]=t.length; for(const e of t){(out[e[0]]=out[e[0]]||[]).push(id+(e[2]?':'+e[2]:''));}}
       const rare=G.RARE_SPAWNS.map(r=>[r.zone,r.sp||r.species||r.id]); return {where:Object.fromEntries(ids.map(k=>[k,out[k]||[]])), sizes};}""", list(SIG))
     check(all(z['where'][k] for k in SIG), f"jeder neue Geist ist fangbar {z['where']}")
-    check(all(4 <= n <= 9 for n in z['sizes'].values()), f"Gebietstabellen 4–9 Einträge (v21) {z['sizes']}")
+    check(all(4 <= n <= 11 for n in z['sizes'].values()), f"v24: bis 11 (Tag/Nacht, Frösche) Gebietstabellen 4–9 Einträge (v21) {z['sizes']}")
     check(z['where']['gewitterkauz'] == ['moorherz:night'], f"Gewitterkauz nur nachts im Moorherz {z['where']['gewitterkauz']}")
     ev(SET % "G.makeMon('flackerling',30)"); pg.wait_for_timeout(300)
     n = ev("""(()=>{const D=G.dusk, A=G.WILD_AREAS.moorherz, r={}; G.dusk=()=>0.1; r.day=G.tableNow(A).some(e=>e[0]==='gewitterkauz'); G.dusk=()=>0.8; r.night=G.tableNow(A).some(e=>e[0]==='gewitterkauz');

@@ -36,14 +36,27 @@
     10: 'Durchquere den Glutgarten nach Norden.',
     11: 'Am Kettenhof versperrt ein Kettenwächter das Haupttor des Dojos.',
     12: 'Betritt das brennende Dojo.',
-    13: 'Die Glut am Aschehang ist zur Ruhe gekommen. Erkunde die Insel – die Reise geht bald weiter.'
+    13: 'Die Glut am Aschehang ist zur Ruhe gekommen. Erkunde die Insel – die Reise geht bald weiter.',
+    // v24 Kapitel 3: Abschluss (Ziele davor siehe CH3)
+    14: 'Das Glas der Fremden führt hinaus aufs Meer. Wer kauft so viel Mondglas – und wofür? Die Reise geht bald weiter.'
   };
   const setStory = (n, quiet) => {
     if (!G.state || story() >= n) return;
     G.state.flags.story = n; G.save(true);
     if (!quiet) G.UI.toast('Neues Ziel: ' + GOALS[n], 3600, true);
   };
-  G.Story = { get: story, set: setStory, goal: () => GOALS[Math.min(13, story())], GOALS };
+  // v24 Kapitel 3 «Das Glas der Fremden»: story bleibt 13 (Dojo-Ende, Flag dojoEnd) – die Schritte ergeben sich aus bestehenden Flags,
+  // daher brechen alte Spielstände nicht.
+  const CH3 = [
+    { id: 'brann', done: () => !!G.flag('brannMaske'), goal: 'Zeig Brann in der Schmiede von Eldenghost den Maskensplitter.', at: 'dorf' },
+    { id: 'kaspar', done: () => !!G.flag('kasparEnd'), goal: () => G.flag('t_kaspar') ? 'Am Kettenhof auf der Nebelinsel wartet Kaspar Graumantel.' : 'Im Tiefen Moor streift ein Mann im grauen Mantel umher – stell dich ihm.', at: () => G.flag('t_kaspar') ? 'aschehang' : 'nebelsee' },
+    { id: 'selma', done: () => !!G.flag('selmaNews'), goal: 'Bring Selma im Moor die Nachricht von ihrem Bruder.', at: 'schilfrand' }
+  ];
+  const ch3Step = () => G.flag('dojoEnd') ? CH3.find(s => !s.done()) || null : null;
+  const ch3Goal = () => { const s = ch3Step(); if (!s) return GOALS[14]; return typeof s.goal === 'function' ? s.goal() : s.goal; };
+  G.Story = { get: story, set: setStory, goal: () => story() >= 13 && G.flag('dojoEnd') ? ch3Goal() : GOALS[Math.min(13, story())], GOALS, CH3,
+    chapter: () => story() >= 13 && G.flag('dojoEnd') ? 3 : story() >= 9 ? 2 : 1,
+    ch3At: () => { const s = ch3Step(); return s ? (typeof s.at === 'function' ? s.at() : s.at) : null; } };
   const setQ = n => { if (q1() < n) G.state.flags.q1 = n; };
   const give = async (id, n) => {
     G.state.items[id] = (G.state.items[id] || 0) + n; G.Snd.sfx('pickup');
@@ -444,7 +457,7 @@
     { id: 'mutter', spr: 'mutter', x: 2, y: 3, dir: 'right', talk: talkMutter },
     { id: 'vater', spr: 'vater', x: 5, y: 3, dir: 'left', talk: talkVater }
   ];
-  const lamp = { p: null, onno: false };      // Lampen-Szene im Leuchtturm (p: 0..1 beim Anzünden)
+  const lamp = { p: null, onno: false, ghost: null };  // Lampen-Szene im Leuchtturm (p: 0..1 beim Anzünden; ghost: 0..1 Fyrlumen-Silhouette, v24)
   const lampLevel = () => lamp.p != null ? lamp.p : story() >= 6 ? 1 : 0;
   const arrive = { off: null, wenke: false }; // Ankunft der «Nebelschwalbe» (off: 1 = weit draussen, 0 = angelegt)
   const shipShown = () => arrive.off != null || (story() >= 8 && shipAt() === 'kueste');
@@ -601,7 +614,7 @@
   G.MAPS.markt.npcs = [{ id: 'frida', spr: 'frida', x: 2, y: 2, dir: 'down', talk: talkFrida },
     { id: 'anselm', spr: 'anselm', x: 6, y: 2, dir: 'up', talk: talkAnselm, talkAnim: 'tea' }];
   M.npcs = [
-    { id: 'selma', spr: 'selma', x: 16, y: 36, dir: 'down', trainer: 'selma', sight: 0, after: [17, 36] }, // nur auf Ansprache
+    { id: 'selma', spr: 'selma', x: 16, y: 36, dir: 'down', trainer: 'selma', sight: 0, after: [17, 36], talk: talkSelmaAfter }, // nur auf Ansprache
     { id: 'kaspar', spr: 'kaspar', x: 16, y: 10, dir: 'down', trainer: 'kaspar', sight: 4, after: [17, 10] },
     { id: 'nebelahn', mon: 'nebelahn', x: 16, y: 2, dir: 'down', show: () => q1() < 6, talk: talkBoss },
     { id: 'jorinS', spr: 'jorinSleep', x: 14, y: 3, dir: 'down', show: () => q1() < 6, talk: () => G.UI.sayAll(['Jorin liegt zwischen den Steinen, in Nebel gehüllt wie in eine Decke.', 'Neben ihm steht eine kalte Laterne. Sein Atem geht langsam und kalt.']) }
@@ -884,6 +897,7 @@
     G.Snd.sfx('heal');
     await G.animate(1800, p => { lamp.p = p * p; if (Math.random() < 0.5) spark(4 * T + 10 + Math.random() * 12, 2 * T - 2 + Math.random() * 8, (Math.random() - 0.5) * 30, -20 - Math.random() * 20, 0.6); });
     G.Snd.sfx('bell');
+    await fyrlumenGlimpse();
     setStory(6, true); lamp.p = null; lamp.onno = false; n.spr = 'onnoSleep';
     K.canvas = null; K.lights = null;                 // Aussenansicht mit brennender Lampe neu zeichnen
     await G.UI.say('Die Lampe erwacht. Warmes Licht füllt die Linse und dreht sich hinaus, über das schwarze Wasser.');
@@ -897,6 +911,22 @@
       'Onno: Ich halte das Licht an. Versprochen – diesmal schlafe ich nicht ein.'
     ]);
     G.UI.toast('Neues Ziel: ' + GOALS[6], 3600, true);
+  }
+  // v24 Szenen-Hook: Fyrlumen für einen Herzschlag im Licht der Lampe (Silhouette über der Linse, ~1,2 s).
+  // Grafik: renderFyrlumenGlimpse() → G.Env.drawFyrlumen (eigene ~32×32-Silhouette mit Prismenschwingen).
+  // Klang: G.Snd.sfx('fyrlumen_glimpse') – audio.js kennt den Namen noch nicht; unbekannte Namen fallen dort still durch (kein Absturz).
+  G.FX_HOOKS = Object.assign(G.FX_HOOKS || {}, { fyrlumenGlimpse: { sfx: 'fyrlumen_glimpse', ms: 1200, size: 32 } });
+  G.FX_HOOKS.fyrlumenGlimpse.lamp = lamp;           // v24: Zugriff für Render-Tests (lamp.ghost)
+  async function fyrlumenGlimpse() {
+    if (!G.FEAT.legend) return;
+    G.Snd.sfx('fyrlumen_glimpse');
+    lamp.ghost = 0; await G.animate(1200, p => { lamp.ghost = p; }); lamp.ghost = null;
+    await G.UI.say('Für einen Herzschlag war da etwas im Licht. Dann nur noch Nebel.');
+    G.UI.hideText();
+  }
+  function renderFyrlumenGlimpse(ctx, x, y) {
+    if (lamp.ghost == null) return;
+    if (G.Env && G.Env.drawFyrlumen) G.Env.drawFyrlumen(ctx, x + 16, y + 6, lamp.ghost);
   }
   // v15 Legendärer Geist: Fyrlumen verlässt den Leuchtturm, sobald das Licht zurück ist (nur gesichtet, nicht fangbar)
   const legend = { p: null };
@@ -1009,6 +1039,11 @@
   async function talkOnno() {
     const l = ['Onno: Ich bin wach! Hellwach. Fast.', 'Onno: Siehst du den Strahl? Er reicht bis zu den Klippen der Nebelinseln – an klaren Tagen jedenfalls.',
       'Onno: Die Linse hat mein Grossvater geschliffen. Die hält bestimmt länger als ich.'];
+    if (!G.state.flags.onnoFremde) { G.state.flags.onnoFremde = 1;   // v24: Prolog ↔ Mondglas-Strang (Brann, Klingenmeister)
+      return G.UI.sayAll(['Onno: Eins noch. Ein paar Nächte, bevor das Licht ausging, standen zwei Fremde unten an den Klippen. Dunkle Mäntel.',
+        'Onno: Aus der Höhle kam ein bläuliches Glimmen – kalt, nicht wie unser Licht. Ich dachte, es wären Fischer mit Laternen.',
+        'Onno: Bläulich wie Mondglas. Brann im Dorf schleift so was. Frag ihn, wenn du ihm begegnest.']);
+    }
     if (story() === 6) return G.UI.say('Onno: Na los, geh nach Hause. Deine Eltern sollen es von dir hören, nicht vom Nebelhorn.');
     G.state.flags.onno = (G.state.flags.onno || 0) + 1; return G.UI.say(l[G.state.flags.onno % l.length]);
   }
@@ -1083,6 +1118,18 @@
   G.TRAINERS.schattenklinge.onWin = async () => setStory(11);
   G.TRAINERS.kettenwaechter.onWin = async () => setStory(12);
   G.TRAINERS.klingenmeister.onWin = () => dojoFinale();
+  // v24: Selma nach dem Sieg – nimmt die Nachricht von Kaspar entgegen (Kapitel 3)
+  async function talkSelmaAfter() {
+    const S = G.state;
+    if (S.flags.kasparEnd && !S.flags.selmaNews) { S.flags.selmaNews = 1;
+      await G.UI.sayAll(['Selma: Du warst auf der Nebelinsel? … Du hast Kaspar gesehen. Sag es mir. Ganz.',
+        'Selma: «Kommt heim. Irgendwann.» – Das ist mehr, als er mir in drei Wintern gesagt hat.',
+        'Selma: Danke. Ich lass die Laterne am Steg brennen. Für ihn – und für alle, die noch unterwegs sind.']);
+      G.UI.toast('Neues Ziel: ' + G.Story.goal(), 3600, true); return;
+    }
+    if (S.flags.selmaNews) return G.UI.say('Selma: Die Laterne brennt. Er wird sie sehen, wenn er so weit ist.');
+    return G.UI.sayAll(G.TRAINERS.selma.after);
+  }
   // Kaspar Graumantel kehrt zurück: vom Binden zum Trösten (nur wer ihn im Moor besiegt hat)
   async function talkKasparAH() {
     const S = G.state;
@@ -1091,7 +1138,7 @@
         return G.UI.sayAll(['Kaspar: Ich hab es gesehen. Das Ding im Rauch. Gebunden mit Glas, das für Laternen gemacht war.',
           'Kaspar: Im Moor wollte ich den Alten genauso fesseln. Ich hätte ihn zu dem gemacht.',
           'Kaspar: Du hast ihn getröstet. Ich glaube … ich muss das erst lernen.',
-          'Kaspar: Wenn du Selma siehst, sag ihr, ihr Bruder kommt heim. Irgendwann.']); }
+          'Kaspar: Wenn du Selma siehst, sag ihr, ihr Bruder kommt heim. Irgendwann.']).then(() => G.UI.toast('Neues Ziel: ' + G.Story.goal(), 3600, true)); }
       return G.UI.say('Kaspar: Die Ketten hier halten nichts mehr. Gut so.');
     }
     if (!S.flags.kasparAH) { S.flags.kasparAH = 1;
@@ -1264,7 +1311,8 @@
       await G.UI.sayAll(['Brann: Zeig her … Das ist Mondglas. Mein Schliff, ich erkenn die Kante.',
         'Brann: Letzten Herbst kamen zwei in dunklen Mänteln. Kauften alle Mondglas-Fänger, die ich hatte. Bar bezahlt.',
         'Brann: Die Frau hat kaum geredet. Der Mann wollte nur wissen, ob ich Tee habe.',
-        'Brann: Jemand hat meine Fänger eingeschmolzen. Zu einer Maske. Für so viele Seelen ist das Glas nicht gemacht.']); return;
+        'Brann: Jemand hat meine Fänger eingeschmolzen. Zu einer Maske. Für so viele Seelen ist das Glas nicht gemacht.']);
+      if (G.flag('dojoEnd')) G.UI.toast('Neues Ziel: ' + G.Story.goal(), 3600, true); return;
     }
     if ((it.marenslaterne || 0) > 0 && !S.flags.brannMaren) {
       S.flags.brannMaren = 1;
@@ -2323,7 +2371,7 @@
         }
         await G.UI.sayAll(tr.intro); G.UI.hideText(); G.lock--; return G.Battle.trainer(npc.trainer);
       }
-      if (npc.trainer) return G.World.talk(G.TRAINERS[npc.trainer].after);
+      if (npc.trainer && !npc.talk) return G.World.talk(G.TRAINERS[npc.trainer].after);   // v24: Trainer mit talk() reden nach dem Sieg selbst
       G.lock++; if (npc.talkAnim) npc.talking = true;   // v18.1: Sprech-Animation, solange der Dialog offen ist
       try { await npc.talk(); } finally { npc.talking = false; }
       G.UI.hideText(); G.lock--; return;
@@ -2984,6 +3032,7 @@
       const p = lampLevel(), x = 4 * T - cx, y = 2 * T - 14 - cy;
       ctx.drawImage(lampArt(false), x, y);
       if (p > 0) { ctx.globalAlpha = Math.min(1, p); ctx.drawImage(lampArt(true), x, y); ctx.globalAlpha = 1; }
+      renderFyrlumenGlimpse(ctx, x, y);
     } else if (m.id === 'schmiede') {
       ctx.globalCompositeOperation = 'lighter';
       for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.tiles[y][x] === 'F') glow(x * T + 8 - cx, y * T + 11 - cy, 16, 0.4 * fl);

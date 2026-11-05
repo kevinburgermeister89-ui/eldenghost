@@ -179,7 +179,9 @@ async def main():
             x1 = await ev("G.state.team.map(m=>m.xp)")
             return [x1[i] - x0[i] for i in range(2)]
         xc = await xp_after(True); xd = await xp_after(False)
-        check(xc == xd and xc[0] > 0 and xc[1] == max(1, xc[0] * 65 // 100), f"EP nach Fang == EP nach Sieg (Teilnehmer / Bank 65 %) {xc} {xd}")
+        # v24: EP hängen vom Level-Abstand ab – die Bank (Lv 9) bekommt 65 % ihrer eigenen Ausbeute
+        xb = await ev("G.xpShares([{hp:1},{hp:1}], new Set([0]), G.xpGain(G.makeMon('schattenmotte',6), {lvl:9}))[1]")
+        check(xc == xd and xc[0] > 0 and xc[1] == xb, f"EP nach Fang == EP nach Sieg (Teilnehmer / Bank 65 %) {xc} {xd} Bank-Soll {xb}")
 
         # ================= Level-up: Jingle, Banner, Werte-Tafel =================
         team = "[(()=>{const m=G.makeMon('pfuetzling',12); m.xp=G.xpFor(13)-1; m.moves=['rempler']; G.fillPP(m); return m;})()]"

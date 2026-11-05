@@ -93,7 +93,8 @@ async def main():
         check(all(0 < d <= 3000 for _, d in durs), f"Attacken-Animationen ≤ 3 s (geplant, gemessen in test_v14) {durs}")
         # ================= Gebietstabellen =================
         r = await ev("Object.entries(G.WILD_AREAS).map(([z,a])=>[z,a.table.map(t=>t[0]),a.table.map(t=>t[1]),a.rare])")
-        check(all(4 <= len(x[1]) <= 9 for x in r), f"Jedes Gebiet 4–9 Arten (v19: leicht vergrösserte Tabellen; v21: + Drache/Dunkel) {[(x[0], len(x[1])) for x in r]}")
+        # v24: Tag/Nacht-Einträge und Frösche vergrössern die Tabellen auf bis zu 11 Arten
+        check(all(4 <= len(x[1]) <= 11 for x in r), f"Jedes Gebiet 4–11 Arten (v19: leicht vergrösserte Tabellen; v21: + Drache/Dunkel; v24: Tag/Nacht-Einträge, Frösche) {[(x[0], len(x[1])) for x in r]}")
         sets = [frozenset(x[1]) for x in r]
         check(len(set(sets)) == len(sets), "Alle Gebietstabellen unterscheiden sich")
         common = set.intersection(*[set(s) for s in sets])

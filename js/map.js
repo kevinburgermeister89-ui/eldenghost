@@ -80,7 +80,7 @@
   ];
   G.SIDEQUESTS = SIDE;
   function quests() {
-    const out = { main: { name: story() >= 9 ? 'Das Schwarze Dojo' : 'Das erloschene Licht', goal: G.Story.goal(), at: MAIN_AT() }, newQ: [], active: [], done: [] };
+    const out = { main: { name: G.Story.chapter && G.Story.chapter() === 3 ? 'Das Glas der Fremden' : story() >= 9 ? 'Das Schwarze Dojo' : 'Das erloschene Licht', goal: G.Story.goal(), at: (G.Story.ch3At && G.Story.ch3At()) || MAIN_AT() }, newQ: [], active: [], done: [] };
     for (const q of SIDE) {
       if (q.done()) out.done.push(q);
       else if (q.active()) out.active.push({ q, goal: q.goal(), at: q.goalAt() });

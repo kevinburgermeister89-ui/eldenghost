@@ -387,6 +387,7 @@
     else if (G.mode === 'world') G.World.render(ctx, dt);
     else renderTitle(dt);
     perfTick(now, performance.now() - r0);
+    if (G.perfHud) G.perfHud(now, performance.now() - r0);
     if (G.Snd.pump) G.Snd.pump();          // Musikplaner anstossen, falls der Timer gedrosselt wurde
     if (G.fx) {
       const { kind, p } = G.fx;

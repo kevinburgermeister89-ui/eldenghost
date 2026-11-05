@@ -9,7 +9,8 @@ window.G = window.G || {};
 
   // 8 klassische Elemente (Kapitel 1 ab Spielstand v3). Tabelle: Angriffstyp -> Verteidigungstyp -> Faktor (fehlend = 1)
   G.TYPES = ['Feuer', 'Wasser', 'Pflanze', 'Elektro', 'Stein', 'Psycho', 'Boden', 'Gift', 'Kampf'];
-  // Neutral: typenlose Attacken (Rempler, Kratzer, Biss …) – immer 1×, kein Typbonus, kein Geist hat diesen Typ
+  // Neutral: typenlose Attacken (Rempler, Kratzer, Biss …) – immer 1×, kein Typbonus, kein Geist hat diesen Typ.
+  // Nicht verwechseln mit «Normal»: seit v20.1 ein echter Geister-Typ (Tauhase Normal, Funkmaus Elektro/Normal), siehe Abschnitt v20.1 unten.
   G.NEUTRAL = 'Neutral';
   G.TYPE_COLORS = {
     Neutral: '#b8b0c8', Feuer: '#f58c4c', Wasser: '#5aa8f2', Pflanze: '#6cc45a', Elektro: '#f0cc40', Stein: '#c4ae88',
@@ -492,13 +493,13 @@ window.G = window.G || {};
   };
   // Lernlisten: gemeinsamer Pool + Signatur-Attacken. Typ-Attacken frühestens ab Level 8.
   const LEARN17 = {
-    flackerling: [[1, 'schwanzhieb'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [13, 'blendlicht']],
+    flackerling: [[1, 'heuler'], [1, 'schwanzhieb'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [13, 'blendlicht']],
     glutwurm: [[1, 'schwanzhieb'], [1, 'fauchen'], [6, 'krallenhieb'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [13, 'blendlicht'], [16, 'seelenbrand'], [19, 'kampfschrei']],
     seelendrache: [[1, 'schwanzhieb'], [1, 'fauchen'], [8, 'irrfeuer'], [10, 'glutzunge'], [12, 'glutschein'], [16, 'seelenbrand'], [19, 'kampfschrei'], [22, 'schleiersturz'], [26, 'drachenglut']],
-    pfuetzling: [[1, 'platscher'], [1, 'aufplustern'], [6, 'pickser'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [13, 'starren']],
+    pfuetzling: [[1, 'morgentau'], [1, 'platscher'], [1, 'aufplustern'], [6, 'pickser'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [13, 'starren']],
     nebelente: [[1, 'platscher'], [1, 'aufplustern'], [6, 'pickser'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [13, 'starren'], [16, 'moorflut'], [19, 'geistesblitz']],
     mondschwan: [[1, 'platscher'], [1, 'aufplustern'], [8, 'wasserstrahl'], [10, 'tauchplatscher'], [12, 'sumpfsog'], [16, 'moorflut'], [19, 'geistesblitz'], [22, 'schleiersturz'], [26, 'schwanenruf']],
-    blattling: [[1, 'flatterstoss'], [1, 'starren'], [6, 'knabbern'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee']],
+    blattling: [[1, 'einrollen'], [1, 'flatterstoss'], [1, 'starren'], [6, 'knabbern'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee']],
     hainfee: [[1, 'flatterstoss'], [1, 'starren'], [6, 'knabbern'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee'], [16, 'blaetterklinge'], [19, 'waldsegen']],
     feenlinde: [[1, 'flatterstoss'], [1, 'starren'], [8, 'blattwirbel'], [10, 'blattschirm'], [11, 'rankensog'], [13, 'mondklee'], [16, 'blaetterklinge'], [19, 'waldsegen'], [22, 'wurzelhieb'], [26, 'feensturm']],
     kleeling: [[1, 'vierblatt'], [3, 'starren'], [5, 'morgentau'], [8, 'blattwirbel'], [10, 'feenstaub'], [12, 'rankensog']],
@@ -623,7 +624,7 @@ window.G = window.G || {};
       desc: 'Ein Pilzgeist mit spitzem Hexenhut, der im Kreis um die versunkene Kapelle wächst. Ihre Sporen machen schläfrig – oder krank, je nach Laune.' },
     kieselkroete: { name: 'Kieselkröte', g: 'f', types: ['Stein'], base: [54, 40, 60, 34], catch: 0.5, xp: 54,
       learn: [[1, 'rempler'], [1, 'haerten'], [5, 'platscher'], [8, 'steinwurf'], [10, 'kieselspucke'], [13, 'grenzwacht'], [16, 'felsruf']],
-      desc: 'Eine Kröte mit einer Haut aus nassen, glatten Kieseln. Sie hockt in den Pfützen der Klippenhöhle und sammelt im Kehlsack die schönsten Steine.' },
+      desc: 'Eine breite Kröte mit einem Rücken aus kantigen Kieselplatten. Sie hockt in den Pfützen der Klippenhöhle, und die Rune auf ihrem Buckel glimmt, wenn Steinstaub aufwirbelt.' },
     geodenwidder: { name: 'Geodenwidder', g: 'm', types: ['Stein'], base: [54, 56, 44, 34], catch: 0.45, xp: 58, evo: { to: 'drusenbock', lvl: 20 },
       learn: [[1, 'rammbock'], [1, 'heuler'], [6, 'hufstampfer'], [8, 'steinwurf'], [10, 'hornramme'], [13, 'kampfschrei'], [16, 'felsruf']],
       desc: 'Ein junger Widder, dessen gerollte Hörner zwei Geoden sind. Wenn er damit gegen den Fels stösst, blitzen innen kleine Kristalle auf.' },
@@ -745,33 +746,33 @@ window.G = window.G || {};
   // G.WILD bleibt für Nebelgras (Kompatibilität). lvl: [min, max]; Formel siehe design.md §10.
   // v15: jedes Gebiet hat seine eigenen 4–5 Arten passend zum Lebensraum, kaum Überschneidungen, je eine seltene Art (Gewicht ≤ 8).
   // Starter-Linien (Flackerling, Pfützling, Blattling + Entwicklungen) kommen nirgends wild vor – nur bei Beschwörern.
-  G.WILD = [['tauhase', 28], ['schattenmotte', 26], ['moosigel', 22], ['laternchen', 18], ['moosschnecke', 16], ['aschmotte', 14], ['kleeling', 6]];
+  G.WILD = [['tauhase', 26], ['moosigel', 22], ['moosschnecke', 18, 'day'], ['laternchen', 16, 'night'], ['schattenmotte', 16, 'night'], ['aschmotte', 14], ['kleeling', 6]];   // v24: Tag/Nacht, Lv 2–5
   // Story-Reihenfolge der Wildgebiete; Level steigen monoton (siehe README «Level-Kurve»)
   G.ZONE_ORDER = ['nebelgras', 'kuestengras', 'hoehle', 'schilfrand', 'torfstich', 'kapelle', 'moorherz', 'aschehang'];   // v20: Aschehang (Nebelinsel)
   G.WILD_AREAS = {
     // Dorf-Nebelgras: Wiesen- und Feldgeister
-    nebelgras: { name: 'Nebelgras', tile: '"', rate: 0.055, lvl: [2, 6], table: G.WILD, rare: 'kleeling' },
+    nebelgras: { name: 'Nebelgras', tile: '"', rate: 0.055, lvl: [2, 5], table: G.WILD, rare: 'kleeling' },
     // Küstenweg zum Leuchtturm: Strand, Dünen und Wind
-    kuestengras: { name: 'Küstenweg', tile: '"', map: 'kueste', rate: 0.05, lvl: [5, 8], rare: 'glimmfuchs',
-      table: [['funkmaus', 26], ['gischtkrebs', 24], ['nebelkauz', 22], ['moorlurch', 20], ['nebelqualle', 18], ['funkenfalke', 14], ['glimmfuchs', 6]] },
+    kuestengras: { name: 'Küstenweg', tile: '"', map: 'kueste', rate: 0.05, lvl: [5, 7], rare: 'glimmfuchs',
+      table: [['funkmaus', 24], ['gischtkrebs', 22], ['nebelqualle', 18], ['moorlurch', 18], ['tauhase', 14, 'day'], ['nebelkauz', 14, 'night'], ['funkenfalke', 12, 'day'], ['glimmfuchs', 6]] },
     // Höhle am Leuchtturmpfad: Stein und Neutral
-    hoehle: { name: 'Klippenhöhle', tile: 'j', map: 'hoehle', rate: 0.07, lvl: [5, 9], rare: 'grubenkaefer',
-      table: [['flatterhauch', 30], ['tropfsteinmolch', 26], ['kieselgeist', 22], ['kieselkroete', 22], ['geodenwidder', 18], ['grubenkaefer', 6]] },
+    hoehle: { name: 'Klippenhöhle', tile: 'j', map: 'hoehle', rate: 0.07, lvl: [6, 8], rare: 'grubenkaefer',
+      table: [['tropfsteinmolch', 24], ['kieselgeist', 20], ['flatterhauch', 20], ['kieselkroete', 16], ['geodenwidder', 14], ['grubenkaefer', 6], ['schwammling', 10]] },
     // Schilfrand (Tiefes Moor): Wasser und Schilf
-    schilfrand: { name: 'Schilfrand', tile: 'q', rate: 0.05, lvl: [8, 11], rare: 'moorunke',
-      table: [['sumpfnatter', 28], ['raufdachs', 24], ['blitzreiher', 22], ['schwammling', 20], ['surrlibelle', 18], ['faustbiber', 16], ['moorunke', 5]] },
+    schilfrand: { name: 'Schilfrand', tile: 'q', rate: 0.05, lvl: [8, 10], rare: 'moorunke',
+      table: [['sumpfnatter', 24], ['surrlibelle', 22, 'day'], ['raufdachs', 20], ['blitzreiher', 18], ['schwammling', 16], ['faustbiber', 14], ['funkmaus', 10], ['moorunke', 5]] },
     // Torfstich: Erde, Wurzeln, glimmender Torf (v19: Kohlenbär wühlt nach Glutnestern)
-    torfstich: { name: 'Torfstich', tile: 'm', rate: 0.06, lvl: [10, 13], rare: 'glimmfuchs',
-      table: [['keilerling', 30], ['torfwicht', 26], ['grubenkaefer', 24], ['schlickaal', 22], ['grabmaulwurf', 20], ['kohlenbaer', 14], ['glimmfuchs', 6]] },
+    torfstich: { name: 'Torfstich', tile: 'm', rate: 0.06, lvl: [10, 12], rare: 'glimmfuchs',
+      table: [['keilerling', 26], ['torfwicht', 24], ['grabmaulwurf', 20], ['schlickaal', 18], ['grubenkaefer', 16], ['kohlenbaer', 12], ['aschmotte', 10, 'night'], ['glimmfuchs', 6]] },
     // Versunkene Kapelle: Seelen, Falter, Käuze
-    kapelle: { name: 'Versunkene Kapelle', tile: 'c', rate: 0.065, lvl: [12, 15], rare: 'totenleuchte',
-      table: [['hauchling', 28], ['grabfalter', 20], ['schleierkauz', 18], ['moorranke', 18], ['traumfalter', 16], ['pilzhexe', 14], ['totenleuchte', 8]] },
+    kapelle: { name: 'Versunkene Kapelle', tile: 'c', rate: 0.065, lvl: [11, 13], rare: 'totenleuchte',
+      table: [['hauchling', 18], ['moorranke', 16], ['pilzhexe', 14], ['grabfalter', 14, 'night'], ['schleierkauz', 12, 'night'], ['traumfalter', 12, 'night'], ['totenleuchte', 8, 'night']] },
     // Moorherz (Tiefes Moor, Torffeld bei Jorins Hütte): die ältesten, stärksten Geister
-    moorherz: { name: 'Moorherz', tile: 'm', map: 'tiefesmoor', region: [2, 21, 7, 27], rate: 0.06, lvl: [13, 16], rare: 'kristallmolch',
-      table: [['moderhut', 26], ['grimmdachs', 22], ['farnigel', 22], ['strudelhecht', 18], ['gewitterkauz', 16, 'night'], ['kristallmolch', 8]] },
+    moorherz: { name: 'Moorherz', tile: 'm', map: 'tiefesmoor', region: [2, 21, 7, 27], rate: 0.06, lvl: [13, 15], rare: 'kristallmolch',
+      table: [['moderhut', 22], ['grimmdachs', 20], ['farnigel', 20], ['strudelhecht', 16], ['gewitterkauz', 14, 'night'], ['surrlibelle', 12, 'day'], ['traumfalter', 10, 'night'], ['kristallmolch', 6]] },
     // v20: Aschehang (Nebelinsel) – verkohltes Bambusgras an der Laternenstiege und im Glutgarten
-    aschehang: { name: 'Aschehang', tile: 'a', map: 'aschehang', rate: 0.07, lvl: [14, 17], rare: 'oniasche',
-      table: [['aschmotte', 28], ['funkenfalke', 24], ['kohlenbaer', 22], ['faustbiber', 16], ['oniasche', 7]] }
+    aschehang: { name: 'Aschehang', tile: 'a', map: 'aschehang', rate: 0.07, lvl: [15, 17], rare: 'oniasche',
+      table: [['aschmotte', 24], ['funkenfalke', 20], ['kohlenbaer', 20], ['faustbiber', 16], ['oniasche', 7]] }
   };
   // v15 ohne Klippenhöhle (kommt in v16): Höhlenbewohner vorerst an Küstenfelsen und Grabsteinen – der Molch an der Brandung, die Fledermaus bei der Kapelle
   if (!G.FEAT.cave) { G.WILD_AREAS.kuestengras.table.push(['tropfsteinmolch', 12]); G.WILD_AREAS.torfstich.table.push(['kieselgeist', 16]); G.WILD_AREAS.kapelle.table.push(['flatterhauch', 16]); delete G.WILD_AREAS.hoehle; G.ZONE_ORDER = G.ZONE_ORDER.filter(z => z !== 'hoehle'); }
@@ -855,10 +856,10 @@ window.G = window.G || {};
   G.TRAINERS = {
     // Fenn lauert nicht mehr auf: Er steht erst nach der Fang-Übung am Wegweiser und kämpft nur, wenn du ihn ansprichst und zusagst.
     fenn: { name: 'Fenn', title: 'Kleiner Geisterbeschwörer', area: 'dorf', pos: [13, 15], sight: 0,
-      // zweiter Geist je nach Starter, so abgestimmt, dass jeder Starter nach etwas Training (Lv 7) gut 3 von 4 Kämpfen gewinnt
+      // zweiter Geist je nach Starter, so abgestimmt, dass jeder Starter nach etwas Training (Lv 7) etwa 60–80 % gewinnt (v24 EP + KI-Wechsel)
       team: [['laternchen', 5], ['raufdachs', 6]],
-      // Konter-Wahl: Fenn nimmt den Typ, der deinen Starter schlägt (Wasser gegen Feuer, Pflanze gegen Wasser, Feuer gegen Pflanze)
-      teamFor: { flackerling: 'moorlurch', pfuetzling: 'kleeling', blattling: 'flackerling', moorlurch: 'raufdachs', schwammling: 'nebelkauz', kieselgeist: 'flackerling' },
+      // Weichere Nebelgras-Konter statt harter Typ-Dreieck-Konter (Moorlurch/Kleeling/Flackerling waren zu stark)
+      teamFor: { flackerling: 'moosschnecke', pfuetzling: 'nebelkauz', blattling: 'schattenmotte', moorlurch: 'moosschnecke', schwammling: 'nebelkauz', kieselgeist: 'schattenmotte' },
       ask: ['Fenn: Du! Du hast jetzt auch Geister, oder? Ich hab jeden Tag im Nebelgras trainiert!',
         'Fenn: Ilse sagt, man soll erst im Nebelgras üben, bis die Geister ein paar Level stärker sind. Level 7 oder so. Dann ist es ein fairer Kampf.'],
       askQ: 'Fenn: Willst du gegen mich kämpfen?',
@@ -1128,10 +1129,10 @@ window.G = window.G || {};
       desc: 'Ein aufrechter Marder mit Rauchbinden um die Pfoten. Er steht ruhig wie ein alter Meister – bis er zuschlägt.' },
     pechunke: { name: 'Pechunke', g: 'f', types: ['Dunkel', 'Gift'], base: [52, 42, 50, 40], catch: 0.35, xp: 64,
       learn: [[1, 'platscher'], [1, 'starren'], [8, 'schattenbiss'], [11, 'finsterbiss'], [14, 'pechblase'], [17, 'raenke']], evo: { to: 'teerkroete', lvl: 22 },
-      desc: 'Eine kleine Unke mit Teerhaut. Ihre Bauchflecken leuchten violett, wenn sie sich erschreckt.' },
+      desc: 'Eine kleine, runde Unke aus Teer, die beim Hüpfen tropft. Ihre schmalen Augen leuchten violett, wenn sie sich erschreckt.' },
     teerkroete: { name: 'Teerkröte', g: 'f', types: ['Dunkel', 'Gift'], base: [76, 60, 72, 46], catch: 0.15, xp: 130,
       learn: [[1, 'platscher'], [1, 'starren'], [8, 'schattenbiss'], [11, 'finsterbiss'], [14, 'pechblase'], [17, 'raenke'], [22, 'giftschlamm'], [26, 'finsterschlag']],
-      desc: 'Eine schwere Kröte, auf deren Rücken kleine Teerblasen blubbern. Sie sitzt tagelang still im Moor.' },
+      desc: 'Eine schwere Kröte wie ein Teerhügel mit gezackter Krone. Auf ihrem Rücken blubbern giftgrüne Blasen. Sie sitzt tagelang still im Moor.' },
     kolkwicht: { name: 'Kolkwicht', g: 'm', types: ['Dunkel'], base: [50, 44, 48, 50], catch: 0.35, xp: 64,
       learn: [[1, 'pickser'], [1, 'heuler'], [8, 'finsterbiss'], [11, 'knopfklau'], [13, 'haerten'], [15, 'raenke']], evo: { to: 'rabenmuhme', lvl: 25 },
       desc: 'Ein struppiger Rabengeist mit dem Rest eines Strohhuts. Er sammelt verlorene Knöpfe und versteckt sie in der Friedhofsmauer.' },
@@ -1158,11 +1159,12 @@ window.G = window.G || {};
   G.SPECIES_ORDER.push(...G.NEW21.filter(sp => G.FEAT.rare || !G.RARE.includes(sp)));
   // Fundorte (4. Feld = eigener Levelbereich). Bedingungen: 'night', 'day', 'flag:X', 'lead:N' (stärkster Geist ≥ N), mit '+' kombinierbar.
   const addW = (z, ...e) => { if (G.WILD_AREAS[z]) G.WILD_AREAS[z].table.push(...e); };
-  addW('kuestengras', ['russwiesel', 3, 'night', [6, 8]]);   // seltener Früh-Fund (Psycho → Dunkel ½×, Nachtmahr bleibt gewinnbar)
-  addW('torfstich', ['russwiesel', 8, 'night'], ['wurzelschrat', 4]);
-  addW('kapelle', ['kolkwicht', 8], ['moosdrachling', 5, 'lead:14', [14, 15]]);
-  addW('moorherz', ['pechunke', 7], ['nebelwuermchen', 4, 'day+lead:14', [14, 16]]);
-  addW('aschehang', ['glutechse', 4]);
+  addW('kuestengras', ['russwiesel', 3, 'night', [6, 7]]);   // seltener Früh-Fund (Psycho → Dunkel ½×, Nachtmahr bleibt gewinnbar)
+  addW('torfstich', ['russwiesel', 10, 'night'], ['wurzelschrat', 4, 'night'], ['moorunke', 4, 'night', [11, 12]]);   // v24: Nachtgeister; Moorunke selten (Frosch)
+  addW('kapelle', ['kolkwicht', 16]);   // v24: Moosdrachling wandert ins Moorherz
+  addW('moorherz', ['pechunke', 10], ['moosdrachling', 3, 'lead:15', [14, 15]], ['nebelwuermchen', 3, 'day+lead:15', [14, 15]]);
+  addW('aschehang', ['kohlmarder', 8, 'night', [16, 17]], ['glutechse', 3, 'lead:16', [16, 17]]);
+  addW('schilfrand', ['pechunke', 8, 'night'], ['brunnendrache', 1, 'night+flag:dojoEnd', [18, 20]]);   // v24
   addW('hoehle', ['grottenmaul', 3, 'flag:quantum'], ['grottenwyrm', 2, 'lead:16+flag:dojoEnd', [16, 18]]);
   addW('kuestengras', ['gewitterlind', 1, 'night+flag:dojoEnd', [17, 19]]);
   const condOk = c => c.split('+').every(k => k === 'night' ? G.NIGHT() : k === 'day' ? !G.NIGHT()

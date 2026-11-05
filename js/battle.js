@@ -97,12 +97,14 @@
     return c;
   }
   const BGC = {};
-  const bgFor = B => { const k = B.bgKind || (B.boss ? 'boss' : 'gras'); return BGC[k] || (BGC[k] = makeBg(k)); };
+  const bgFor = B => { let k = B.bgKind || (B.boss ? 'boss' : 'gras'); if (!BGP[k]) k = B.boss ? 'boss' : 'gras';   // Rückfall: Phase-3-Bühnen (hoehle/kueste/asche) kennt makeBg nicht
+    return BGC[k] || (BGC[k] = makeBg(k)); };
   // Szene aus dem Standort der Spielfigur wählen
   function bgKindAt() {
     const m = G.map; if (!m || !G.P) return 'gras';
     const c = m.tiles[G.P.y] && m.tiles[G.P.y][G.P.x];
     if (c === 'c' || c === 'u' || c === 'B') return 'kapelle';
+    if (G.Stage && G.Stage.on !== false) return G.Stage.kindFor(m);   // Phase 3: zusätzlich hoehle/kueste/asche
     if (m.theme === 'moor') return 'moor';
     return 'gras';
   }
@@ -114,23 +116,26 @@
     // Schütteln bei Treffern (klingt schnell ab)
     ctx.save();
     if (B.shake > 0.2) { ctx.translate(Math.round((Math.random() - 0.5) * B.shake * 2) / 2, Math.round((Math.random() - 0.5) * B.shake * 2) / 2); B.shake *= Math.pow(0.004, dt); } else B.shake = 0;
-    ctx.drawImage(bgFor(B), -4, -4);
-    for (let i = 0; i < 7; i++) {
+    const ST = G.Stage && G.Stage.on !== false ? G.Stage : null;   // Phase 3: Kampfbühne aus js/stage.js
+    if (ST) ST.drawBackground(ctx, B.bgKind || 'gras', t);
+    else ctx.drawImage(bgFor(B), -4, -4);
+    if (!ST) for (let i = 0; i < 7; i++) {
       const x = ((t * (4 + i) + i * 60) % 360) - 50, y = 80 + (i % 3) * 18, r = 50 + i * 6;
       const gr = ctx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(190,200,230,${B.boss ? 0.14 : 0.09})`); gr.addColorStop(1, 'rgba(190,200,230,0)');
       ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
     const en = B.enemy, al = G.state.team[B.allyIdx], big = B.boss ? 1.3 : 1;
     musicIntensity(B, en, al);   // v22: Kampfmusik-Intensität (Sound-Hook)
-    if (B.boss) { ctx.save(); ctx.globalAlpha = 0.18 * B.ea.alpha; ctx.translate(186 + B.ea.dx, 100); ctx.scale(1, -0.5); ctx.drawImage(G.SPR.mon[en.sp].big, -42, -80, 84, 84); ctx.restore(); }
+    if (B.boss && ST) ST.drawBossReflection(ctx, en.sp, 186, 100, B.ea);
+    else if (B.boss) { ctx.save(); ctx.globalAlpha = 0.18 * B.ea.alpha; ctx.translate(186 + B.ea.dx, 100); ctx.scale(1, -0.5); ctx.drawImage(G.SPR.mon[en.sp].big, -42, -80, 84, 84); ctx.restore(); }
     aura(ctx, 186 + B.ea.dx, 62, G.SPECIES[en.sp].type, B.ea);
     if (en.rage > 1 && B.ea.alpha > 0.3) { // Phase 2: pulsierendes rot-violettes Glühen
       const t = performance.now() / 1000, r = 44 + Math.sin(t * 4) * 5, x = 186 + B.ea.dx, y = 64;
       const gr = ctx.createRadialGradient(x, y, 4, x, y, r); gr.addColorStop(0, 'rgba(255,60,110,0.32)'); gr.addColorStop(0.55, 'rgba(160,70,255,0.2)'); gr.addColorStop(1, 'rgba(120,40,200,0)');
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
     }
-    drawMon(ctx, en.sp, 186, 96, B.ea, false, 0, big);
-    if (al) { aura(ctx, 72 + B.aa.dx, 118, G.SPECIES[al.sp].type, B.aa); drawMon(ctx, al.sp, 72, 156, B.aa, true, 1.7, 1); }
+    if (ST) ST.drawMon(ctx, en.sp, 186, 96, t, { a: B.ea, big }); else drawMon(ctx, en.sp, 186, 96, B.ea, false, 0, big);
+    if (al) { aura(ctx, 72 + B.aa.dx, 118, G.SPECIES[al.sp].type, B.aa); if (ST) ST.drawMon(ctx, al.sp, 72, 156, t, { a: B.aa, back: true, phase: 1.7 }); else drawMon(ctx, al.sp, 72, 156, B.aa, true, 1.7, 1); }
     if (B.lantern) {
       const L = B.lantern;
       ctx.save(); ctx.translate(L.x, L.y); ctx.rotate(L.rot || 0);
@@ -141,14 +146,14 @@
     renderParts(ctx, B.hitStop ? 0 : dt); BFX.draw(ctx);   // v22: Hit-Stop friert Partikel ein, Typ-Effekt darüber
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 1;
-    for (let i = 0; i < 14; i++) {
+    if (!ST) for (let i = 0; i < 14; i++) {
       const x = (i * 37 + Math.sin(t * 0.5 + i) * 20 + 256) % 256, y = 40 + ((i * 53 - t * 6) % 120 + 120) % 120, b = Math.pow(0.5 + 0.5 * Math.sin(t * 2 + i), 3);
       ctx.fillStyle = `rgba(160,240,220,${0.7 * b})`; ctx.fillRect(x | 0, y | 0, 1, 1);
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
     if (B.flash && B.flash.a > 0.01) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = B.flash.a; ctx.fillStyle = B.flash.c; ctx.fillRect(0, 0, 256, 240); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; B.flash.a *= Math.pow(0.002, dt); }
-    ctx.drawImage(G.vignette, 0, 0);
+    if (ST) ST.drawForeground(ctx, B.bgKind || 'gras', t); else ctx.drawImage(G.vignette, 0, 0);
   };
   function aura(ctx, x, y, type, a) {
     if (!a.vis || a.alpha < 0.05) return;
@@ -771,7 +776,7 @@
       noCatch: !!tr, noFlee: !!tr, hear: !!opts.hear, rare: !!opts.rare, allyIdx: Math.max(0, S.team.findIndex(m => m.hp > 0)),
       st: { ally: freshStages(), enemy: freshStages() }, part: new Set(), ea: newAnim(), aa: newAnim(), parts: [], lantern: null, flee: 0
     };
-    B.part.add(B.allyIdx); B.bgKind = B.boss ? 'boss' : bgKindAt();
+    B.part.add(B.allyIdx); B.bgKind = G.Stage ? G.Stage.kindForBattle(B, bgKindAt()) : B.boss ? 'boss' : bgKindAt(); if (G.Stage) G.Stage.prewarm(B.bgKind);
     B.ea.dx = 150; B.aa.dx = -150; if (B.hear) { B.ea.dx = 0; B.ea.alpha = 0; }
     G.mode = 'battle';
     Snd().music(tr && tr.music ? tr.music : tr && tr.boss ? 'boss' : tr ? 'trainer' : 'battle');
@@ -921,6 +926,36 @@
     return w.length ? G.pickWeighted(w) : 'letzterhauch';
   }
 
+  // v24: Gegner-KI wechselt sinnvoll – höchstens 1× pro Kampf, nur Trainer (nicht Boss, Phasen-Geister, Schlundfalle),
+  // wenn der aktive Geist klar im Nachteil ist (Spieler-Typ ≥ 2× und eigene Attacken ≤ 1×, oder KP < 30 % und ≥ 2×)
+  // und ein Bank-Geist (≥ 50 % KP) das Matchup neutralisiert; Chance 50 %. Spiegel: design/kampf/sim.js switchPick. Selma und Kaspar wechseln nie (Schwierigkeit unverändert).
+  G.AI_NO_SWITCH = ['selma', 'kaspar'];
+  const aiOff = (m, al) => Math.max(0, ...m.moves.filter(id => G.MOVES[id] && G.MOVES[id].power).map(id => G.eff(G.MOVES[id].type, al.sp)));
+  const aiDef = (m, al) => Math.max(...G.typesOf(al.sp).map(t => G.eff(t, m.sp)));
+  G.Battle.switchPick = (B, al) => {
+    if (!B || !B.tr || B.boss || (B.switches || 0) >= 1 || G.AI_NO_SWITCH.includes(B.trainer)) return -1;
+    const en = B.enemy; if (!en || en.hp <= 0 || en.phases || (B.trap && B.trap.enemy > 0)) return -1;
+    const bad = aiDef(en, al) >= 2 && (aiOff(en, al) <= 1 || en.hp < G.stats(en).hp * 0.3);
+    if (!bad) return -1;
+    let best = -1, bs = 0;
+    for (let j = B.eIdx + 1; j < B.team.length; j++) {
+      const m = B.team[j]; if (m.hp < G.stats(m).hp * 0.5 || m.phases || G.SPECIES[m.sp].boss) continue;
+      const sc = Math.min(1, aiOff(m, al)) / Math.max(0.25, aiDef(m, al));   // bevorzugt robuste Geister, keine Konter-Keule
+      if (aiDef(m, al) <= 1 && aiOff(m, al) >= 1 && sc > bs) { bs = sc; best = j; }
+    }
+    return best >= 0 && Math.random() < 0.5 ? best : -1;   // nur jedes zweite Mal: berechenbar, aber nicht stur
+  };
+  async function enemySwitch(j) {
+    const B = G.B, old = B.enemy, cl = B.tr.callers ? B.tr.callers[B.eIdx] : B.tr.name;
+    await UI().say(`${cl} ruft ${G.nm(old)} zurück!`);
+    await G.animate(300, p => B.ea.dx = ease(p) * 150);
+    if (old.status && !G.STATUS[old.status.id].persist) old.status = null;
+    B.team[B.eIdx] = B.team[j]; B.team[j] = old; B.switches = (B.switches || 0) + 1;
+    B.enemy = B.team[B.eIdx]; B.st.enemy = freshStages(); B.ea = newAnim(); B.ea.dx = 150;
+    G.state.seen[B.enemy.sp] = 1; UI().updateHud();
+    await UI().say(`${cl} ruft ${G.nm(B.enemy)}!`);
+    await G.animate(450, p => B.ea.dx = (1 - ease(p)) * 150);
+  }
   G.Battle.enemyChoice = () => enemyChoice();   // v20.2: für Tests (Gegner-KI nutzt dieselbe Typentabelle)
   // v17: Priorität (Abwehr +3, Erstschlag +1), sonst Initiative
   // v21: Donnerschweif – Erstschlag, wenn der Anwender unter ¼ seiner LP ist
@@ -928,7 +963,15 @@
   G.Battle.prioOf = prioOf;
   G.Battle._useMove = (side, id) => useMove(side, id);   // v21: für Tests (Typ-Multiplikatoren im echten Schadensweg)
   async function round(id) {
-    const al = G.state.team[G.B.allyIdx], en = G.B.enemy;
+    const al = G.state.team[G.B.allyIdx];
+    const sw = G.Battle.switchPick(G.B, al);   // v24: Wechsel geht vor jeder Attacke, der Spieler trifft den neuen Geist
+    if (sw >= 0) {
+      await enemySwitch(sw);
+      await useMove('ally', id);
+      const r = await checkFaint(); if (r) return r;
+      return await endOfRound();
+    }
+    const en = G.B.enemy;
     const a = G.stats(al).spd * stageMult(G.B.st.ally.spd || 0), e = G.stats(en).spd * stageMult(G.B.st.enemy.spd || 0);
     const eid = await enemyChoice();
     const pa = prioOf(id, al), pe = prioOf(eid, en);
@@ -1125,10 +1168,14 @@
 
   // EP wie in modernen Spielen: Besiegen und Fangen geben gleich viel. Teilnehmer 100 %, Geister auf der Bank 65 % (min 1),
   // erschöpfte Geister (0 KP) nichts. Bank-Geister kompakt: eine Zeile je Geist, Level-up-Effekt nur wenn nötig.
-  G.xpGain = en => Math.max(1, Math.floor(G.SPECIES[en.sp].xp * en.lvl / 5 * (G.B && G.B.tr ? 1.5 : 1)));
+  // v24: EP-Kurve (design/kampf/ep_kurve.js): Teiler 6 statt 5, Trainer ×1.2 statt ×1.5 und Level-Abstand wie Gen. 5:
+  // ((2L+10)/(L+Lp+10))^3 mit L = Gegner-Level, Lp = Level des Empfängers (gleich stark = ×1, überlegen = weniger, unterlegen = mehr).
+  G.XP_DIV = 6; G.XP_TRAINER = 1.2; G.XP_GAP = 3;
+  G.xpGain = (en, m) => Math.max(1, Math.floor(G.SPECIES[en.sp].xp * en.lvl / G.XP_DIV * (G.B && G.B.tr ? G.XP_TRAINER : 1)
+    * (m ? Math.pow((2 * en.lvl + 10) / (en.lvl + m.lvl + 10), G.XP_GAP) : 1)));
   G.xpShares = (team, part, gain) => team.map((m, i) => m.hp <= 0 ? 0 : part.has(i) ? gain : Math.max(1, Math.floor(gain * 0.65)));
   async function shareXp(en) {
-    const S = G.state, B = G.B, gain = G.xpGain(en), sh = G.xpShares(S.team, B.part, gain);
+    const S = G.state, B = G.B, sh = S.team.map((m, i) => G.xpShares([m], new Set(B.part.has(i) ? [0] : []), G.xpGain(en, m))[0]);
     B.lastXp = sh.slice();
     const order = [B.allyIdx, ...S.team.map((_, i) => i).filter(i => i !== B.allyIdx)];
     for (const i of order) if (sh[i] > 0) await giveXp(S.team[i], sh[i], !B.part.has(i));

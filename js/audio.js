@@ -790,6 +790,18 @@
       case 'heal': [76, 79, 83, 88, 83, 88].forEach((m, i) => I.bell(D, t + i * 0.12, mtof(m), 0.035, { dec: 1.4 })); break;
       case 'alert': I.box(D, t, 1568, 0.05, { dec: 0.25 }); I.box(D, t + 0.08, 2093, 0.05, { dec: 0.35 }); break;
       case 'bell': [262, 524, 786, 1310].forEach((f, i) => I.bell(D, t, f, 0.12 / (i + 1), { dec: 4.5, wet: 0.8 })); break;
+      // v24: Fyrlumen im Lampenlicht (~1,2 s) – hohe, leicht verstimmte Glas-Partials, weicher Einsatz, langsamer Schimmer, viel Hall; leiser als 'bell'
+      case 'fyrlumen_glimpse': {
+        const bus = out(D, t, 0, 0.75, 0.3);
+        [[1760, 0.022], [2349, 0.016], [2794, 0.012], [3520, 0.008], [4699, 0.005]].forEach(([f, v], i) => [-7, 6].forEach((ct, k) => {
+          const o = c.createOscillator(), g = c.createGain(), tr = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(), ts = t + i * 0.06 + k * 0.03, te = t + 1.2;
+          o.type = 'sine'; o.frequency.value = f; o.detune.value = ct + (R() - 0.5) * 4;
+          g.gain.setValueAtTime(0, ts); g.gain.linearRampToValueAtTime(v, ts + 0.18); g.gain.setTargetAtTime(0, ts + 0.35, 0.22);
+          lfo.frequency.value = 3.5 + i * 0.9 + R(); lg.gain.value = 0.35; tr.gain.value = 0.65; lfo.connect(lg); lg.connect(tr.gain);   // Schimmer
+          o.connect(g); g.connect(tr); tr.connect(bus); [o, lfo].forEach(x => { x.start(ts); x.stop(te + 0.1); }); o.onended = () => { disc(o); disc(g); disc(tr); disc(lfo); disc(lg); };
+        }));
+        I.noise(D, t + 0.05, 0.006, 1.0, 'highpass', 6500, { att: 0.3, wet: 0.8 }); break;
+      }
       case 'evo': for (let i = 0; i < 16; i++) I.box(D, t + i * 0.22, 330 * Math.pow(1.059, i * 2), 0.035, { dec: 0.5 }); break;
       case 'save': I.box(D, t, 1175, 0.04, { dec: 0.3 }); I.box(D, t + 0.09, 1568, 0.04, { dec: 0.5 }); break;
     }

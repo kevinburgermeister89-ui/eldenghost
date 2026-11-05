@@ -92,4 +92,55 @@
       ctx.restore();
       Env.stats.frames++; Env.stats.ms += performance.now() - t0;
     } };
+  // v24: Fyrlumen-Silhouette (~32×32) für den Lampen-Moment – dunkel, Prismenschwingen, sanft ein/aus über p 0..1.
+  // x,y: Mitte unten der Silhouette (Bildschirm). lowFx: kein Schimmer, keine Facettenkanten.
+  Env.drawFyrlumen = (ctx, x, y, p, t) => {
+    if (!(p > 0 && p < 1)) return;
+    const e = p < 0.3 ? p / 0.3 : p > 0.7 ? (1 - p) / 0.3 : 1, a = e * e * (3 - 2 * e), low = !!G.lowFx;
+    if (a <= 0.01) return; t = t == null ? (G.time || 0) : t;
+    const cx = Math.round(x), by = Math.round(y - p * 5), fl = Math.sin(t * 6) * 1.2, wv = Math.sin(p * Math.PI * 2) * 1.5;
+    ctx.save(); ctx.translate(cx, by);
+    // Halo hinter der Gestalt
+    ctx.globalAlpha = a * 0.55; const hg = ctx.createRadialGradient(0, -16, 2, 0, -16, 20);
+    hg.addColorStop(0, 'rgba(190,220,255,0.7)'); hg.addColorStop(1, 'rgba(120,140,255,0)'); ctx.fillStyle = hg; ctx.fillRect(-20, -36, 40, 40);
+    // Prismenschwingen: je drei Facetten
+    const HUES = [200, 260, 320, 40, 160];
+    for (const sd of [-1, 1]) for (let i = 0; i < 3; i++) {
+      const tip = [sd * (8 + i * 4.5), -27 + i * 7 + wv * sd * 0.3 - fl * (i === 0 ? 1 : 0.4)], r0 = [sd * 2, -19 + i * 2], r1 = [sd * 3, -12 + i * 2.5];
+      ctx.globalAlpha = a * (low ? 0.75 : 0.85); ctx.fillStyle = low ? '#1a1830' : 'rgba(22,18,44,0.95)';
+      ctx.beginPath(); ctx.moveTo(r0[0], r0[1]); ctx.lineTo(tip[0], tip[1]); ctx.lineTo(r1[0], r1[1]); ctx.closePath(); ctx.fill();
+      if (!low) {
+        const hu = HUES[(i + Math.floor(t * 3 + (sd > 0 ? 2 : 0))) % 5], sh = 0.5 + 0.5 * Math.sin(t * 5 + i * 1.7 + sd);
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * (0.35 + 0.45 * sh);
+        ctx.strokeStyle = `hsl(${hu},90%,72%)`; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(r0[0], r0[1]); ctx.lineTo(tip[0], tip[1]); ctx.stroke();
+        ctx.globalAlpha = a * 0.25 * sh; ctx.fillStyle = `hsl(${(hu + 40) % 360},90%,65%)`; ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+    // Körper: schlanker dunkler Leib, Maske mit Hörnerkrone (Hollow-Knight-artig)
+    ctx.globalAlpha = a; ctx.fillStyle = '#0c0a18';
+    ctx.beginPath(); ctx.moveTo(0, -18); ctx.quadraticCurveTo(5, -10, 2.5, -2); ctx.lineTo(0, 1); ctx.lineTo(-2.5, -2); ctx.quadraticCurveTo(-5, -10, 0, -18); ctx.fill();
+    ctx.fillStyle = '#d8dcf0'; ctx.beginPath(); ctx.ellipse(0, -22, 4, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-3, -24); ctx.lineTo(-5, -31); ctx.lineTo(-1.5, -25.5); ctx.moveTo(3, -24); ctx.lineTo(5, -31); ctx.lineTo(1.5, -25.5); ctx.fill();
+    ctx.fillStyle = '#0c0a18'; ctx.fillRect(-2.5, -23, 1.5, 2.5); ctx.fillRect(1, -23, 1.5, 2.5);
+    if (!low) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * (0.5 + 0.3 * Math.sin(t * 4)); ctx.fillStyle = '#9fd8ff'; ctx.fillRect(-0.5, -12, 1, 2); }
+    ctx.restore();
+  };
+  // v24: Perf-Overlay (nur mit ?perf=1). Hook wird aus der Hauptschleife aufgerufen; ohne Parameter ist G.perfHud null.
+  G.perfHud = null;
+  try { if (/[?&]perf=1\b/.test(location.search)) {
+    const el = document.createElement('div'); el.id = 'perfHud';
+    el.style.cssText = 'position:fixed;left:max(6px,env(safe-area-inset-left));top:max(6px,env(safe-area-inset-top));z-index:9999;pointer-events:none;' +
+      'font:bold 14px/1.35 ui-monospace,Menlo,monospace;color:#e8f4ff;background:rgba(8,6,20,0.78);padding:6px 9px;border-radius:6px;white-space:pre;text-shadow:0 1px 0 #000';
+    const st = { n: 0, sum: 0, peak: 0, gaps: 0, last: 0, t0: 0, out: null };
+    G.perfHud = (now, rms) => {
+      if (!el.parentNode && document.body) document.body.appendChild(el);
+      if (st.last) { st.gaps += now - st.last; st.n++; } st.last = now; st.sum += rms; st.peak = Math.max(st.peak, rms);
+      if (!st.t0) st.t0 = now; if (now - st.t0 < 500 || !st.n) return;
+      const fps = st.n * 1000 / st.gaps, avg = st.sum / st.n, sc = G.mode === 'battle' ? ((G.Stage && G.Stage.perfScene) || ('Kampf' + (G.B && G.B.bgKind ? ' · ' + G.B.bgKind : ''))) : G.mode === 'world' ? 'Karte' + (G.map ? ' · ' + G.map.id : '') : (G.mode || 'Titel');
+      st.out = { fps: Math.round(fps), avg: +avg.toFixed(1), peak: +st.peak.toFixed(1), fx: G.fxMode, low: !!G.lowFx, scene: sc };
+      el.textContent = `${st.out.fps} fps\n${st.out.avg} ms Ø · ${st.out.peak} ms max\nfx ${G.fxMode}${G.lowFx ? ' · lowFx' : ''}\n${sc}`;
+      G.perfHud.last = st.out; st.n = st.sum = st.peak = st.gaps = 0; st.t0 = now;
+    };
+  } } catch (e) { G.perfHud = null; }
 })();

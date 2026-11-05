@@ -812,4 +812,321 @@
   Object.assign(DD.TEX, { neumondhirschkaefer: 'dots' });
 })();
 
+// ---- design/dd_s17_geisterdesign.js
+'use strict';
+// v25 Geisterdesign (Quelle: design/geister/neu_geister.js + neu_froesche.js): 19 Geister überarbeitet.
+// Regel für alle Geister: bleiche Maske, Seelenlicht, Typ-Form, Nebelteil. Überschreibt die älteren Defs in js/creatures.js / creatures_dd.js.
+(function () {
+  const F = { face: true }, B = { backOnly: true }, X = (o, p) => Object.assign({}, o, p);
+  const INK = '#1a1428';
+  const PAL = {
+    Stein:   ['#8a8e9a', '#5c6070', '#e4e0d4', '#8ff0d8'],
+    Elektro: ['#3e3c5e', '#2a2842', '#ece6ff', '#ffe466'],
+    Pflanze: ['#5e9a56', '#3c6a3e', '#eef0d8', '#d8ff8a'],
+    Gift:    ['#7a4e8c', '#523462', '#efe2f0', '#b6ff5a'],
+    Dunkel:  ['#3a3446', '#221e2c', '#e6e0f0', '#c27cff'],
+    Boden:   ['#8a6a4a', '#5c4430', '#f0e2c8', '#ffb35a'],
+    Normal:  ['#c8c4d8', '#9692ac', '#ffffff', '#cfe8ff'],
+    Wasser:  ['#4a7a9c', '#2e5070', '#e8f4fa', '#8af0ff'],
+    Psycho:  ['#8a6cb8', '#5e4888', '#f2eaff', '#f4a4ff'],
+  };
+  const mist = (S, x, y, w, col) => { for (let i = 0; i < 3; i++) S.E(x + i * w * 0.32, y + i * 1.2, w * (0.42 - i * 0.1), 2.6 - i * 0.5, col, { alpha: 0.55 - i * 0.14, line: false, g: 'mist' }); };
+  void B;
+  Object.assign(DD.DEF, {
+    // ---------- STEIN: Kieselgeist -> Menhirgeist (Steinmännchen wird zum Menhir) ----------
+    kieselgeist(S) {
+      const [b, b2, m, gl] = PAL.Stein;
+      S.E(50, 56, 4, 2.4, b2, { rot: 0.3, g: 'tail' });
+      S.E(44, 57, 4, 3.4, b2, { g: 'legB' });
+      S.E(36, 49, 15, 9, b, { name: 'shell', g: 'shell' });            // flacher Grundkiesel
+      S.P([[22, 50], [30, 44], [44, 44], [51, 50]], b2, { clip: 'shell', flat: true, line: false });
+      S.E(38, 37, 9, 6, '#a4a6ae', { g: 'shell' });                    // zweiter Kiesel
+      S.E(39, 28, 5, 4, '#bcbcc2', { g: 'shell' });                    // Spitzkiesel mit Rune
+      S.C(37.5, 26.5, 40.5, 29.5, 0.7, gl, { glow: true }).C(40.5, 26.5, 37.5, 29.5, 0.7, gl, { glow: true });
+      S.E(24, 58, 4, 2.6, b, { g: 'legF' }).E(40, 58.4, 4, 2.6, b, { g: 'legF' });
+      S.E(15, 47, 9, 8, m, { name: 'head', g: 'head' });                // bleiche Maske
+      S.E(19, 41, 5, 3, b2, X(B, { clip: 'head', line: false }));
+      S.eye(11, 46, 2.2, 3.2, gl).eye(17.5, 46, 2.4, 3.4, gl);
+      S.C(8, 51, 12, 51.5, 0.8, INK, X(F, { flat: true }));
+      S.E(46, 33, 1, 1, gl, { glow: true }).E(30, 31, 0.8, 0.8, gl, { glow: true });
+    },
+    menhirgeist(S) {
+      const [b, b2, m, gl] = PAL.Stein;
+      S.E(56, 55, 5, 3, b2, { rot: 0.3, g: 'tail' });
+      S.E(48, 57, 5, 4, b2, { g: 'legB' });
+      S.P([[16, 52], [22, 40], [36, 35], [52, 40], [59, 52]], b, { name: 'shell', g: 'shell' });   // kantiger Plattenpanzer
+      for (const [x1, y1, x2, y2] of [[28, 38, 30, 52], [44, 38, 44, 52], [18, 47, 58, 47]]) S.C(x1, y1, x2, y2, 0.8, b2, { clip: 'shell', flat: true, line: false });
+      S.R(15, 51, 45, 4, b2, { g: 'shell' });
+      S.P([[31, 38], [33, 10], [38, 4], [43, 9], [44, 38]], '#9a9ca6', { name: 'menhir', g: 'menhir' });  // aufrechter Menhir
+      S.P([[39, 10], [43, 9], [44, 38], [40, 38]], b2, { clip: 'menhir', flat: true, line: false });
+      S.C(37, 16, 37, 30, 0.9, gl, { glow: true }).C(37, 20, 40, 17, 0.9, gl, { glow: true }).C(37, 25, 34, 22, 0.9, gl, { glow: true });  // Wachtrune
+      S.E(38, 4, 3, 3.6, '#ffb060', { glow: true, g: 'flame' }).E(38, 3, 1.6, 2, '#fff0b0', { glow: true, g: 'flame' });  // Russglut
+      S.E(26, 58, 5, 3, b, { g: 'legF' }).E(46, 58.4, 5, 3, b, { g: 'legF' });
+      S.E(13, 46, 10, 8.5, m, { name: 'head', g: 'head' });
+      S.P([[6, 40], [13, 36], [21, 40]], b2, { clip: 'head', flat: true, line: false });            // Stirnplatte
+      S.eye(9, 45, 2.2, 3, gl).eye(16, 45, 2.4, 3.2, gl);
+      S.C(5, 51, 11, 51.5, 0.9, INK, X(F, { flat: true }));
+      S.E(52, 22, 1, 1, gl, { glow: true }).E(24, 26, 0.8, 0.8, gl, { glow: true });
+    },
+    // ---------- STEIN: Tropfsteinmolch -> Kristallmolch ----------
+    tropfsteinmolch(S) {
+      const [b, b2, m, gl] = PAL.Stein;
+      S.C(44, 53, 56, 50, 4, b2, { g: 'tail' }).C(56, 50, 62, 42, 2.4, b2, { g: 'tail' });
+      S.E(62.4, 39, 1.6, 2.4, gl, { glow: true, g: 'tail' });               // Tropfen an der Schwanzspitze
+      S.C(40, 54, 44, 59, 3, b2, { g: 'legB' });
+      S.E(32, 50, 15, 7, b, { name: 'body', g: 'body' });
+      for (const [x, h] of [[24, 9], [31, 12], [38, 10], [44, 7]]) S.P([[x - 3, 45], [x, 45 - h], [x + 3, 45]], '#b0b2bc', { g: 'spike' });   // Tropfsteine
+      S.E(30, 54, 10, 3, m, X(F, { clip: 'body', line: false }));
+      S.C(22, 54, 19, 59, 3, b, { g: 'legF' }).C(33, 55, 33, 59, 3, b, { g: 'legF' });
+      S.E(13, 49, 9, 6.5, b, { name: 'head', g: 'head' });
+      S.E(11, 52, 7, 2.4, m, X(F, { clip: 'head', line: false }));
+      S.eye(10, 47, 2.4, 2.8, gl).eye(16, 47, 2.6, 3, gl);
+      S.C(5, 52.5, 11, 53, 0.7, INK, X(F, { flat: true }));
+    },
+    kristallmolch(S) {
+      const [b, b2, m, gl] = PAL.Stein, ps = PAL.Psycho[3];
+      S.C(46, 52, 57, 46, 5, b2, { g: 'tail' }).C(57, 46, 62, 34, 3, b2, { g: 'tail' });
+      S.P([[60, 34], [62, 24], [64, 34]], ps, { glow: true, g: 'tail' });
+      S.C(42, 53, 46, 59, 3.6, b2, { g: 'legB' });
+      S.E(32, 47, 17, 9, b, { name: 'body', g: 'body' });
+      const cr = [[22, 10, '#a8f4ff'], [30, 17, '#d6b4ff'], [38, 13, '#a8f4ff'], [45, 9, '#d6b4ff']];
+      for (const [x, h, c] of cr) S.P([[x - 3.6, 42], [x - 2, 40 - h], [x + 1.2, 38 - h - 2], [x + 3.6, 42]], c, { glow: true, g: 'crys' });
+      S.P([[29, 6], [32, 1], [35, 6], [32, 10]], ps, { glow: true, g: 'float' }).P([[45, 14], [47, 11], [49, 14], [47, 17]], gl, { glow: true, g: 'float' });  // schwebende Splitter (Psycho)
+      S.E(30, 52, 12, 3, m, X(F, { clip: 'body', line: false }));
+      S.C(22, 52, 19, 59, 3.6, b, { g: 'legF' }).C(34, 53, 34, 59, 3.6, b, { g: 'legF' });
+      S.E(12, 45, 10, 7.5, b, { name: 'head', g: 'head' });
+      S.E(10, 49, 8, 2.6, m, X(F, { clip: 'head', line: false }));
+      S.P([[12, 38], [14, 33], [16, 38]], '#a8f4ff', { glow: true });
+      S.eye(8.5, 44, 2.4, 3, ps).eye(15, 44, 2.7, 3.2, ps);
+      S.C(3, 49.5, 10, 50, 0.7, INK, X(F, { flat: true }));
+    },
+    // ---------- ELEKTRO: Laternchen -> Totenleuchte (Glühwurm -> Lichtmotte) ----------
+    laternchen(S) {
+      const [b, b2, m, gl] = PAL.Elektro;
+      S.E(44, 30, 9, 5, '#c8d4f0', { rot: -0.7, alpha: 0.6, g: 'wg' }).E(34, 28, 8, 4.4, '#c8d4f0', { rot: -0.9, alpha: 0.6, g: 'wg' });
+      S.E(42, 44, 12, 10, gl, { glow: true, name: 'lamp', g: 'lamp' });          // Leuchtleib
+      S.E(43, 44, 6, 6, '#fff8d8', { glow: true, clip: 'lamp' });
+      for (const x of [36, 42, 48]) S.R(x, 34, 1.2, 20, b2, { clip: 'lamp', flat: true, line: false });  // Laternengitter
+      S.R(40, 54, 6, 3, b2);
+      S.E(26, 42, 9, 8, b, { name: 'body', g: 'body' });
+      S.C(22, 49, 19, 57, 1.4, b2, { g: 'legF' }).C(28, 50, 28, 58, 1.4, b2, { g: 'legF' }).C(33, 49, 36, 57, 1.4, b2, { g: 'legB' });
+      S.E(16, 34, 10, 9, m, { name: 'head', g: 'head' });                        // bleiche Maske
+      S.P([[12, 26], [9, 19], [13, 16], [9, 9]], b2, { line: false }).P([[20, 26], [22, 18], [18, 15], [22, 8]], b2, { line: false });
+      S.C(12, 26, 10, 18, 0.8, b2).C(10, 18, 13, 15, 0.8, b2).C(13, 15, 9, 9, 0.8, b2);     // Zickzack-Fühler
+      S.C(20, 26, 22, 18, 0.8, b2).C(22, 18, 18, 15, 0.8, b2).C(18, 15, 22, 8, 0.8, b2);
+      S.E(9, 9, 1.8, 1.8, gl, { glow: true }).E(22, 8, 1.8, 1.8, gl, { glow: true });
+      S.eye(12, 34, 2.6, 3.4, INK, { white: 0 }).eye(19.5, 34, 2.8, 3.6, INK, { white: 0 });
+      S.C(12, 39.5, 16, 40, 0.7, b2, X(F, { flat: true }));
+    },
+    totenleuchte(S) {
+      const [b, b2, m, gl] = PAL.Elektro, ps = PAL.Psycho[3];
+      S.P([[34, 30], [56, 6], [63, 20], [58, 36], [44, 40]], '#b8b4e8', { alpha: 0.7, name: 'wing', g: 'wing' });   // Schleierflügel
+      for (const [x, y] of [[56, 6], [63, 20], [58, 36]]) S.C(36, 31, x, y, 0.8, gl, { clip: 'wing', glow: true, flat: true, line: false });
+      S.C(34, 40, 34, 46, 0.8, b2);
+      S.E(34, 52, 8, 7, gl, { glow: true, name: 'lamp', g: 'lamp' }); S.E(34, 52, 4, 4, '#fff8d8', { glow: true, clip: 'lamp' });
+      S.R(29, 44, 10, 2.4, b2).R(31, 58, 6, 2, b2);
+      S.E(30, 32, 10, 9, b, { name: 'body', g: 'body' });
+      S.P([[22, 36], [30, 44], [38, 36]], b2, X(F, { clip: 'body', line: false }));
+      S.E(18, 22, 10, 9, m, { name: 'head', g: 'head' });
+      S.E(18, 11, 9, 2.6, ps, { glow: true, alpha: 0.75, line: false });          // Heiligenschein (Psycho)
+      S.C(14, 14, 10, 7, 0.8, b2).C(10, 7, 14, 4, 0.8, b2).C(22, 14, 25, 7, 0.8, b2).C(25, 7, 22, 3, 0.8, b2);
+      S.E(14, 4, 1.6, 1.6, gl, { glow: true }).E(22, 3, 1.6, 1.6, gl, { glow: true });
+      S.eye(14, 22, 2.4, 3.6, ps).eye(21.5, 22, 2.6, 3.8, ps);
+      S.E(4, 40, 1, 1, gl, { glow: true }).E(8, 48, 0.8, 0.8, gl, { glow: true });
+    },
+    // ---------- PFLANZE: Kleeling -> Moorranke ----------
+    kleeling(S) {
+      const [b, b2, m, gl] = PAL.Pflanze;
+      S.C(32, 46, 40, 34, 1.4, b2, { g: 'tail' }); S.E(41, 32, 3, 2, b, { rot: -0.6, g: 'tail' });     // Ranken-Schwänzchen
+      S.C(28, 48, 24, 59, 1.6, b2, { g: 'legF' }).C(34, 48, 37, 59, 1.6, b2, { g: 'legB' });
+      S.E(23, 59.4, 3, 1.2, b2).E(38, 59.4, 3, 1.2, b2);
+      for (const [x, y, r] of [[22, 22, -0.6], [38, 22, 0.6], [22, 38, 0.6], [38, 38, -0.6]]) S.E(x, y, 10, 8, x < 30 ? b : '#72ae64', { rot: r, g: 'leaf' });  // 4 Blatt-Herzen
+      S.C(30, 12, 30, 48, 0.6, b2, { flat: true, line: false });
+      S.E(29, 30, 9, 8.5, m, { name: 'head', g: 'head' });                           // Maske in der Mitte
+      S.eye(25.5, 30, 2.2, 3, '#4a8a3e').eye(32, 30, 2.4, 3.2, '#4a8a3e');
+      S.C(26, 35, 30, 35.4, 0.7, INK, X(F, { flat: true }));
+      S.E(43, 12, 1.8, 2.4, gl, { glow: true, g: 'dew' });                           // Glückstau
+    },
+    moorranke(S) {
+      const [b, b2, m, gl] = PAL.Pflanze, [, , , gg] = PAL.Gift;
+      S.P([[40, 60], [41, 34], [47, 30], [53, 34], [54, 60]], '#6a6676', { name: 'grave' });     // kleiner Grabstein
+      S.C(44, 40, 50, 40, 0.8, '#4a4656', { clip: 'grave', flat: true, line: false }).C(47, 36, 47, 46, 0.8, '#4a4656', { clip: 'grave', flat: true, line: false });
+      S.C(26, 59, 36, 50, 2.6, b2, { g: 'vine' }).C(36, 50, 50, 54, 2.4, b2, { g: 'vine' }).C(50, 54, 52, 42, 2, b2, { g: 'vine' }).C(52, 42, 42, 38, 1.8, b2, { g: 'vine' });
+      S.C(26, 59, 22, 40, 3.6, b, { name: 'stem', g: 'stem' }).C(22, 40, 24, 30, 3, b, { g: 'stem' });
+      for (const [x, y, r] of [[30, 48, 0.7], [16, 44, -0.6], [33, 34, 0.5]]) S.E(x, y, 5, 2.6, '#72ae64', { rot: r, g: 'leaf' });
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; S.E(22 + Math.cos(a) * 9, 22 + Math.sin(a) * 8, 6, 4, i % 2 ? '#9a5aaa' : '#7a4e8c', { rot: a, g: 'petal' }); }  // Giftblüte
+      S.E(22, 22, 8, 7.5, m, { name: 'head', g: 'head' });
+      S.eye(19, 22, 2, 2.8, gg).eye(25, 22, 2.2, 3, gg);
+      S.C(19, 26.5, 24, 26, 0.6, INK, X(F, { flat: true }));
+      S.E(12, 34, 1.4, 2, gg, { glow: true, g: 'drip' }).E(31, 32, 1.1, 1.6, gg, { glow: true, g: 'drip' }); // Gifttropfen
+      mist(S, 10, 58, 40, '#9ab8a0');
+    },
+    // ---------- DUNKEL/STEIN: Grottenmaul ----------
+    grottenmaul(S) {
+      const [b, b2, m, gl] = PAL.Dunkel;
+      S.P([[4, 60], [8, 30], [18, 14], [34, 8], [50, 14], [60, 32], [62, 60]], '#4a4656', { name: 'rock' });   // kantiger Höhlenfels
+      S.P([[34, 8], [50, 14], [60, 32], [62, 60], [48, 60], [46, 24]], '#38343f', { clip: 'rock', flat: true, line: false });
+      S.P([[14, 58], [16, 36], [30, 28], [46, 34], [50, 58]], '#120e18', { name: 'maw' });                    // Schlund
+      S.E(32, 50, 10, 6, gl, { glow: true, alpha: 0.6, clip: 'maw', line: false });                         // Glut im Schlund
+      for (const [x, h] of [[20, 8], [27, 11], [34, 10], [41, 9]]) S.P([[x - 2.6, 32], [x, 32 + h], [x + 2.6, 32]], m, { clip: 'maw' });  // Tropfstein-Zähne
+      for (const [x, h] of [[22, 6], [32, 7], [42, 5]]) S.P([[x - 2.4, 58], [x, 58 - h], [x + 2.4, 58]], m, { clip: 'maw' });
+      S.eye(24, 22, 2.6, 2.2, gl, { white: 0 }).eye(38, 22, 2.8, 2.4, gl, { white: 0 });
+      S.C(19, 18, 28, 20, 1, b2, X(F, { flat: true })).C(34, 20, 43, 18, 1, b2, X(F, { flat: true }));
+      S.P([[50, 14], [54, 4], [56, 18]], '#5a5668').P([[12, 22], [8, 12], [17, 17]], '#5a5668');
+      S.E(56, 8, 1, 1, gl, { glow: true }).E(6, 40, 0.8, 0.8, gl, { glow: true });
+    },
+    // ---------- BODEN: Torfwicht ----------
+    torfwicht(S) {
+      const [b, b2, m, gl] = PAL.Boden;
+      S.E(32, 58, 22, 3, '#3a2c20', { line: false });                                // Erdhügel
+      S.E(34, 46, 15, 13, b, { name: 'body', g: 'body' });
+      S.E(31, 50, 9, 8, '#a68660', X(F, { clip: 'body', line: false }));
+      S.R(20, 22, 26, 9, '#4a3624', { name: 'peat', g: 'hat' }); S.R(22, 16, 22, 7, '#5c4430', { g: 'hat' });   // Torfziegel-Hut
+      S.C(22, 22, 44, 22, 0.6, '#2e2218', { flat: true, line: false });
+      S.C(40, 14, 44, 6, 0.8, '#7aa060').E(45, 5, 2, 1.4, '#8ac070', { rot: -0.5 });              // Spross auf dem Torf
+      S.E(28, 36, 11, 8, m, { name: 'head', g: 'head' });                            // bleiche Wichtmaske mit Rüssel
+      S.E(16, 39, 4, 3, '#e8a0a0', X(F, { flat: false }));
+      S.eye(25, 34, 1.8, 2.2, INK, { white: 0 }).eye(31, 34, 2, 2.4, INK, { white: 0 });
+      for (const [x, d] of [[18, -1], [44, 1]]) { S.E(x, 52, 5, 4, '#f0c8b0', { g: 'claw' }); for (const k of [-2, 0, 2]) S.C(x + k, 55, x + k + d * 1.5, 58.5, 0.8, '#e8e0d0'); }  // Grabkrallen
+      S.E(10, 30, 1.6, 1.6, gl, { glow: true }).E(52, 24, 1.2, 1.2, gl, { glow: true }).E(48, 54, 1, 1, gl, { glow: true });  // verlorene Funkeldinge
+      S.C(54, 56, 60, 52, 1, gl, { glow: true });
+    },
+    // ---------- ELEKTRO: Funkmaus (weg vom bekannten gelben Vorbild) ----------
+    funkmaus(S) {
+      const [b, b2, m, gl] = PAL.Elektro, cu = '#d08a4a';
+      S.C(44, 54, 54, 50, 1.2, cu, { g: 'tail' }).C(54, 50, 52, 42, 1.2, cu, { g: 'tail' }).C(52, 42, 60, 38, 1.2, cu, { g: 'tail' }).C(60, 38, 57, 30, 1.2, cu, { g: 'tail' });  // Kupferdraht-Schwanz
+      S.E(57, 28, 2.4, 2.4, gl, { glow: true, g: 'tail' }).E(57, 28, 1.2, 1.2, '#fffbe0', { glow: true, g: 'tail' });
+      S.E(34, 50, 12, 8, b, { name: 'body', g: 'body' });
+      S.E(30, 53, 7, 4, m, X(F, { clip: 'body', line: false }));
+      S.C(27, 55, 26, 59, 2.6, b2, { g: 'legF' }).C(38, 55, 39, 59, 2.6, b2, { g: 'legF' });
+      S.E(22, 26, 4.4, 9, b, { rot: -0.25, name: 'earL', g: 'ear' }).E(22, 26, 2.2, 6.4, '#8a7ab8', { rot: -0.25, clip: 'earL', line: false });   // lange, spitze Ohren
+      S.E(30, 25, 4.6, 9.5, b, { rot: 0.25, name: 'earR', g: 'ear' }).E(30, 25, 2.3, 6.8, '#8a7ab8', { rot: 0.25, clip: 'earR', line: false });
+      S.E(22, 39, 11, 9, b, { name: 'head', g: 'head' });
+      S.E(16, 42, 6, 4.4, m, X(F, { clip: 'head', line: false }));
+      S.eye(18, 37, 2.4, 3.2, gl).eye(25.5, 37, 2.6, 3.4, gl);
+      S.E(11, 41, 1.3, 1.1, INK, X(F, { flat: true }));
+      for (const [y, dy] of [[42, -3], [44, 0], [46, 3]]) S.C(10, y, 2, y + dy, 0.5, gl, X(F, { glow: true }));   // knisternde Schnurrhaare
+    },
+    // ---------- NORMAL: Tauhase ----------
+    tauhase(S) {
+      const [b, b2, m, gl] = PAL.Normal;
+      mist(S, 34, 56, 30, '#dfe6f4');                                                // Hinterleib löst sich in Tau-Nebel
+      S.E(38, 48, 13, 9, b, { name: 'body', g: 'body', alpha: 0.95 });
+      S.P([[46, 46], [62, 50], [50, 56]], b, { alpha: 0.55, line: false, g: 'body' });
+      S.E(32, 52, 7, 5, m, X(F, { clip: 'body', line: false }));
+      S.C(28, 54, 24, 59, 2.4, b2, { g: 'legF' }).C(34, 55, 33, 59, 2.4, b2, { g: 'legF' });
+      S.E(25, 18, 3.6, 12, b, { rot: -0.15, name: 'earL', g: 'ear' }).E(32, 19, 3.8, 12.5, b, { rot: 0.35, name: 'earR', g: 'ear' });
+      S.E(25, 18, 1.6, 8, '#e8d8f0', { rot: -0.15, clip: 'earL', line: false }).E(32, 19, 1.7, 8.5, '#e8d8f0', { rot: 0.35, clip: 'earR', line: false });
+      S.E(23, 7, 1.6, 2.2, gl, { glow: true, g: 'ear' }).E(37, 8, 1.6, 2.2, gl, { glow: true, g: 'ear' });   // Tautropfen an den Ohrspitzen
+      S.E(22, 37, 10, 8.5, m, { name: 'head', g: 'head' });
+      S.eye(18, 35, 2.4, 3.2, '#6a8ac8').eye(25, 35, 2.6, 3.4, '#6a8ac8');
+      S.E(13, 39, 1.3, 1, '#d89aa8', X(F, { flat: true }));
+      for (const [x, y] of [[8, 54], [14, 58], [4, 48]]) S.E(x, y, 0.9, 0.9, gl, { glow: true });
+    },
+    // ---------- GIFT: Schlickaal ----------
+    schlickaal(S) {
+      const [b, b2, m, gl] = PAL.Gift;
+      S.E(36, 58, 22, 3.4, '#3a3a2c', { line: false }).E(36, 58, 16, 2, '#5a6a3a', { alpha: 0.7, line: false });   // Schlickpfütze
+      S.C(48, 58, 52, 46, 5, b2, { g: 'b1' }).C(52, 46, 42, 36, 5, b, { g: 'b2' }).C(42, 36, 28, 32, 4.6, b, { g: 'b3' });   // S-Kurve aus dem Schlick
+      S.P([[50, 52], [60, 44], [56, 38], [54, 44]], '#9a6aaa', { alpha: 0.85, g: 'fin' }).P([[44, 34], [48, 24], [38, 30]], '#9a6aaa', { alpha: 0.85, g: 'fin' });   // Rüschenflossen
+      for (const [x, y] of [[50, 50], [48, 41], [40, 35], [33, 32]]) S.E(x, y, 1.4, 1.4, gl, { glow: true });
+      S.E(20, 30, 10, 7, b, { name: 'head', g: 'head' });
+      S.E(17, 34, 8, 2.6, m, X(F, { clip: 'head', line: false }));
+      S.eye(16, 28, 2.2, 2.8, gl).eye(22, 28, 2.4, 3, gl);
+      S.C(10, 32, 16, 33, 0.8, INK, X(F, { flat: true }));
+      S.C(10, 32, 8, 38, 0.7, '#9a6aaa').C(13, 33, 13, 39, 0.7, '#9a6aaa');          // Barteln
+      S.E(8, 41, 1.2, 1.8, gl, { glow: true, g: 'drip' });
+    },
+    // ---------- DRACHE/WASSER: Brunnendrache (Drache dominiert, Brunnen nur als Ring) ----------
+    brunnendrache(S) {
+      const [b, b2, m, gl] = PAL.Wasser;
+      S.C(38, 50, 46, 34, 6, b2, { g: 'neck' }).C(46, 34, 40, 20, 5, b, { g: 'neck' });   // Hals windet sich aus dem Brunnen
+      for (const [x, y] of [[48, 38], [47, 30], [44, 22]]) S.P([[x, y - 3], [x + 7, y], [x, y + 3]], '#7ad0e8', { alpha: 0.85, g: 'fin' });   // Wassermähne
+      S.P([[36, 14], [44, 2], [42, 16]], m).P([[28, 14], [30, 4], [34, 14]], m);      // Hörner
+      S.E(30, 20, 11, 8, b, { name: 'head', g: 'head' }).E(18, 23, 7, 4.4, b, { g: 'head' });
+      S.E(20, 26, 9, 2.4, m, X(F, { clip: 'head', line: false }));
+      S.eye(25, 18, 2.4, 3, gl).eye(32, 18, 2.6, 3.2, gl);
+      S.E(12, 22, 1.2, 1, INK, X(F, { flat: true }));
+      S.C(12, 25, 4, 32, 0.8, '#7ad0e8', { glow: true }).C(4, 32, 6, 38, 0.8, '#7ad0e8', { glow: true });   // Wasserbart
+      S.E(34, 49, 22, 6, '#1a3a50', { name: 'water' }); S.E(34, 48, 18, 3.4, gl, { glow: true, alpha: 0.55, clip: 'water', line: false });
+      S.P([[12, 50], [14, 60], [54, 60], [56, 50], [48, 54], [20, 54]], '#7a7e8a', { name: 'ring' });   // niedriger Brunnenring
+      for (const x of [20, 30, 40, 50]) S.C(x, 55, x, 60, 0.6, '#5c6070', { clip: 'ring', flat: true, line: false });
+      S.C(12, 50, 56, 50, 1.6, '#9a9eaa');
+      S.C(34, 40, 30, 34, 3, b2, { g: 'neck' }).E(28, 33, 2, 1.4, '#7ad0e8', { glow: true });  // Klaue am Rand
+    },
+    moorlurch(S) { // Wasser: flacher Molch, Flossenkamm, glimmende Seelenflecken
+      const [b, b2, m, gl] = PAL.Wasser;
+      S.P([[40, 50], [54, 44], [63, 38], [60, 50], [46, 56]], '#6aa8c8', { alpha: 0.8, g: 'tail' });     // Schwanzflosse
+      S.C(40, 52, 58, 46, 4, b2, { g: 'tail' });
+      S.P([[18, 42], [26, 36], [34, 38], [42, 40], [48, 44], [30, 46]], '#6aa8c8', { alpha: 0.85, g: 'crest' });   // Rückenkamm
+      S.C(42, 54, 46, 59, 2.6, b2, { g: 'legB' });
+      S.E(30, 50, 15, 7, b, { name: 'body', g: 'body' });
+      S.E(28, 54, 11, 3, m, X(F, { clip: 'body', line: false }));
+      for (const [x, y] of [[26, 46], [33, 45], [40, 48]]) S.E(x, y, 1.5, 1.5, gl, { glow: true });
+      S.C(22, 55, 18, 59, 2.6, b, { g: 'legF' }).C(34, 55, 34, 59, 2.6, b, { g: 'legF' });
+      S.E(12, 49, 10, 6.5, m, { name: 'head', g: 'head' });
+      S.C(4, 47, 1, 43, 0.8, '#6aa8c8').C(6, 45, 5, 40, 0.8, '#6aa8c8');                                   // Kiemenbüschel
+      S.eye(9, 47, 2.2, 2.8, gl).eye(15, 47, 2.4, 3, gl);
+      S.C(4, 52, 11, 52.5, 0.7, INK, X(F, { flat: true }));
+      mist(S, 8, 59, 40, '#9ac8e0');
+    },
+    moorunke(S) { // Wasser/Gift: aufrecht sitzend, Glockenkehle, Giftwarzen, Kamm bleibt
+      const [b, b2, m, gl] = PAL.Wasser, gg = PAL.Gift[3];
+      S.P([[32, 26], [38, 21], [46, 23], [52, 30], [54, 38], [48, 32], [40, 27]], '#6aa8c8', { alpha: 0.8, g: 'crest' });   // schmaler Kamm
+      S.E(46, 54, 9, 6, b2, { g: 'legB' });
+      S.E(36, 42, 16, 17, b, { name: 'body', g: 'body' });
+      for (const [x, y] of [[40, 30], [46, 38], [44, 47], [34, 34]]) S.E(x, y, 1.6, 1.6, gg, { glow: true });   // Giftwarzen
+      S.E(24, 46, 9, 8, '#d8c8f0', X(F, { name: 'sac', g: 'sac' }));                                         // Glockenkehle
+      S.C(20, 42, 28, 42, 0.6, '#9a88c8', X(F, { clip: 'sac', flat: true, line: false })).C(19, 47, 29, 47, 0.6, '#9a88c8', X(F, { clip: 'sac', flat: true, line: false }));
+      S.C(26, 54, 20, 59, 3, b, { g: 'legF' }).C(36, 56, 34, 59, 3, b, { g: 'legF' });
+      S.E(24, 30, 12, 9, m, { name: 'head', g: 'head' });
+      S.E(18, 24, 4, 4, m, { g: 'head' }).E(29, 23, 4.4, 4.4, m, { g: 'head' });
+      S.eye(18, 24, 2.4, 2.8, gg).eye(29, 23, 2.6, 3, gg);
+      S.C(14, 33, 30, 34, 0.8, INK, X(F, { flat: true }));
+      S.E(10, 36, 1.2, 1.8, gl, { glow: true }).E(6, 28, 0.9, 0.9, gl, { glow: true });                    // Ton-Wellen
+      mist(S, 14, 59, 44, '#9ac8e0');
+    },
+    kieselkroete(S) { // Stein: breit und kantig, Plattenrücken, Rune
+      const [b, b2, m, gl] = PAL.Stein;
+      S.P([[6, 58], [10, 42], [22, 32], [42, 30], [56, 38], [60, 58]], b, { name: 'body', g: 'body' });
+      for (const [x1, y1, x2, y2] of [[24, 32, 28, 46], [42, 31, 40, 46], [12, 46, 58, 46]]) S.C(x1, y1, x2, y2, 0.8, b2, { clip: 'body', flat: true, line: false });
+      S.P([[30, 34], [36, 28], [42, 34], [36, 38]], '#b0b2bc', { g: 'plate' });
+      S.C(34, 31, 38, 35, 0.7, gl, { glow: true }).C(38, 31, 34, 35, 0.7, gl, { glow: true });
+      S.P([[8, 58], [12, 52], [22, 52], [24, 58]], b2, { g: 'legF' }).P([[44, 58], [46, 52], [56, 52], [58, 58]], b2, { g: 'legF' });
+      S.P([[10, 50], [14, 40], [28, 38], [32, 50]], m, X(F, { name: 'head', g: 'head' }));                 // kantige Maske
+      S.eye(16, 43, 2.2, 2.6, gl).eye(25, 43, 2.4, 2.8, gl);
+      S.C(13, 48, 29, 48, 0.8, INK, X(F, { flat: true }));
+      S.E(52, 30, 0.9, 0.9, gl, { glow: true }).E(4, 38, 0.8, 0.8, gl, { glow: true });
+      mist(S, 34, 59, 30, '#b8c4cc');   // Nebelteil: Steinstaub-Schleier hinter der Kröte
+    },
+    pechunke(S) { // Dunkel/Gift: kleiner runder Teertropfen mit Kapuzenspitzen
+      const [b, b2, m, gl] = PAL.Dunkel, gg = PAL.Gift[3];
+      S.E(32, 59, 16, 2.4, '#141018', { line: false });                                                   // Teerlache
+      S.E(32, 48, 13, 11, b, { name: 'body', g: 'body' });
+      S.P([[22, 40], [20, 30], [28, 37]], b2).P([[42, 40], [44, 30], [36, 37]], b2);                      // Kapuzenspitzen
+      for (const [x, l] of [[24, 5], [38, 7], [44, 4]]) S.C(x, 56, x, 56 + l, 1.4, b2, { g: 'drip' });
+      S.E(32, 50, 9, 6, m, X(F, { clip: 'body', line: false }));
+      S.eye(28, 48, 2.2, 1.6, gl, { white: 0 }).eye(36, 48, 2.2, 1.6, gl, { white: 0 });                // Augenschlitze
+      S.C(29, 53, 35, 53, 0.6, INK, X(F, { flat: true }));
+      S.E(46, 42, 1.4, 2, gg, { glow: true, g: 'drip' });
+      mist(S, 16, 58, 32, '#6a6080');
+    },
+    teerkroete(S) { // Dunkel/Gift: hoher Teerhügel mit Zackenkrone, Giftblasen
+      const [b, b2, m, gl] = PAL.Dunkel, gg = PAL.Gift[3];
+      S.E(32, 59, 26, 3, '#141018', { line: false });
+      S.P([[8, 58], [12, 34], [20, 20], [32, 14], [44, 20], [52, 34], [56, 58]], b, { name: 'body', g: 'body' });
+      for (const [x, h] of [[18, 12], [26, 16], [32, 20], [38, 16], [46, 12]]) S.P([[x - 3, 22 - (x === 32 ? 6 : 0) + 4], [x, 22 - h], [x + 3, 26]], b2, { g: 'crown' });   // Zackenkrone
+      for (const [x, y, r] of [[44, 34, 2.4], [48, 44, 1.8], [16, 40, 2]]) S.E(x, y, r, r, gg, { glow: true, g: 'bub' });   // Giftblasen
+      for (const [x, l] of [[14, 4], [22, 6], [42, 7], [52, 4]]) S.C(x, 56, x, 56 + l, 1.6, b2, { g: 'drip' });
+      S.E(30, 38, 14, 11, m, X(F, { name: 'head', g: 'head' }));
+      S.eye(24, 35, 2.8, 1.8, gl, { white: 0 }).eye(36, 35, 2.8, 1.8, gl, { white: 0 });
+      S.C(20, 43, 40, 43, 1, INK, X(F, { flat: true }));
+      for (const x of [24, 30, 36]) S.P([[x - 1.4, 43], [x, 46], [x + 1.4, 43]], m, X(F, {}));
+      S.E(32, 8, 1.2, 1.2, gl, { glow: true });
+      mist(S, 6, 58, 50, '#6a6080');
+    },
+  });
+  Object.assign(DD.TEX, { kieselgeist: 'stone', menhirgeist: 'stone', tropfsteinmolch: 'stone', kristallmolch: 'dots', funkmaus: 'fuzz', tauhase: 'fur', torfwicht: 'fur', grottenmaul: 'stone', schlickaal: 'dots', brunnendrache: 'dots', laternchen: null, totenleuchte: null, kleeling: null, moorranke: null, moorlurch: 'dots', moorunke: 'dots', kieselkroete: 'stone', pechunke: null, teerkroete: 'dots' });
+})();
+
 Object.assign(G.Creatures.DEF, DD.DEF); Object.assign(G.Creatures.TEX, DD.TEX);

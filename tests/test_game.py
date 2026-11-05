@@ -77,7 +77,8 @@ class Drv:
             elif k == 'choose':
                 labs = await self.labels()
                 if labs and labs[0] == 'Kampf': await self.pick('Kampf')
-                elif any('AP ' in l for l in labs): await self.p.evaluate("[...document.querySelectorAll('#choices .ch')].find(e=>!e.classList.contains('disabled')).click()")
+                # v24: Starter haben ab Lv1 eine Status-Attacke vorne – Auto-Kampf wählt die erste Schadensattacke
+                elif any('AP ' in l for l in labs): await self.p.evaluate("(()=>{const c=[...document.querySelectorAll('#choices .ch')].filter(e=>!e.classList.contains('disabled')); (c.find(e=>Object.values(G.MOVES).some(M=>M.power&&e.textContent.startsWith(M.name)))||c[0]).click();})()")   # v24: erste Schadensattacke (Starter haben ab Lv 1 eine Taktik-Attacke vorne)
                 elif any(l.startswith('Vergessen') for l in labs): await self.B()
                 else: await self.p.evaluate("document.querySelector('#choices .ch:not(.disabled)').click()")
             await self.p.wait_for_timeout(100)

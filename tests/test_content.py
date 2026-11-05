@@ -53,7 +53,7 @@ async def main():
         await ev("void G.debug.wild('raufdachs', 8)"); await pg.wait_for_timeout(3000)
         fx = []
         for t in T:
-            n = await ev(f"(async()=>{{G.B.parts.length=0; await G.Battle.fx.attackFx('{t}','ally','enemy',false,2); return G.B.parts.length}})()")
+            n = await ev(f"(async()=>{{G.B.parts.length=0; let mx=0; const iv=setInterval(()=>{{mx=Math.max(mx,G.B.parts.length);}},5); await G.Battle.fx.attackFx('{t}','ally','enemy',false,2); clearInterval(iv); return Math.max(mx,G.B.parts.length)}})()")
             fx.append((t, n))
         check(all(n > 0 for _, n in fx), "Kampfeffekte für alle 8 Typen erzeugen Partikel " + json.dumps(fx))
         sfx = await ev("(()=>{const bad=[]; for(const t of G.TYPES){ try{ G.Snd.sfx('hit_'+t) } catch(e){ bad.push(t) } } for(const n of ['hammer','creak','splash']) try{G.Snd.sfx(n,null,0.5)}catch(e){bad.push(n)} return bad })()")
@@ -129,11 +129,13 @@ async def main():
         bsts = [x[1] for x in bal]
         check(max(bsts) - min(bsts) <= 6 and all(x[2] and x[3] >= 1 and x[4] >= 2 and x[5] == 14 for x in bal), f"Starter vergleichbar: Basiswerte ±6, Lv 5 nur typenlose Attacken, ab Lv 8 eine STAB-Schadensattacke, Entwicklung Lv 14 {bal}")
         fenn = await ev("""G.STARTERS.map(sp=>{G.state.starter=sp; return [sp, G.trainerTeam('fenn').map(e=>e.join(':')).join(','), G.TRAINERS.fenn.intro.join(' ').includes(G.SPECIES[G.trainerTeam('fenn')[1][0]].name)];})""")
-        check([f[1] for f in fenn] == ['laternchen:5,moorlurch:6', 'laternchen:5,kleeling:6', 'laternchen:5,flackerling:6'] and all(f[2] for f in fenn),
+        # v24 Fenn: weichere Nebelgras-Konter statt Typ-Dreieck (moorlurch/kleeling/flackerling)
+        check([f[1] for f in fenn] == ['laternchen:5,moosschnecke:6', 'laternchen:5,nebelkauz:6', 'laternchen:5,schattenmotte:6'] and all(f[2] for f in fenn),
               f"Fenn passt sein Team an den Starter an und nennt seinen Geist {fenn}")
         old = await ev("""(()=>{const s=G.migrate({v:2,map:'dorf',player:{x:16,y:8,dir:'down'},team:[{sp:'menhirgeist',lvl:15,moves:['rempler','kieselhagel'],hp:30}],box:[],items:{},flags:{q1:2}});
           const keep=s.team[0].sp; G.state=s; return [keep, s.starter, G.trainerTeam('fenn')[1][0]];})()""")
-        check(old == ['menhirgeist', 'kieselgeist', 'flackerling'], f"Alter Spielstand mit Kieselgeist-Linie: Geister bleiben, Starter-Linie vermerkt, Fenn passend {old}")
+        # v24 Fenn: Kieselgeist-Linie → Schattenmotte (statt Flackerling)
+        check(old == ['menhirgeist', 'kieselgeist', 'schattenmotte'], f"Alter Spielstand mit Kieselgeist-Linie: Geister bleiben, Starter-Linie vermerkt, Fenn passend {old}")
         # --- Typenlose Attacken im frühen Spiel (Kevin: Typ-Attacken erst ab Lv 8/9) ---
         neu = await ev("""(()=>{const bad=[];
           for (const [k,s] of Object.entries(G.SPECIES)) for (const [l,id] of s.learn) if (l<8 && !G.isNeutral(id)) bad.push(k+':'+l+':'+id);
